@@ -55,16 +55,11 @@ body.embedded header { padding-top:64px }
  opacity:.75; transition:opacity .15s, background .15s }
 .vnav:hover { opacity:1 }
 #vprev { left:7px } #vnext { right:7px }
-.vpill { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:60;
- display:flex; gap:12px; align-items:center; max-width:80vw;
- background:linear-gradient(180deg, rgba(34,40,51,.62), rgba(16,19,25,.58)); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
- border:1px solid rgba(255,255,255,.2); box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
- border-radius:999px; padding:8px 18px;
- font-size:.82rem; color:#c8ccd6 }
-#vnum { color:var(--acc); font-variant-numeric:tabular-nums; white-space:nowrap }
-#vtitle { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.vpill button { background:none; border:0; color:var(--dim); cursor:pointer; font-size:1rem; padding:2px 4px }
-.vpill button:hover { color:var(--acc) }
+.vx { position:fixed; top:10px; right:7px; z-index:60; width:34px; height:34px; border-radius:10px;
+ background:linear-gradient(180deg, rgba(38,44,56,.62), rgba(18,21,28,.55)); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+ border:1px solid rgba(255,255,255,.22); box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.18);
+ color:#f2f0eb; font-size:1rem; cursor:pointer; opacity:.75; transition:opacity .15s }
+.vx:hover { opacity:1 }
 </style></head><body>
 <header>
  <div class="num">ROBAS LAB · EXPERIMENT 001 · NOV 2026</div>
@@ -85,7 +80,7 @@ body.embedded header { padding-top:64px }
 <main id="grid"></main>
 <div id="viewer"><iframe id="vframe" allow="autoplay"></iframe>
  <button id="vprev" class="vnav" aria-label="vorige">←</button><button id="vnext" class="vnav" aria-label="volgende">→</button>
- <div class="vpill"><span id="vnum"></span><span id="vtitle"></span><button id="vopen" title="in nieuw tabblad openen">↗</button><button id="vclose" aria-label="sluiten">✕</button></div>
+ <button id="vclose" class="vx" aria-label="sluiten">✕</button>
 </div>
 <footer>
  <p><b>NL</b> — Bedacht en aangestuurd door Robert Dingenouts (Robas Lab). Het model (Qwen3.8-Flash-Next, UD-IQ3_XXS
@@ -132,21 +127,20 @@ document.getElementById('q').addEventListener('input',function(e){
 /* ── viewer: doorklikmodus ── */
 if (window.self !== window.top) document.body.classList.add('embedded');
 var viewer=document.getElementById('viewer'), frame=document.getElementById('vframe');
-var vnum=document.getElementById('vnum'), vtitle=document.getElementById('vtitle');
 var cur=-1;
 function show(n){
  cur=(n+DATA.length)%DATA.length; var it=DATA[cur];
  frame.src='out/'+it.file;
- vnum.textContent='#'+it.n+' · '+(cur+1)+'/'+DATA.length;
- vtitle.textContent=it.title;
  viewer.classList.add('on');
  location.hash=it.n;
  document.body.style.overflow='hidden';
 }
 function hide(){
  viewer.classList.remove('on'); frame.src='about:blank';
- document.body.style.overflow=''; location.hash='';
+ document.body.style.overflow='';
+ if(location.hash) location.hash='';
 }
+window.addEventListener('hashchange',function(){ if(viewer.classList.contains('on') && !/^[0-9]{3}$/.test(location.hash.replace('#',''))) hide(); });
 document.addEventListener('click',function(e){
  var a=e.target.closest('[data-open]');
  if(a){ e.preventDefault(); var i=DATA.findIndex(function(x){return x.n===a.getAttribute('data-open');}); if(i>=0) show(i); }
@@ -160,7 +154,6 @@ document.addEventListener('keydown',function(e){
 document.getElementById('vclose').addEventListener('click',hide);
 document.getElementById('vprev').addEventListener('click',function(){show(cur-1)});
 document.getElementById('vnext').addEventListener('click',function(){show(cur+1)});
-document.getElementById('vopen').addEventListener('click',function(){ if(DATA[cur]) window.open('out/'+DATA[cur].file,'_blank','noopener'); });
 var h=location.hash.replace('#','');
 if(/^[0-9]{3}$/.test(h)){ var i0=DATA.findIndex(function(x){return x.n===h;}); if(i0>=0) show(i0); }
 </script></body></html>

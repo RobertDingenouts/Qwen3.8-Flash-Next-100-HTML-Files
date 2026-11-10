@@ -1,0 +1,22 @@
+const puppeteer = require('./node_modules/puppeteer-core');
+(async () => {
+  const b = await puppeteer.launch({ executablePath:'/usr/bin/google-chrome-stable', headless:'new', args:['--no-sandbox','--disable-gpu'] });
+  const p = await b.newPage();
+  const errs=[]; p.on('pageerror',e=>errs.push(e.message.slice(0,120)));
+  await p.setViewport({width:390,height:780,deviceScaleFactor:2,isMobile:true,hasTouch:true});
+  await p.goto('http://localhost:8178/index.html'); await new Promise(r=>setTimeout(r,1200));
+  await p.tap('a[data-open="005"]'); await new Promise(r=>setTimeout(r,1400));
+  const on = await p.evaluate(()=>({on:document.getElementById('viewer').classList.contains('on'), src:document.getElementById('vframe').src, pill:!!document.querySelector('.vpill')}));
+  console.log('open:', JSON.stringify(on));
+  await p.tap('#vnext'); await new Promise(r=>setTimeout(r,1000));
+  console.log('na volgende src:', await p.evaluate(()=>document.getElementById('vframe').src));
+  await p.tap('#vclose'); await new Promise(r=>setTimeout(r,400));
+  console.log('x gesloten:', await p.evaluate(()=>!document.getElementById('viewer').classList.contains('on')));
+  await p.tap('a[data-open="005"]'); await new Promise(r=>setTimeout(r,900));
+  await p.evaluate(()=>history.back()); await new Promise(r=>setTimeout(r,600));
+  console.log('back sluit:', await p.evaluate(()=>!document.getElementById('viewer').classList.contains('on')));
+  await p.tap('a[data-open="005"]'); await new Promise(r=>setTimeout(r,1300));
+  await p.screenshot({path:'mobiel-viewer.png'});
+  console.log('pageerrors:', errs.length?errs:'geen');
+  await b.close();
+})();
