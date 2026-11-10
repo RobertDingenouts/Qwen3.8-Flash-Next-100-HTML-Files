@@ -8,7 +8,7 @@
 
 Het format is geïnspireerd op het [100-HTML-experiment van Mia's AI Lab](https://mia-ai.net/lab/experiments/100-htmls) (@MiaAI_lab), dat 24 modellen langs dezelfde drie regels legde: *look stunning, zero repetitive designs, go full creative mode*. Haar collectie bevatte nog geen Qwen3.8-Flash-Next — deze repo is de eerste flash-next-collectie van het experiment, en de eerste met volledige telemetry.
 
-Het model kreeg **één startprompt** en besliste per pagina zelf onderwerp, stijl en techniek. Elke `.txt` bevat de creative brief die het model zich zelf gaf — niets door de mens geschreven, niets gecureerd.
+Het model kreeg **één startprompt** en besliste per pagina zelf onderwerp, stijl en techniek. Elke `.txt` bevat de prompt die het model zich zelf opgaf — niets door de mens geschreven, niets gecureerd.
 
 ## Cijfers
 

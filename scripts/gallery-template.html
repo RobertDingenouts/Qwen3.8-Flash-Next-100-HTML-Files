@@ -70,7 +70,7 @@ body.embedded header { padding-top:64px }
  <div class="num">ROBAS LAB · EXPERIMENT 001 · NOV 2026</div>
  <h1>100 HTML-files — <em>Qwen3.8-Flash-Next</em>, lokaal op één RTX 5090</h1>
  <p class="sub">Honderd self-contained webpagina's — één bestand per pagina, alle CSS/JS inline, volledig offline —
- geschreven door één lokaal model zonder tussenkomst: het model bedacht elke eigen brief zelf.
+ geschreven door één lokaal model zonder tussenkomst: het model schreef voor elke pagina zijn eigen prompt.
  Format geïnspireerd op het <a href="https://mia-ai.net/lab/experiments/100-htmls" rel="noopener">100-HTML-experiment van Mia's AI Lab</a>;
  hier draaide het model dat zij nog niet testte — op eigen hardware, met alle cijfers erbij.</p>
  <div class="stats">
@@ -90,7 +90,7 @@ body.embedded header { padding-top:64px }
 <footer>
  <p><b>NL</b> — Bedacht en aangestuurd door Robert Dingenouts (Robas Lab). Het model (Qwen3.8-Flash-Next, UD-IQ3_XXS
  + DFlash2, 262K context op Strata) draaide in DeepSeek Harness onder één vaste startprompt met drie creatieve regels;
- elke <code>.txt</code> bevat de brief die het model zich zelf gaf. Draaitijd-, token- en snelheidscijfers per pagina:
+ elke <code>.txt</code> bevat de prompt die het model zich zelf opgaf. Draaitijd-, token- en snelheidscijfers per pagina:
  <code>metrics/run.json</code>. <b>EN</b> — 100 self-contained pages authored end-to-end by one local model on a single
  RTX 5090 (no API): same three-rule challenge popularised by Mia's AI Lab, first flash-next collection, with full
  token/time telemetry.</p>
@@ -116,8 +116,8 @@ function card(it){
   +'<div class="t">'+esc(it.title)+'</div>'
   +'<div class="d">'+esc(it.desc)+'</div>'
   +'<div class="badges">'+badges(it)+'</div>'
-  +'<details><summary>toon de brief van het model</summary>'
-   +'<p><b>Brief:</b> '+esc(it.prompt)+'</p>'
+  +'<details><summary>toon de prompt van het model</summary>'
+   +'<p><b>Prompt:</b> '+esc(it.prompt)+'</p>'
    +'<p><b>Technieken:</b> '+esc(it.tech)+'</p>'
    +'<p><b>Interactie:</b> '+esc(it.inter)+'</p></details>'
   +'<div class="row"><a href="out/'+it.file+'" data-open="'+it.n+'">bekijken</a>'
