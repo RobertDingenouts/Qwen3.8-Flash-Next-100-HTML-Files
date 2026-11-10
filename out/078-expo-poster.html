@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Expo Poster · Nº 078</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#26241f;color:#e9e2d0;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{display:flex;align-items:center;justify-content:center;gap:20px;padding:12px;flex-wrap:wrap}
+canvas{cursor:crosshair;box-shadow:0 30px 60px -22px rgba(0,0,0,0.7)}
+#panel{width:230px;max-width:92vw;display:flex;flex-direction:column;gap:12px}
+h1{font-size:12px;font-weight:800;letter-spacing:.34em;text-transform:uppercase}
+h1 b{color:#e8b74b}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#8a8272;margin-top:5px}
+label{font-size:8px;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;gap:5px}
+input[type=range]{accent-color:#d33f2f}
+.sw{display:flex;gap:6px}
+.sw div{flex:1;height:34px;cursor:pointer;border-radius:3px;border:2px solid transparent}
+.sw div.on{border-color:#e9e2d0}
+button{font:700 8px "Helvetica Neue",sans-serif;letter-spacing:.24em;text-transform:uppercase;
+padding:11px;background:transparent;border:1.5px solid #e9e2d0;color:#e9e2d0;cursor:pointer}
+button:hover{background:#e9e2d0;color:#26241f}
+@media(max-width:740px){#panel{width:100%}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="panel">
+<div><h1>Expo <b>Poster</b></h1><p class="tag">Nº 078 · weimar geometry, remixable</p></div>
+<label>composition seed <input id="seed" type="range" min="1" max="40" value="7"></label>
+<label>density <input id="den" type="range" min="4" max="14" value="9"></label>
+<label>circle dominance <input id="circ" type="range" min="0" max="100" value="55"></label>
+<label>diagonal tilt <input id="tilt" type="range" min="-30" max="30" value="8"></label>
+<div class="sw" id="pal"></div>
+<button id="rand">new poster</button>
+</div>
+<script>
+(function(){
+"use strict";
+var PALS=[
+{n:'Bauhaus',c:['#efe7d3','#d33f2f','#2b2b2b','#e8b74b']},
+{n:'De Stijl',c:['#f4f1e8','#d33f2f','#2b4fb5','#e8c14b']},
+{n:'Construct',c:['#e8e4da','#c22f24','#1d1d1d','#8a8a82']},
+{n:'Weimar Night',c:['#26241f','#e8b74b','#d33f2f','#b8b2a0']}
+];
+var pal=0;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,W=0,H=0;
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ H=Math.min(innerHeight-20,620);W=H*0.72;
+ if(innerWidth<760){W=Math.min(innerWidth-20,H*0.72);H=W/0.72}
+ cv.style.width=W+'px';cv.style.height=H+'px';
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+function rng2(s){return function(){s|=0;s=(s+0x6D2B79F5)|0;var t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+function draw(){
+  var P=PALS[pal].c;
+  var r=rng2(+document.getElementById('seed').value*1000+pal*17);
+  ctx.fillStyle=P[0];ctx.fillRect(0,0,W,H);
+  var n=+document.getElementById('den').value;
+  var circ=+document.getElementById('circ').value/100;
+  var tilt=+document.getElementById('tilt').value*Math.PI/180;
+  var cw=W/n,ch=H/n;
+  for(var i=0;i<n;i++)for(var j=0;j<n;j++){
+    if(r()<0.45)continue;
+    var x=i*cw,y=j*ch,t=r();
+    var col=P[1+((r()*3)|0)];
+    ctx.save();
+    if(t<0.3+ (1-circ)*0.3){
+      ctx.fillStyle=col;
+      ctx.translate(x+cw/2,y+ch/2);
+      ctx.rotate(tilt);
+      ctx.fillRect(-cw/2,-ch/2,cw,ch);
+    }else if(t<0.55+circ*0.25){
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      var rr=Math.min(cw,ch)*(0.3+r()*0.25);
+      ctx.arc(x+cw/2,y+ch/2,rr,0,7);
+      ctx.fill();
+    }else if(t<0.72){
+      ctx.fillStyle=col;
+      ctx.beginPath();
+      var q=r()<0.5;
+      ctx.moveTo(x+(q?0:cw),y);
+      ctx.arc(x+(q?0:cw),y,(q?cw:cw)*1,0,0);
+      ctx.quadraticCurveTo(x+cw/2,y+ch/2,x+(q?cw:0),y+ch);
+      ctx.lineTo(x,y+ch);ctx.closePath();ctx.fill();
+    }else{
+      ctx.strokeStyle=col;ctx.lineWidth=cw*0.16;
+      ctx.beginPath();
+      ctx.moveTo(x,y+(r()<0.5?0:ch));
+      ctx.lineTo(x+cw,y+(r()<0.5?ch:0));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(W/2,H/2);ctx.rotate(tilt*0.3);
+  ctx.fillStyle=pal===3?P[1]:'#fff';
+  ctx.globalAlpha=0.92;
+  ctx.fillRect(-W*0.5,-H*0.05,W,H*0.1);
+  ctx.fillStyle=P[0];
+  ctx.font='700 '+(H*0.045)+'px "Helvetica Neue",Arial,sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('STAATLICHES BAUHAUS',0,-H*0.002);
+  ctx.restore();
+  ctx.fillStyle=pal===3?P[1]:'#2b2b2b';
+  ctx.font='700 '+(H*0.022)+'px "Helvetica Neue",Arial,sans-serif';
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.fillText('AUSSTELLUNG · 1923',W*0.06,H*0.955);
+  ctx.textAlign='right';
+  ctx.fillText('GEBAEUDE · THEATER · BUEHNE',W*0.94,H*0.955);
+  ctx.textAlign='left';
+}
+var palEl=document.getElementById('pal');
+PALS.forEach(function(p,i){
+  var d=document.createElement('div');
+  d.className=i===0?'on':'';
+  d.title=p.n;
+  d.style.background='linear-gradient(90deg,'+p.c[1]+' 0 25%,'+p.c[2]+' 25% 50%,'+p.c[3]+' 50% 75%,'+p.c[0]+' 75%)';
+  d.addEventListener('click',function(){
+    pal=i;
+    document.querySelectorAll('.sw div').forEach(function(x,k){x.classList.toggle('on',k===i)});
+    draw();
+  });
+  palEl.appendChild(d);
+});
+['seed','den','circ','tilt'].forEach(function(id){
+  document.getElementById(id).addEventListener('input',draw);
+});
+document.getElementById('rand').addEventListener('click',function(){
+  document.getElementById('seed').value=1+((Math.random()*40)|0);
+  document.getElementById('den').value=4+((Math.random()*10)|0);
+  document.getElementById('circ').value=(Math.random()*100)|0;
+  document.getElementById('tilt').value=-30+((Math.random()*60)|0);
+  draw();
+});
+window.addEventListener('resize',fit);
+fit();
+})();
+</script>
+</body>
+</html>

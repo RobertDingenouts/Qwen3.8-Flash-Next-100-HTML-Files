@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drop Four · Nº 023</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0a0a18;color:#dfe3ff;font-family:"Trebuchet MS",Verdana,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:10px}
+header{display:flex;justify-content:space-between;align-items:center;width:min(480px,96vw)}
+h1{font-size:12px;font-weight:700;letter-spacing:.3em;text-transform:uppercase}
+h1 b{color:#ff5bd6}h1 i{font-style:normal;color:#4dd2ff}
+.score{display:flex;gap:16px;font-size:9px;letter-spacing:.22em;text-transform:uppercase;text-align:center}
+.score span{display:block;font:700 16px ui-monospace,Menlo,monospace}
+#c{border-radius:14px;cursor:pointer;touch-action:none}
+#status{font-size:10px;letter-spacing:.3em;text-transform:uppercase;height:14px}
+button{font:700 9px "Trebuchet MS",sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:11px 16px;background:transparent;border:1.5px solid #dfe3ff;color:#dfe3ff;cursor:pointer;border-radius:4px}
+button:hover{background:#dfe3ff;color:#0a0a18}
+</style>
+</head>
+<body>
+<header>
+<h1>Drop <i>Four</i> — Nº 023</h1>
+<div class="score"><div><span id="s0" style="color:#4dd2ff">0</span>you</div><div><span id="s1" style="color:#ff5bd6">0</span>droid</div></div>
+</header>
+<canvas id="c"></canvas>
+<p id="status">your move</p>
+<button id="new">reset board</button>
+<script>
+(function(){
+"use strict";
+var COLS=7,ROWS=6;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var W=0,cell=52,D=1,board,turn,hov=-1,anim=null,winLine=null,over=false,scores=[0,0];
+var t0='#4dd2ff',t1='#ff5bd6';
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var w=Math.min(innerWidth-20,470);
+  cell=Math.floor(w/COLS);W=cell*COLS;var H=cell*ROWS;
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  draw();
+}
+function reset(){
+  board=[];for(var c=0;c<COLS;c++)board.push([]);
+  turn=0;anim=null;winLine=null;over=false;
+  document.getElementById('status').textContent='your move';
+  draw();
+}
+function drop(col,p){
+  var row=board[col].length;
+  if(row>=ROWS)return -1;
+  board[col].push(p);
+  return row;
+}
+function topRow(col){return board[col].length-1}
+function wins(p){
+  for(var c=0;c<COLS;c++)for(var r=0;r<ROWS;r++){
+    if(r>=3){var ok=true;for(var k=0;k<4;k++)if(board[c][r-k]!==p){ok=false;break}
+      if(ok)return[[c,r],[c,r-1],[c,r-2],[c,r-3]]}
+    if(c<=3){var ok2=true;for(k=0;k<4;k++)if(board[c+k][r]!==p){ok2=false;break}
+      if(ok2)return[[c,r],[c+1,r],[c+2,r],[c+3,r]]}
+    if(c<=3&&r>=3){var ok3=true;for(k=0;k<4;k++)if(board[c+k][r-k]!==p){ok3=false;break}
+      if(ok3)return[[c,r],[c+1,r-1],[c+2,r-2],[c+3,r-3]]}
+    if(c<=3&&r<=ROWS-4){var ok4=true;for(k=0;k<4;k++)if(board[c+k][r+k]!==p){ok4=false;break}
+      if(ok4)return[[c,r],[c+1,r+1],[c+2,r+2],[c+3,r+3]]}
+  }
+  return null;
+}
+function full(){for(var c=0;c<COLS;c++)if(board[c].length<ROWS)return false;return true}
+function evalW(){
+  var sc=0;
+  function lineCount(p){
+    var n=0;
+    for(var c=0;c<COLS;c++)for(var r=0;r<ROWS;r++){
+      [[1,0],[0,1],[1,1],[1,-1]].forEach(function(d){
+        var a=0;
+        for(var k=0;k<4;k++){
+          var cc=c+d[0]*k,rr=r+d[1]*k;
+          if(cc>=COLS||rr<0||rr>=ROWS)break;
+          if(board[cc][rr]===p)a++;else if(board[cc][rr]!==undefined){a=-1;break}
+        }
+        if(a===4)n+=1000;else if(a===3)n+=100;else if(a===2)n+=10;
+      });
+    }
+    return n;
+  }
+  return lineCount(1)-lineCount(0)*1.1;
+}
+function validCols(){var out=[];for(var c=0;c<COLS;c++)if(board[c].length<ROWS)out.push(c);return out}
+function minimax(depth,p,alpha,beta){
+  var w=wins(1),w2=wins(0);
+  if(w)return 100000-depth;
+  if(w2)return -100000+depth;
+  if(depth===0||full())return evalW();
+  var cols=validCols();
+  if(p===1){
+    var best=-1e9;
+    for(var i=0;i<cols.length;i++){var c=cols[i];board[c].push(1);
+      best=Math.max(best,minimax(depth-1,0,alpha,beta));board[c].pop();
+      alpha=Math.max(alpha,best);if(beta<=alpha)break}
+    return best;
+  }else{
+    var worst=1e9;
+    for(i=0;i<cols.length;i++){c=cols[i];board[c].push(0);
+      worst=Math.min(worst,minimax(depth-1,1,alpha,beta));board[c].pop();
+      beta=Math.min(beta,worst);if(beta<=alpha)break}
+    return worst;
+  }
+}
+function aiMove(){
+  var cols=validCols(),best=-1e9,pick=cols[0];
+  var depth=cols.length>5?2:4;
+  for(var i=0;i<cols.length;i++){
+    var c=cols[i];board[c].push(1);
+    var v=minimax(depth,0,-1e9,1e9);
+    board[c].pop();
+    if(v>best){best=v;pick=c}
+  }
+  startAnim(pick,1);
+}
+function startAnim(col,p){
+  var row=board[col].length;
+  if(row>=ROWS)return;
+  board[col].push(p);
+  anim={col:col,p:p,row:row,y:-1,target:row};
+  document.getElementById('status').textContent=p===0?'your move':'droid thinking…';
+}
+function checkAfter(p){
+  var w=wins(p);
+  if(w){over=true;winLine=w;
+    scores[p]++;document.getElementById('s'+p).textContent=scores[p];
+    document.getElementById('status').textContent=p===0?'you connect four!':'droid connects four';
+    return true}
+  if(full()){over=true;document.getElementById('status').textContent='the grid is a draw';return true}
+  return false;
+}
+function dropAt(col){
+  if(over||anim||turn!==0)return;
+  if(col<0||col>=COLS||board[col].length>=ROWS)return;
+  turn=1;
+  startAnim(col,0);
+}
+function draw(){
+  ctx.clearRect(0,0,W,cell*ROWS);
+  ctx.fillStyle='#12122a';
+  var rr=14;
+  ctx.beginPath();
+  ctx.moveTo(rr,0);ctx.lineTo(W-rr,0);ctx.quadraticCurveTo(W,0,W,rr);
+  ctx.lineTo(W,cell*ROWS-rr);ctx.quadraticCurveTo(W,cell*ROWS,W-rr,cell*ROWS);
+  ctx.lineTo(rr,cell*ROWS);ctx.quadraticCurveTo(0,cell*ROWS,0,cell*ROWS-rr);
+  ctx.lineTo(0,rr);ctx.quadraticCurveTo(0,0,rr,0);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(77,210,255,0.25)';ctx.lineWidth=1.5;ctx.stroke();
+  function disc(cx,cy,col,glow){
+    if(glow){ctx.shadowColor=col;ctx.shadowBlur=16}else ctx.shadowBlur=0;
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(cx,cy,cell*0.36,0,7);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(255,255,255,0.18)';
+    ctx.beginPath();ctx.arc(cx-cell*0.1,cy-cell*0.12,cell*0.12,0,7);ctx.fill();
+  }
+  for(var c=0;c<COLS;c++){
+    for(var r=0;r<ROWS;r++){
+      var cx=c*cell+cell/2,cy=r*cell+cell/2;
+      var p=board[c][r];
+      if(p===undefined){
+        ctx.fillStyle='#0a0a18';ctx.beginPath();ctx.arc(cx,cy,cell*0.36,0,7);ctx.fill();
+      }else{
+        var isAnimCell=anim&&anim.col===c&&r===anim.row;
+        if(isAnimCell)continue;
+        disc(cx,cy,p===0?t0:t1,false);
+      }
+    }
+  }
+  if(hov>=0&&!over&&!anim&&board[hov].length<ROWS){
+    ctx.globalAlpha=0.35;disc(hov*cell+cell/2,cell/2,t0,false);ctx.globalAlpha=1;
+  }
+  if(anim){
+    anim.y+=(anim.target-anim.y)*0.25+0.12;
+    if(Math.abs(anim.y-anim.target)<0.02){anim.y=anim.target;
+      var p=anim.p;anim=null;draw();
+      if(!checkAfter(p)){
+        if(p===0){turn=1;setTimeout(aiMove,420)}
+        else{turn=0;document.getElementById('status').textContent='your move'}
+      }
+      return;
+    }
+    disc(anim.col*cell+cell/2,anim.y*cell+cell/2,anim.p===0?t0:t1,true);
+  }
+  if(winLine){
+    var t=(Date.now()%1000)/1000;
+    ctx.strokeStyle='rgba(255,255,255,'+(0.4+0.4*Math.sin(t*6))+')';
+    ctx.lineWidth=cell*0.72;ctx.lineCap='round';ctx.globalAlpha=0.16;
+    ctx.beginPath();
+    ctx.moveTo(winLine[0][0]*cell+cell/2,winLine[0][1]*cell+cell/2);
+    ctx.lineTo(winLine[3][0]*cell+cell/2,winLine[3][1]*cell+cell/2);
+    ctx.stroke();ctx.globalAlpha=1;ctx.lineWidth=1;
+  }
+}
+function loop(){draw();requestAnimationFrame(loop)}
+cv.addEventListener('pointermove',function(e){
+  var r=cv.getBoundingClientRect();
+  hov=Math.floor((e.clientX-r.left)/cell);
+},{passive:true});
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  dropAt(Math.floor((e.clientX-r.left)/cell));
+});
+document.getElementById('new').addEventListener('click',reset);
+window.addEventListener('resize',fit);
+reset();fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

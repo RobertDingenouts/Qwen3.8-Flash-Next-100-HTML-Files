@@ -1,0 +1,5 @@
+TITLE: Ripple Pool — a two-dimensional wave tank
+PROMPT: Give the visitor a sheet of living water: every tap must throw a droplet, every drag must wake, and two wakes must cross and interfere exactly as they do in a real tank, rendered as deep lapis blue with glinting caustic highlights.
+DESCRIPTION: A full-screen height-field wave simulation on a coarse Float32 grid. Each cell's next state is the classic averaged-neighbours-minus-previous update with gentle damping, so ripples reflect off the edges and superpose honestly. Rendering shades each cell by height plus a slope term faked as refraction/specular, upscaling a low-res ImageData into a luminous pool. A RAIN mode pokes random drops forever.
+TECHNIQUES: discrete wave-equation solver with two ping-ponged Float32 buffers, slope-based pseudo-refraction shading into a blue ramp LUT written per-pixel, DPR-managed offscreen ImageData upscaling, pointer trail interpolation between events, minimalist Palatino/monospace signage on water.
+INTERACTION: Tap to drop a stone, press and drag to swim a wake across the tank, RAIN turns on perpetual weather, STILL WATER flattens the pool instantly.

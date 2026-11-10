@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Six Sudoku · Nº 046</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#232b36;color:#e8edf2;font-family:"Trebuchet MS",Verdana,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:20px;font-weight:700;letter-spacing:.02em}
+h1 b{color:#6db1d8}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#68798a;margin-top:4px}
+#grid{display:grid;grid-template-columns:repeat(6,1fr);gap:0;border:3px solid #c8d4dd;border-radius:4px;background:#c8d4dd}
+.cell{width:min(12.5vmin,62px);height:min(12.5vmin,62px);background:#f2f5f7;position:relative;
+display:flex;align-items:center;justify-content:center;font:600 min(7vmin,32px)/1 "Trebuchet MS",sans-serif;
+cursor:pointer;transition:background .12s}
+.cell:nth-child(6n){border-right:none}
+.cell.gx{border-right:2.5px solid #3f4f5e}
+.cell.gy{border-bottom:2.5px solid #3f4f5e}
+.cell:not(.gx){border-right:1px solid #ccd4da}
+.cell:not(.gy){border-bottom:1px solid #ccd4da}
+.cell:nth-child(n+25){border-bottom:none}
+.cell .cands{position:absolute;inset:0;font:400 min(3.4vmin,13px)/1.25 ui-monospace,monospace;color:#8a98a4;
+display:grid;grid-template-columns:1fr 1fr 1fr;padding:3px;align-content:start}
+.cell.sel{background:#ffe9a8}
+.cell.same{background:#d9e9f5}
+.cell.bad{background:#f6cfc8;color:#b3352a}
+.cell.given{color:#33414e}
+.cell.filled{color:#1f6f9c}
+#pad{display:flex;gap:6px}
+.num{width:44px;height:44px;font:600 18px "Trebuchet MS";background:#33414e;color:#e8edf2;border:none;border-radius:5px;cursor:pointer}
+.num:hover{background:#6db1d8;color:#232b36}
+.num0{background:transparent;border:1.5px solid #68798a}
+.dock{display:flex;gap:8px;align-items:center}
+button.dl{font:700 9px "Trebuchet MS";letter-spacing:.2em;text-transform:uppercase;padding:9px 13px;background:transparent;color:#e8edf2;border:1px solid #68798a;cursor:pointer}
+button.dl:hover{background:#6db1d8;color:#232b36}
+button.dl.on{background:#6db1d8;color:#232b36}
+#time{font:700 11px ui-monospace,monospace;color:#6db1d8;min-width:52px;text-align:center}
+#msg{font-size:11px;height:14px;color:#9fb2c2;letter-spacing:.08em;text-align:center}
+@media(max-width:480px){.num{width:38px;height:38px}}
+</style>
+</head>
+<body>
+<header><h1>Six <b>Sudoku</b></h1><p class="tag">Nº 046 · six rows, six columns, six crooked little boxes</p></header>
+<div id="grid"></div>
+<div id="pad"></div>
+<div class="dock">
+<button class="dl on" data-d="easy">gentle</button>
+<button class="dl" data-d="hard">spicy</button>
+<button class="dl" id="newp">new grid</button>
+<span id="time">0:00</span>
+</div>
+<p id="msg">tap a square, then a number — 1–6 keys work too, ⌫ erases</p>
+<script>
+(function(){
+"use strict";
+var sol=[],puz=[],cells=[],sel=-1,diff='easy',t0=0,timer=null,started=false;
+var grid=document.getElementById('grid'),timeEl=document.getElementById('time'),msg=document.getElementById('msg');
+function shuffle(a){for(var i=a.length-1;i>0;i--){var j=(Math.random()*(i+1))|0;var t=a[i];a[i]=a[j];a[j]=t}return a}
+function box(r,c){return ((r/2)|0)*3+((c/2)|0)}
+function ok(g,r,c,v){
+  for(var i=0;i<6;i++){if(g[r][i]===v||g[i][c]===v)return false}
+  var br=((r/2)|0)*2,bc=((c/3)|0)*3;
+  for(i=0;i<2;i++)for(var j=0;j<3;j++)if(g[br+i][bc+j]===v)return false;
+  return true;
+}
+function fill(g,pos){
+  if(pos>=36){return true}
+  var r=(pos/6)|0,c=pos%6;
+  var vals=shuffle([1,2,3,4,5,6]);
+  for(var i=0;i<6;i++){
+    if(ok(g,r,c,vals[i])){
+      g[r][c]=vals[i];
+      if(fill(g,pos+1))return true;
+      g[r][c]=0;
+    }
+  }
+  return false;
+}
+function generate(){
+  sol=[];for(var r=0;r<6;r++)sol.push([0,0,0,0,0,0]);
+  fill(sol,0);
+  puz=sol.map(function(r){return r.slice()});
+  var order=shuffle([...Array(36).keys()]);
+  var holes=diff==='easy'?14:20;
+  for(var i=0;i<holes;i++){var k=order[i];puz[(k/6)|0][k%6]=0}
+}
+function buildUI(){
+  grid.innerHTML='';cells=[];
+  for(var r=0;r<6;r++)for(var c=0;c<6;c++){
+    var d=document.createElement('div');
+    d.className='cell';
+    if(c===1||c===3)d.classList.add('gx');
+    if(r===1||r===3)d.classList.add('gy');
+    if(puz[r][c]){d.classList.add('given');d.textContent=puz[r][c]}
+    d.id='cell'+(r*6+c);
+    d.addEventListener('click',(function(idx){return function(){sel=idx;paint()}})(r*6+c));
+    grid.appendChild(d);cells.push(d);
+  }
+}
+function paint(){
+  var sr=(sel/6)|0,sc=sel%6;
+  var v=sel>=0?disp(sr,sc):0;
+  cells.forEach(function(d,i){
+    var r=(i/6)|0,c=i%6;
+    d.className='cell'+((c===1||c===3)?' gx':'')+((r===1||r===3)?' gy':'');
+    if(sel===i)d.classList.add('sel');
+    else if(v&&disp(r,c)===v)d.classList.add('same');
+    var val=disp(r,c);
+    if(val&&conflict(r,c,val))d.classList.add('bad');
+    if(puz[r][c])d.classList.add('given');
+    else if(val)d.classList.add('filled');
+  });
+}
+function conflict(r,c,val){
+  for(var i=0;i<6;i++){
+    if(i!==c&&disp(r,i)===val)return true;
+    if(i!==r&&disp(i,c)===val)return true;
+  }
+  var br=((r/2)|0)*2,bc=((c/3)|0)*3;
+  for(var a=0;a<2;a++)for(var j=0;j<3;j++){
+    var rr=br+a,cc=bc+j;
+    if((rr!==r||cc!==c)&&disp(rr,cc)===val)return true;
+  }
+  return false;
+}
+function disp(r,c){var t=cells[r*6+c].textContent;return t?+t:0}
+function puzzleVal(r,c){return +cells[r*6+c].textContent||0}
+function setVal(v){
+  if(sel<0)return;
+  var r=(sel/6)|0,c=sel%6;
+  if(puz[r][c])return;
+  if(!started){started=true;t0=Date.now();timer=setInterval(tick,250)}
+  cells[sel].textContent=v||'';
+  paint();
+  check();
+}
+function tick(){
+  var s=Math.floor((Date.now()-t0)/1000);
+  timeEl.textContent=(s/60|0)+':'+('0'+s%60).slice(-2);
+}
+function check(){
+  for(var i=0;i<36;i++){
+    var r=(i/6)|0,c=i%6;
+    if(disp(r,c)!==sol[r][c])return;
+  }
+  clearInterval(timer);
+  msg.textContent='solved in '+timeEl.textContent+' — the boxes are at peace.';
+  msg.style.color='#6db1d8';
+}
+[1,2,3,4,5,6].forEach(function(n){
+  var b=document.createElement('button');b.className='num';b.textContent=n;
+  b.addEventListener('click',function(){setVal(n)});
+  document.getElementById('pad').appendChild(b);
+});
+var eb=document.createElement('button');eb.className='num num0';eb.textContent='⌫';
+eb.addEventListener('click',function(){setVal(0)});
+document.getElementById('pad').appendChild(eb);
+window.addEventListener('keydown',function(e){
+  if(e.key>='1'&&e.key<='6')setVal(+e.key);
+  if(e.key==='Backspace'||e.key==='0')setVal(0);
+});
+document.querySelectorAll('[data-d]').forEach(function(b){
+  b.addEventListener('click',function(){
+    diff=b.dataset.d;
+    document.querySelectorAll('[data-d]').forEach(function(x){x.classList.toggle('on',x===b)});
+    reset();
+  });
+});
+document.getElementById('newp').addEventListener('click',reset);
+function reset(){
+  clearInterval(timer);timer=null;started=false;
+  timeEl.textContent='0:00';
+  msg.style.color='';
+  msg.textContent='tap a square, then a number — 1–6 keys work too, ⌫ erases';
+  sel=-1;generate();buildUI();paint();
+}
+reset();
+})();
+</script>
+</body>
+</html>

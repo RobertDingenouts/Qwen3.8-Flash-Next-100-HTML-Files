@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R Squared · Nº 073</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#eef3f8;color:#1d3557;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px}
+header{text-align:center}
+h1{font-size:13px;font-weight:800;letter-spacing:.34em;text-transform:uppercase}
+h1 b{color:#457b9d}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#7d93a8;margin-top:5px}
+canvas{cursor:grab;touch-action:none;border-radius:6px;
+background:repeating-linear-gradient(0deg,rgba(69,123,157,0.12) 0 1px,transparent 1px 22px),
+repeating-linear-gradient(90deg,rgba(69,123,157,0.12) 0 1px,transparent 1px 22px),#f6f9fc;
+box-shadow:0 14px 34px -16px rgba(29,53,87,0.4)}
+#stats{display:flex;gap:26px;font:700 12px ui-monospace,Menlo,monospace;letter-spacing:.1em}
+#stats b{color:#e63946;font-size:18px}
+.dock{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+button{font:700 8px "Helvetica Neue",sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 13px;
+background:transparent;border:1.5px solid #1d3557;color:#1d3557;cursor:pointer;border-radius:2px}
+button:hover{background:#1d3557;color:#fff}
+button.on{background:#457b9d;border-color:#457b9d;color:#fff}
+</style>
+</head>
+<body>
+<header><h1>R<b>²</b></h1><p class="tag">Nº 073 · drag the data until the line forgives you</p></header>
+<div id="stats"><span>r² <b id="r2">—</b></span><span>r <b id="r">—</b></span><span>ŷ <i id="eq" style="font-style:normal;color:#457b9d">—</i></span></div>
+<canvas id="c"></canvas>
+<div class="dock">
+<button id="fitbtn" class="on">trend line</button>
+<button id="resbtn">residuals</button>
+<button id="perfect">make it line up</button>
+<button id="chaos">make it chaos</button>
+<button id="clear">clear</button>
+<span style="font:8px/3.4 ui-monospace,monospace;letter-spacing:.2em;color:#7d93a8">DOUBLE-CLICK CANVAS TO ADD A POINT</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var pts=[],drag=-1,showFit=true,showRes=false;
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-20,innerHeight-210,520);S=Math.max(250,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+function seed(n,corr){
+  pts=[];
+  for(var i=0;i<n;i++){
+    var x=0.08+Math.random()*0.84;
+    var y=Math.random();
+    pts.push({x:x,y:y*(1-Math.abs(corr))+corr*(0.15+0.7*x)});
+  }
+  pts=pts.filter(function(p){return p.y>=0.03&&p.y<=0.97});
+}
+function stats(){
+  var n=pts.length;
+  if(n<3)return null;
+  var mx=0,my=0;
+  pts.forEach(function(p){mx+=p.x;my+=p.y});
+  mx/=n;my/=n;
+  var sxy=0,sxx=0,syy=0;
+  pts.forEach(function(p){
+    sxy+=(p.x-mx)*(p.y-my);
+    sxx+=(p.x-mx)*(p.x-mx);
+    syy+=(p.y-my)*(p.y-my);
+  });
+  if(!sxx||!syy)return null;
+  var b=sxy/sxx,a=my-b*mx;
+  var ssr=0,sst=0;
+  pts.forEach(function(p){
+    var e=p.y-(a+b*p.x);
+    ssr+=e*e;sst+=(p.y-my)*(p.y-my);
+  });
+  var r2=1-ssr/sst;
+  var r=sxy/Math.sqrt(sxx*syy);
+  return{a:a,b:b,r2:Math.max(0,r2),r:r};
+}
+function draw(){
+  ctx.clearRect(0,0,S,S);
+  var st=stats();
+  var m=S*0.07;
+  var X=v=>m+v*(S-2*m),Y=v=>S-m-v*(S-2*m);
+  if(st){
+    ctx.strokeStyle='#457b9d';ctx.lineWidth=2.4;
+    ctx.setLineDash(showRes?[]:[7,5]);
+    ctx.beginPath();
+    ctx.moveTo(X(0),Y(st.a));
+    ctx.lineTo(X(1),Y(st.a+st.b));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if(showRes){
+      ctx.strokeStyle='rgba(230,57,70,0.55)';
+      ctx.lineWidth=1.4;
+      pts.forEach(function(p){
+        ctx.beginPath();
+        ctx.moveTo(X(p.x),Y(p.y));
+        ctx.lineTo(X(p.x),Y(st.a+st.b*p.x));
+        ctx.stroke();
+      });
+    }
+  }
+  pts.forEach(function(p,i){
+    ctx.beginPath();
+    ctx.arc(X(p.x),Y(p.y),i===drag?9:6.5,0,7);
+    ctx.fillStyle='#1d3557';
+    ctx.fill();
+    ctx.strokeStyle='#f6f9fc';ctx.lineWidth=2.4;ctx.stroke();
+  });
+  if(st){
+    document.getElementById('r2').textContent=st.r2.toFixed(3);
+    document.getElementById('r').textContent=(st.r>=0?'+':'−')+Math.abs(st.r).toFixed(3);
+    document.getElementById('eq').textContent='=' +st.a.toFixed(2)+(st.b<0?' − ':' + ')+Math.abs(st.b).toFixed(2)+'x';
+  }else{
+    document.getElementById('r2').textContent='—';
+    document.getElementById('r').textContent='—';
+    document.getElementById('eq').textContent='need 3 points';
+  }
+}
+function ptAt(e){
+  var r=cv.getBoundingClientRect();
+  var m=S*0.07;
+  var x=(e.clientX-r.left-m)/(S-2*m);
+  var y=(S-m-(e.clientY-r.top))/(S-2*m);
+  var bi=-1,bd=22;
+  pts.forEach(function(p,i){
+    var d=Math.hypot((p.x-x)*(S-2*m),(p.y-y)*(S-2*m));
+    if(d<bd){bd=d;bi=i}
+  });
+  return{x:x,y:y,bi:bi};
+}
+cv.addEventListener('pointerdown',function(e){
+  var p=ptAt(e);
+  if(p.bi>=0){drag=p.bi;cv.style.cursor='grabbing';draw()}
+});
+cv.addEventListener('pointermove',function(e){
+  if(drag<0)return;
+  var p=ptAt(e);
+  pts[drag].x=Math.max(0.02,Math.min(0.98,p.x));
+  pts[drag].y=Math.max(0.02,Math.min(0.98,p.y));
+  draw();
+},{passive:true});
+window.addEventListener('pointerup',function(){drag=-1;cv.style.cursor='grab'});
+cv.addEventListener('dblclick',function(e){
+  var p=ptAt(e);
+  if(p.x>=0&&p.x<=1&&p.y>=0&&p.y<=1){pts.push({x:p.x,y:p.y});draw()}
+});
+document.getElementById('fitbtn').addEventListener('click',function(){
+  showFit=!showFit;this.classList.toggle('on',showFit);draw();
+});
+document.getElementById('resbtn').addEventListener('click',function(){
+  showRes=!showRes;this.classList.toggle('on',showRes);draw();
+});
+document.getElementById('perfect').addEventListener('click',function(){seed(14,0.98);draw()});
+document.getElementById('chaos').addEventListener('click',function(){seed(14,0);draw()});
+document.getElementById('clear').addEventListener('click',function(){pts=[];draw()});
+window.addEventListener('resize',fit);
+seed(12,0.75);fit();
+})();
+</script>
+</body>
+</html>

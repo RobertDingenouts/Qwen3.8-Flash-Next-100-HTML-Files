@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scale Type · Nº 061</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#f6f5f2;color:#151515;font-family:Georgia,"Times New Roman",serif}
+body{overflow-x:hidden}
+header{padding:26px 6vw 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px}
+h1{font-size:13px;font-weight:700;letter-spacing:.34em;text-transform:uppercase}
+h1 b{color:#d43b2f}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#8b8880}
+#ctrl{display:flex;gap:20px;flex-wrap:wrap;padding:14px 6vw;border-top:1px solid #151515;border-bottom:1px solid #151515}
+label{font:9px ui-monospace,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:110px;accent-color:#d43b2f}
+select{font:10px ui-monospace,monospace;padding:5px;border:1px solid #151515;background:transparent}
+#spec{padding:20px 6vw 40px}
+.row{display:grid;grid-template-columns:56px 1fr;gap:16px;border-bottom:1px solid #e2ded6;padding:10px 0;align-items:baseline}
+.row .px{font:10px ui-monospace,Menlo,monospace;color:#8b8880}
+.row .samp{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row .meta{font:9px ui-monospace,Menlo,monospace;color:#b6b1a6;letter-spacing:.14em}
+#cssblk{margin:0 6vw 50px;background:#151515;color:#f6f5f2;font:11px/1.9 ui-monospace,monospace;padding:18px;border-radius:4px;white-space:pre;overflow:auto;cursor:pointer}
+#cssblk:hover{background:#d43b2f}
+.f-serif .samp{font-family:Georgia,serif}
+.f-sans .samp{font-family:Helvetica,Arial,sans-serif}
+.f-mono .samp{font-family:ui-monospace,Menlo,monospace}
+@media(max-width:560px){.row{grid-template-columns:44px 1fr}}
+</style>
+</head>
+<body class="f-serif">
+<header>
+<h1>Scale<b>·</b>Type</h1>
+<p class="tag">Nº 061 · modular scale, live specimen — click the CSS to copy</p>
+</header>
+<div id="ctrl">
+<label>base <input id="base" type="range" min="13" max="22" value="16"></label>
+<label>ratio <select id="ratio">
+<option value="1.067">1.067 · minor second</option>
+<option value="1.125">1.125 · major second</option>
+<option value="1.2">1.200 · minor third</option>
+<option value="1.25" selected>1.250 · major third</option>
+<option value="1.333">1.333 · perfect fourth</option>
+<option value="1.414">1.414 · augmented fourth</option>
+<option value="1.5">1.500 · perfect fifth</option>
+<option value="1.618">1.618 · golden ratio</option>
+</select></label>
+<label>family <select id="fam"><option value="f-serif">serif</option><option value="f-sans">sans</option><option value="f-mono">mono</option></select></label>
+<label>steps <input id="steps" type="range" min="4" max="8" value="6"></label>
+</div>
+<div id="spec"></div>
+<pre id="cssblk"></pre>
+<script>
+(function(){
+"use strict";
+var base=document.getElementById('base'),ratio=document.getElementById('ratio'),
+steps=document.getElementById('steps');
+var NAMES=['Small','Body','Lead','H6','H5','H4','H3','H2','H1'];
+function sizes(){
+  var b=+base.value,r=+ratio.value,n=+steps.value;
+  var arr=[];
+  for(var i=-1;i<=n-2;i++){
+    arr.push({name:NAMES[i+1]||('H'+(i+1)),px:Math.round(Math.pow(r,i)*b*10)/10});
+  }
+  return arr;
+}
+function render(){
+  var arr=sizes();
+  var spec=document.getElementById('spec');
+  spec.innerHTML='';
+  arr.forEach(function(s,idx){
+    var d=document.createElement('div');d.className='row';
+    d.innerHTML='<span class="px">'+s.px+'px</span><div>'+
+      '<div class="samp" style="font-size:'+s.px+'px"></div>'+
+      '<div class="meta">'+s.name+' · '+s.px+'px / '+Math.round(s.px*1.5)+'px</div></div>';
+    var samp=d.querySelector('.samp');
+    samp.textContent=TEXT;
+    samp.style.lineHeight=(idx===arr.length-1?1.15:1.5);
+    spec.appendChild(d);
+  });
+  var css='/* modular scale — ratio '+ratio.value+' */\n'+
+    arr.map(function(s){return':root{ --fs-'+s.name.toLowerCase()+': '+s.px+'px; }'}).join('\n');
+  document.getElementById('cssblk').textContent=css;
+}
+var TEXT='The quick brown fox jumps over the lazy dog — pack my box with five dozen liquor jugs.';
+document.getElementById('fam').addEventListener('change',function(e){
+  document.body.className=e.target.value;
+});
+[base,ratio,steps].forEach(function(el){el.addEventListener('input',render)});
+document.getElementById('cssblk').addEventListener('click',function(){
+  var el=this;
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText)
+      navigator.clipboard.writeText(el.textContent).then(function(){
+        var o=el.textContent;el.textContent='copied ✓';setTimeout(function(){el.textContent=o},800);
+      });
+  }catch(e){}
+});
+render();
+})();
+</script>
+</body>
+</html>

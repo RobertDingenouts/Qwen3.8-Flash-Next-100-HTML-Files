@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Circadian Arc · Nº 052</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#000;font-family:"Avenir Next",Avenir,"Century Gothic",sans-serif;color:#fff}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.tl{position:fixed;top:18px;left:24px;pointer-events:none;text-shadow:0 2px 12px rgba(0,0,0,0.6)}
+h1{font-size:12px;letter-spacing:.4em;text-transform:uppercase;font-weight:400}
+#clock{font:700 44px ui-monospace,Menlo,monospace;letter-spacing:.02em;margin-top:6px}
+#phase{font-size:11px;letter-spacing:.3em;text-transform:uppercase;opacity:.85;margin-top:4px}
+.dock{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;
+background:rgba(10,12,20,0.5);padding:10px 18px;border-radius:6px;backdrop-filter:none}
+label{font-size:9px;letter-spacing:.2em;text-transform:uppercase}
+input[type=range]{width:min(52vw,320px);accent-color:#ffd98a}
+button{font:700 9px Avenir,sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:9px 14px;background:transparent;border:1px solid rgba(255,255,255,0.5);color:#fff;cursor:pointer}
+button:hover{background:#fff;color:#111}
+@media(max-width:520px){#clock{font-size:30px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Circadian Arc — Nº 052</h1><div id="clock">--:--</div><div id="phase">—</div></div>
+<div class="dock">
+<label>scrub time <input id="sl" type="range" min="0" max="1439" value="-1"></label>
+<button id="live">watch live</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var manual=-1,stars=[],t=0;
+var SL=document.getElementById('sl');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  stars=[];
+  for(var i=0;i<140;i++)stars.push({x:Math.random()*W,y:Math.random()*H*0.6,r:Math.random()*1.4,p:Math.random()*7});
+}
+function lerp(a,b,k){return a+(b-a)*k}
+function mix(c1,c2,k){
+  return[lerp(c1[0],c2[0],k),lerp(c1[1],c2[1],k),lerp(c1[2],c2[2],k)];
+}
+function rgb(c){return'rgb('+c.map(Math.round).join(',')+')'}
+var SKY=[
+  [0,[8,10,28],[18,22,48]],
+  [4.5,[10,12,34],[30,26,60]],
+  [6,[60,40,90],[240,130,90]],
+  [7.5,[120,150,220],[255,200,140]],
+  [12,[100,170,240],[180,220,250]],
+  [16.5,[110,160,230],[250,190,130]],
+  [18.5,[70,50,110],[250,120,70]],
+  [20,[20,22,60],[70,40,80]],
+  [24,[8,10,28],[18,22,48]]
+];
+function skyAt(h){
+  for(var i=0;i<SKY.length-1;i++){
+    if(h>=SKY[i][0]&&h<=SKY[i+1][0]){
+      var k=(h-SKY[i][0])/(SKY[i+1][0]-SKY[i][0]);
+      return[mix(SKY[i][1],SKY[i+1][1],k),mix(SKY[i][2],SKY[i+1][2],k)];
+    }
+  }
+  return[SKY[0][1],SKY[0][2]];
+}
+function phaseName(h){
+  if(h<5)return['deep night','✦'];
+  if(h<7)return['dawn','☼'];
+  if(h<11)return['morning','☼'];
+  if(h<14)return['midday','☀'];
+  if(h<17)return['afternoon','☼'];
+  if(h<19.5)return['golden hour','☼'];
+  if(h<21)return['dusk','☾'];
+  return['deep night','✦'];
+}
+function draw(){
+  t++;
+  var now=new Date();
+  var h=manual<0?(now.getHours()+now.getMinutes()/60+now.getSeconds()/3600):manual/60;
+  var top,bot;
+  var sky=skyAt(h);top=sky[0];bot=sky[1];
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,rgb(top));g.addColorStop(1,rgb(bot));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  var nightness=Math.max(0,Math.max(
+    (h<6?(6-h)/3:0),(h>20?(h-20)/2.5:0)));
+  nightness=Math.min(1,nightness);
+  stars.forEach(function(s){
+    if(nightness<=0)return;
+    ctx.fillStyle='rgba(230,236,255,'+(0.5*nightness*(0.4+0.4*Math.sin(t/40+s.p)))+')';
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();
+  });
+  var dayK=Math.max(0,Math.min(1,(h-5.8)/(18.5-5.8)));
+  var sunX=W*0.08+dayK*W*0.84;
+  var arc=Math.sin(dayK*Math.PI);
+  var sunY=H*0.78-arc*H*0.62;
+  if(dayK>0&&dayK<1){
+    var glow=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,H*0.35);
+    var warmth=1-arc;
+    glow.addColorStop(0,'rgba(255,'+Math.round(220-warmth*60)+',150,'+(0.5+arc*0.3)+')');
+    glow.addColorStop(1,'rgba(255,180,80,0)');
+    ctx.fillStyle=glow;
+    ctx.beginPath();ctx.arc(sunX,sunY,H*0.35,0,7);ctx.fill();
+    var low=h<8||h>17;
+    ctx.fillStyle=low?'#ffcf70':'#fff2c8';
+    ctx.beginPath();ctx.arc(sunX,sunY,H*0.045,0,7);ctx.fill();
+    if(low){
+      ctx.strokeStyle='rgba(255,207,112,0.35)';
+      ctx.lineWidth=2;
+      for(var i=0;i<12;i++){
+        var a=i/12*Math.PI*2+t*0.002;
+        ctx.beginPath();
+        ctx.moveTo(sunX+Math.cos(a)*H*0.06,sunY+Math.sin(a)*H*0.06);
+        ctx.lineTo(sunX+Math.cos(a)*H*0.085,sunY+Math.sin(a)*H*0.085);
+        ctx.stroke();
+      }
+    }
+  }
+  var moonH=h<5.8?h+24:h;
+  if(moonH>18.5&&moonH<29.8){
+    var mk=(moonH-18.5)/(29.8-18.5);
+    var mx=W*0.9-mk*W*0.8;
+    var my=H*0.75-Math.sin(mk*Math.PI)*H*0.55;
+    var mg=ctx.createRadialGradient(mx,my,0,mx,my,H*0.12);
+    mg.addColorStop(0,'rgba(220,228,255,0.35)');
+    mg.addColorStop(1,'rgba(220,228,255,0)');
+    ctx.fillStyle=mg;
+    ctx.beginPath();ctx.arc(mx,my,H*0.12,0,7);ctx.fill();
+    ctx.fillStyle='#e8edf8';
+    ctx.beginPath();ctx.arc(mx,my,H*0.032,0,7);ctx.fill();
+    ctx.fillStyle=rgb(top);
+    ctx.beginPath();ctx.arc(mx-H*0.012,my-H*0.006,H*0.028,0,7);ctx.fill();
+  }
+  var hill=ctx.createLinearGradient(0,H*0.7,0,H);
+  var dark=nightness;
+  hill.addColorStop(0,rgb(mix([70,110,70],[12,18,26],dark)));
+  hill.addColorStop(1,rgb(mix([30,60,40],[6,10,16],dark)));
+  ctx.fillStyle=hill;
+  ctx.beginPath();
+  ctx.moveTo(0,H);
+  for(var x=0;x<=W;x+=W/40){
+    var y=H*0.82-Math.sin(x*0.004+1.2)*H*0.05-Math.sin(x*0.011)*H*0.02;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  ctx.fillStyle=rgb(mix([20,40,28],[4,8,12],dark));
+  ctx.beginPath();
+  ctx.moveTo(0,H);
+  for(x=0;x<=W;x+=W/30){
+    y=H*0.91-Math.sin(x*0.007+4)*H*0.03;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  var ph=phaseName(h);
+  document.getElementById('clock').textContent=
+    ('0'+Math.floor(h)).slice(-2)+':'+('0'+Math.floor(h%1*60)).slice(-2);
+  document.getElementById('phase').textContent=ph[1]+'  '+ph[0];
+  requestAnimationFrame(draw);
+}
+SL.addEventListener('input',function(e){manual=+e.target.value});
+document.getElementById('live').addEventListener('click',function(){
+  manual=-1;SL.value=-1;
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

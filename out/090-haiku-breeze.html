@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haiku Breeze · Nº 090</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#f2ede2;color:#2a2722;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+canvas{position:absolute;inset:0;touch-action:none}
+#poem{position:relative;z-index:2;text-align:center;padding:20px;max-width:min(560px,92vw);pointer-events:none}
+#poem .line{font-size:min(24px,5.5vw);line-height:1.7;letter-spacing:.04em;opacity:0;transition:opacity 1.4s;margin:4px 0}
+#poem .line.show{opacity:1}
+#poem .line:first-child{text-shadow:2px 0 0 rgba(170,40,30,0.12)}
+#hint{position:absolute;z-index:3;bottom:12px;width:100%;text-align:center;
+font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#9a917d}
+button{position:absolute;z-index:3;top:16px;right:16px;background:transparent;border:1px solid #b8ad94;
+color:#5a5140;font:italic 12px Georgia,serif;padding:9px 16px;cursor:pointer}
+button:hover{background:#2a2722;color:#f2ede2;border-color:#2a2722}
+.seal{display:inline-block;margin-top:10px;font-size:11px;color:#a63a2a;letter-spacing:.4em;
+border:1px solid #a63a2a;padding:3px 8px;opacity:0;transition:opacity 1s}
+.seal.show{opacity:0.85}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="again">another breeze ▸</button>
+<div id="poem">
+<div class="line"></div><div class="line"></div><div class="line"></div>
+<div class="seal">風</div>
+</div>
+<p id="hint">click anywhere — the field answers</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,W=0,H=0;
+function rng(s){return function(){s|=0;s=(s+0x6D2B79F5)|0;var t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+var T5=[['autumn','moist','quiet','still','cold','thin','late','pale','dry','deep'],['field','lake','pond','crow','stone','moon','snow','mist','well','bark']],
+T7=[['a crow lands softly','wind bends every reed','the old pond listens','night settles the roof','first snow on the gate','crickets hold the dusk','a lantern gutters','moon through the pines','grass flattens slowly','rain counts the tiles']],
+T5b=[['no ripple answers','the field keeps its name','one leaf, then none','winter holds its breath','dark in the reeds waits','stars, then more stars','even stones grow warm','the sky leans a little']];
+function pick(a){return a[(Math.random()*a.length)|0]}
+function gen(){
+ var l1=pick(T5[0])+' '+pick(T5[1])+' '+pick(T5[1]);
+ var l2=pick(T7);
+ var l3=pick(T5b);
+ return[l1,l2,l3];
+}
+var lines=document.querySelectorAll('#poem .line');
+function reveal(){
+ var l=gen();
+ lines.forEach(function(el){el.classList.remove('show');el.textContent=''});
+ document.querySelector('.seal').classList.remove('show');
+ l.forEach(function(t,i){
+  setTimeout(function(){lines[i].textContent=t;lines[i].classList.add('show')},500+i*1400);
+ });
+ setTimeout(function(){document.querySelector('.seal').classList.add('show')},500+3*1400);
+}
+var grass=[];
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+ grass=[];
+ for(var x=0;x<W;x+=5){
+  grass.push({x:x,h:H*(0.08+Math.random()*0.16),ph:Math.random()*7,
+   bend:0,w:1+Math.random()*1.6});
+ }
+}
+var wind=0,windTarget=0,pets=[];
+function tick(){
+ var t=performance.now()/1000;
+ windTarget=Math.sin(t*0.23)*0.5+Math.sin(t*0.07)*0.3;
+ wind+=(windTarget-wind)*0.01;
+ ctx.clearRect(0,0,W,H);
+ var g=ctx.createLinearGradient(0,H*0.5,0,H);
+ g.addColorStop(0,'rgba(214,203,178,0)');g.addColorStop(1,'rgba(203,189,158,0.7)');
+ ctx.fillStyle=g;ctx.fillRect(0,H*0.5,W,H*0.5);
+ var mx=W*0.5+Math.cos(t*0.05)*W*0.3,my=H*0.2;
+ var mg=ctx.createRadialGradient(mx,my,0,mx,my,W*0.22);
+ mg.addColorStop(0,'rgba(238,230,210,0.8)');mg.addColorStop(1,'rgba(238,230,210,0)');
+ ctx.fillStyle=mg;ctx.beginPath();ctx.arc(mx,my,W*0.22,0,7);ctx.fill();
+ grass.forEach(function(gr){
+  var sway=wind*38+Math.sin(t*2.2+gr.ph)*6;
+  ctx.strokeStyle='rgba(58,72,48,'+(0.35+gr.h/220)+')';
+  ctx.lineWidth=gr.w;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(gr.x,H);
+  ctx.quadraticCurveTo(gr.x+sway*0.4,H-gr.h*0.6,gr.x+sway,H-gr.h);
+  ctx.stroke();
+ });
+ pets=pets.filter(function(pt){
+  pt.age+=0.016;
+  pt.x+=Math.sin(pt.age*3+pt.ph)*0.5+wind*3;
+  pt.y+=pt.vy;pt.vy+=0.012;
+  if(pt.y>H)return false;
+  ctx.fillStyle='rgba(166,58,42,'+Math.max(0,1-pt.age*0.4)+')';
+  ctx.beginPath();
+  ctx.ellipse(pt.x,pt.y,3,1.6,Math.sin(pt.age*4),0,7);
+  ctx.fill();
+  return true;
+ });
+ requestAnimationFrame(tick);
+}
+function drop(x,y){
+ for(var i=0;i<6;i++)
+  pets.push({x:x+(Math.random()*40-20),y:y+(Math.random()*20-10),
+   vy:Math.random()*0.4,ph:Math.random()*7,age:0});
+}
+window.addEventListener('pointerdown',function(e){
+ if(e.target.tagName==='BUTTON')return;
+ drop(e.clientX,e.clientY);
+});
+document.getElementById('again').addEventListener('click',function(){
+ windTarget=1.4;
+ reveal();
+});
+window.addEventListener('resize',fit);
+fit();reveal();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

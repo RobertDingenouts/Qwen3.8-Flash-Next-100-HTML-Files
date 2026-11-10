@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Truchet Wanderer · Nº 013</title>
+<style>
+:root{--paper:#e8e5dc;--ink:#26262b;--hot:#ff4d1c}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none}
+.top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:14px 18px;pointer-events:none;mix-blend-mode:multiply}
+h1{font-size:12px;font-weight:800;letter-spacing:.34em;text-transform:uppercase}
+h1 span{color:var(--hot)}
+.tag{font:10px ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;opacity:.6;text-align:right}
+.dock{position:fixed;right:14px;bottom:14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+button{font:800 9px "Helvetica Neue",sans-serif;letter-spacing:.18em;text-transform:uppercase;padding:9px 12px;background:var(--paper);border:1.5px solid var(--ink);cursor:pointer;color:var(--ink)}
+button:hover{background:var(--ink);color:var(--paper)}
+@media(max-width:560px){.tag{display:none}.dock{left:14px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="top">
+<h1>Truchet <span>Wanderer</span></h1>
+<p class="tag">Nº 013 · a maze that rearranges<br>click a tile to flip it</p>
+</div>
+<div class="dock">
+<button id="flip">flip twelve</button>
+<button id="rese">reseed</button>
+<label style="font-size:9px;display:flex;align-items:center;gap:6px;letter-spacing:.14em">PACE
+<input id="pace" type="range" min="1" max="12" value="5" style="width:70px;accent-color:#ff4d1c"></label>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1,T=36;
+var cols=0,rows=0,st=null,an=null,path=[],wi=0,t=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  cols=Math.ceil(W/T)+1;rows=Math.ceil(H/T)+1;
+  st=new Uint8Array(cols*rows);an=new Float32Array(cols*rows);
+  reseed();
+}
+function reseed(){for(var i=0;i<st.length;i++)st[i]=Math.random()<0.5?0:1;computePath()}
+function pairs(s){return s===0?[[0,3],[1,2]]:[[0,1],[2,3]]}
+function exitOf(s,from){
+  var p=pairs(s);
+  for(var i=0;i<2;i++){if(p[i][0]===from)return p[i][1];if(p[i][1]===from)return p[i][0]}
+  return -1;
+}
+var ARCS={};
+function key(a,b){return Math.min(a,b)*10+Math.max(a,b)}
+ARCS[key(0,3)]={cx:-0.5,cy:-0.5,a0:0,a1:90,ang:{0:0,3:90}};
+ARCS[key(0,1)]={cx:0.5,cy:-0.5,a0:180,a1:90,ang:{0:180,1:90}};
+ARCS[key(1,2)]={cx:0.5,cy:0.5,a0:270,a1:180,ang:{1:270,2:180}};
+ARCS[key(2,3)]={cx:-0.5,cy:0.5,a0:360,a1:270,ang:{2:360,3:270}};
+var DX=[0,1,0,-1],DY=[-1,0,1,0];
+function arcPt(def,u,wx,wy){
+  var r=T/2,rad=u*Math.PI/180;
+  return[wx+def.cx*T+r*Math.cos(rad),wy+def.cy*T+r*Math.sin(rad)];
+}
+function computePath(){
+  var best=null;
+  var tries=Math.min(rows,14);
+  for(var attempt=0;attempt<tries;attempt++){
+    var p=trace(0,attempt*(rows/tries)|0);
+    if(!best||p.length>best.length)best=p;
+    if(best.length>900)break;
+  }
+  path=best||[];
+  if(wi>=path.length)wi=0;
+}
+function trace(col,row){
+  var from=3,out=[],guard=0;
+  out.push([T*col+T/2-T/2,T*row+T/2]);
+  while(guard++<4000){
+    var s=st[row*cols+col];
+    var ex=exitOf(s,from);
+    if(ex<0)break;
+    var def=ARCS[key(from,ex)];
+    var wx=T*col+T/2,wy=T*row+T/2;
+    var ua=def.ang[from],ub=def.ang[ex];
+    var stepsN=12;
+    for(var k=1;k<=stepsN;k++){
+      var u=ua+(ub-ua)*k/stepsN;
+      out.push(arcPt(def,u,wx,wy));
+    }
+    col+=DX[ex];row+=DY[ex];
+    if(col<0||col>=cols||row<0||row>=rows)break;
+    from=(ex+2)%4;
+  }
+  return out;
+}
+function drawTiles(){
+  ctx.fillStyle='#e8e5dc';ctx.fillRect(0,0,W,H);
+  ctx.lineWidth=Math.max(2,T*0.09);
+  ctx.strokeStyle='#26262b';ctx.lineCap='round';
+  for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+    var i=r*cols+c;
+    var rot=(st[i]+an[i])*Math.PI/2;
+    var wx=T*c+T/2,wy=T*r+T/2;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(rot);
+    ctx.beginPath();ctx.arc(-T/2,-T/2,T/2,0,Math.PI/2);ctx.stroke();
+    ctx.beginPath();ctx.arc(T/2,T/2,T/2,Math.PI,Math.PI*1.5);ctx.stroke();
+    ctx.restore();
+  }
+}
+function drawPath(){
+  if(path.length<2)return;
+  ctx.lineWidth=Math.max(1.5,T*0.05);
+  ctx.strokeStyle='rgba(255,77,28,0.22)';
+  ctx.beginPath();
+  for(var i=0;i<path.length;i++)i?ctx.lineTo(path[i][0],path[i][1]):ctx.moveTo(path[i][0],path[i][1]);
+  ctx.stroke();
+  var upto=Math.min(wi|0,path.length-1);
+  ctx.strokeStyle='#ff4d1c';ctx.lineWidth=Math.max(2.4,T*0.08);
+  ctx.shadowColor='rgba(255,77,28,.8)';ctx.shadowBlur=12;
+  ctx.beginPath();
+  var from=Math.max(0,upto-140);
+  for(var j=from;j<=upto;j++){var p=path[j];j===from?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1])}
+  ctx.stroke();ctx.shadowBlur=0;
+  var head=path[upto];
+  ctx.fillStyle='#ff4d1c';ctx.beginPath();ctx.arc(head[0],head[1],Math.max(3.4,T*0.11),0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(head[0],head[1],Math.max(1.4,T*0.045),0,7);ctx.fill();
+}
+function stepAnim(){
+  var changed=false;
+  for(var i=0;i<an.length;i++){
+    if(an[i]>0&&an[i]<1){an[i]=Math.min(1,an[i]+0.06);
+      if(an[i]>=1){st[i]=(st[i]+1)%2;an[i]=0;changed=true}}
+  }
+  if(changed)computePath();
+}
+function flipTile(i){if(an[i]===0)an[i]=0.001}
+cv.addEventListener('pointerdown',function(e){
+  var c=Math.floor(e.clientX/T),r=Math.floor(e.clientY/T);
+  if(c>=0&&c<cols&&r>=0&&r<rows)flipTile(r*cols+c);
+});
+document.getElementById('flip').addEventListener('click',function(){
+  for(var k=0;k<12;k++)flipTile((Math.random()*st.length)|0);
+});
+document.getElementById('rese').addEventListener('click',function(){reseed();wi=0});
+function loop(){
+  t++;stepAnim();
+  wi+=1+(+document.getElementById('pace').value)*0.7;
+  if(wi>=path.length-1)wi=0;
+  drawTiles();drawPath();
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

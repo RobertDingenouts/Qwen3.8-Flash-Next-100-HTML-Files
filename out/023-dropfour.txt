@@ -1,0 +1,5 @@
+TITLE: Drop Four — connect-four against a thinking droid
+PROMPT: A neon cabinet match against an opponent with manners: the droid sees two plies ahead early and four deep in the endgame, bluffs with center takes, and always lets the player's dropped disc sing all the way down the column first.
+DESCRIPTION: Seven-column arcade connect-four under blacklight. Discs ease down their column with gravity wobble, the droid (magenta) runs alpha-beta minimax with a threat-weighted evaluation, and winning fours pulse a fat glow bar through the discs. Scores persist across rounds; a hover ghost previews your drop.
+TECHNIQUES: alpha-beta pruned minimax with adaptive depth by branching count, weighted line evaluation for 2/3-in-a-row futures, animated canvas drop with easing, four-direction win scanning returning the winning line, neon disc rendering with shadowBlur bloom and specular dot, pointer hover column preview.
+INTERACTION: Click/tap a column to drop your cyan disc, watch the droid counter with magenta — get four in any direction before the grid fills; RESET BOARD clears the rack while the scoreboard remembers.

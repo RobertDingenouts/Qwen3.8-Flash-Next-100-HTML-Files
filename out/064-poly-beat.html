@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Poly Beat · Nº 064</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0c0b09;color:#e8d9b0;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:11px;letter-spacing:.44em;text-transform:uppercase;font-weight:400}
+h1 b{color:#d8a45a}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.26em;text-transform:uppercase;color:#6b5c40;margin-top:5px}
+#c{touch-action:manipulation;cursor:pointer}
+.dock{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:84px;accent-color:#d8a45a}
+button{font:700 8px "Century Gothic",sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 13px;
+background:transparent;border:1px solid #6b5c40;color:#e8d9b0;cursor:pointer}
+button:hover{background:#d8a45a;color:#0c0b09}
+button.on{background:#6b5c40}
+@media(max-width:520px){.tag{display:none}}
+</style>
+</head>
+<body>
+<header><h1>Poly<b>Beat</b></h1><p class="tag">Nº 064 · rings that refuse to agree — click one to tune it</p></header>
+<canvas id="c"></canvas>
+<div class="dock">
+<button id="play" class="on">pause</button>
+<label>bpm <input id="bpm" type="range" min="40" max="140" value="76"></label>
+<label>ring beats <input id="div" type="range" min="2" max="12" value="5"></label>
+<button id="add">+ ring</button>
+<button id="rm">− ring</button>
+<button id="mute">sound: on</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var rings=[{d:4},{d:5},{d:6}],sel=0,playing=true,muted=false,bpm=76,t=0,lastTs=0,AC=null;
+var PENT=[261.63,329.63,392.0,523.25,587.33];
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-10,innerHeight-200,520);S=Math.max(260,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0)}
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();
+ if(AC.state==='suspended')AC.resume();return AC}
+function ding(i){
+  if(muted)return;
+  var a=ac();
+  var o=a.createOscillator(),g=a.createGain();
+  o.type='triangle';
+  o.frequency.value=PENT[i%PENT.length]*(i>=PENT.length?2:1);
+  var t0=a.currentTime;
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(0.16/(1+i*0.15),t0+0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+0.5);
+  o.connect(g);g.connect(a.destination);
+  o.start(t0);o.stop(t0+0.55);
+}
+function loop(ts){
+  var dt=(ts-lastTs)/1000;lastTs=ts;
+  if(playing)t+=dt*bpm/60;
+  ctx.clearRect(0,0,S,S);
+  var cx=S/2,cy=S*0.42,maxR=S*0.36;
+  ctx.strokeStyle='rgba(216,164,90,0.5)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx,cy,maxR*0.1,0,7);ctx.stroke();
+  ctx.fillStyle='#d8a45a';
+  ctx.beginPath();ctx.arc(cx,cy,maxR*0.06,0,7);ctx.fill();
+  rings.forEach(function(r,i){
+    var rr=maxR*(0.3+0.7*(i+1)/rings.length);
+    var ph=(t*r.d)%1;
+    var prev=((t-dt*bpm/60)*r.d)%1;
+    if(playing&&ph<prev)ding(i);
+    var a=ph*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle=i===sel?'rgba(216,164,90,0.5)':'rgba(216,164,90,0.18)';
+    ctx.lineWidth=i===sel?1.6:1;
+    ctx.beginPath();ctx.arc(cx,cy,rr,0,7);ctx.stroke();
+    for(var k=0;k<r.d;k++){
+      var ka=k/r.d*Math.PI*2-Math.PI/2;
+      ctx.fillStyle='rgba(216,164,90,0.2)';
+      ctx.beginPath();ctx.arc(cx+Math.cos(ka)*rr,cy+Math.sin(ka)*rr,2,0,7);ctx.fill();
+    }
+    var near=Math.min(ph,1-ph);
+    var flash=Math.max(0,1-near*10);
+    if(flash>0){
+      ctx.strokeStyle='rgba(232,217,176,'+flash*0.3+')';
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(cx,cy,rr,0,7);ctx.stroke();
+    }
+    ctx.fillStyle=flash>0.3?'#fff':'#e8d9b0';
+    var dr=4+flash*4;
+    ctx.shadowColor='#d8a45a';ctx.shadowBlur=flash*22+4;
+    ctx.beginPath();ctx.arc(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,dr,0,7);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.font='700 10px ui-monospace,monospace';
+    ctx.fillStyle=i===sel?'#e8d9b0':'rgba(232,217,176,0.4)';
+    ctx.fillText('×'+r.d,cx+rr*0.72,cy-rr*0.72);
+  });
+  var pend=Math.sin(t*Math.PI);
+  var py=cy+maxR+S*0.06;
+  ctx.strokeStyle='rgba(216,164,90,0.4)';
+  ctx.beginPath();ctx.moveTo(cx,py);
+  ctx.lineTo(cx+Math.sin(pend*0.5)*S*0.16,py+Math.cos(pend*0.5)*S*0.16);
+  ctx.stroke();
+  ctx.fillStyle='#d8a45a';
+  ctx.beginPath();ctx.arc(cx+Math.sin(pend*0.5)*S*0.16,py+Math.cos(pend*0.5)*S*0.16,7,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(cx-S*0.2,py+Math.cos(0.5)*S*0.16+14);
+  ctx.lineTo(cx+S*0.2,py+Math.cos(0.5)*S*0.16+14);
+  ctx.strokeStyle='rgba(216,164,90,0.2)';ctx.stroke();
+  requestAnimationFrame(loop);
+}
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left-S/2,y=e.clientY-r.top-S*0.42;
+  var d=Math.hypot(x,y);
+  var maxR=S*0.36;
+  var best=-1,bd=1e9;
+  rings.forEach(function(rn,i){
+    var rr=maxR*(0.3+0.7*(i+1)/rings.length);
+    if(Math.abs(rr-d)<bd){bd=Math.abs(rr-d);best=i}
+  });
+  if(bd<26){
+    sel=best;
+    document.getElementById('div').value=rings[sel].d;
+    ac();
+  }
+});
+document.getElementById('div').addEventListener('input',function(e){
+  rings[sel].d=+e.target.value;
+});
+document.getElementById('play').addEventListener('click',function(){
+  playing=!playing;
+  this.textContent=playing?'pause':'play';
+  this.classList.toggle('on',playing);
+  if(playing)ac();
+});
+document.getElementById('bpm').addEventListener('input',function(e){bpm=+e.target.value});
+document.getElementById('add').addEventListener('click',function(){
+  if(rings.length>=6)return;
+  rings.push({d:4+rings.length});
+  sel=rings.length-1;
+  document.getElementById('div').value=rings[sel].d;
+});
+document.getElementById('rm').addEventListener('click',function(){
+  if(rings.length>1){
+    rings.pop();
+    sel=Math.min(sel,rings.length-1);
+    document.getElementById('div').value=rings[sel].d;
+  }
+});
+var mb=document.getElementById('mute');
+mb.addEventListener('click',function(){
+  muted=!muted;
+  mb.textContent='sound: '+(muted?'off':'on');
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

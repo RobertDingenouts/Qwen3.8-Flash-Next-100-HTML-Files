@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>World Strip · Nº 065</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;background:#0b1026;color:#dfe6ff;font-family:"Trebuchet MS",Verdana,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px}
+header{text-align:center}
+h1{font-size:12px;letter-spacing:.42em;text-transform:uppercase;font-weight:400}
+h1 b{color:#ffd27a}
+.tag{font-size:8px;letter-spacing:.28em;text-transform:uppercase;color:#5c6a9c;margin-top:5px}
+#list{width:min(720px,96vw);display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:110px 62px 1fr 46px;gap:12px;align-items:center;
+padding:8px 12px;border:1px solid #232c50;border-radius:5px;cursor:pointer;transition:border-color .2s}
+.row:hover{border-color:#5c6a9c}
+.row.home{border-color:#ffd27a;background:rgba(255,210,122,0.05)}
+.nm{font-size:11px;letter-spacing:.1em}
+.nm small{display:block;color:#5c6a9c;font-size:8px;letter-spacing:.2em;text-transform:uppercase}
+.hm{font:700 15px ui-monospace,Menlo,monospace;text-align:right}
+.arc{height:16px;border-radius:8px;position:relative;overflow:hidden;
+background:linear-gradient(90deg,#0b1026 0%,#0b1026 25%,#2a3565 31%,#8a6a9c 37%,#ffb86a 41%,#7ab5ff 46%,#7ab5ff 66%,#ffb86a 72%,#c86a5a 77%,#2a3565 83%,#0b1026 89%,#0b1026 100%)}
+.sun{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;border-radius:50%;
+background:#ffd27a;box-shadow:0 0 12px 3px rgba(255,210,122,0.7)}
+.sun.night{background:#cfd9ff;box-shadow:0 0 8px 2px rgba(207,217,255,0.5)}
+.df{font-size:9px;letter-spacing:.1em;text-align:right;color:#8ea0d8}
+#local{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#8ea0d8}
+@media(max-width:520px){.row{grid-template-columns:86px 54px 1fr 40px}.nm small{display:none}}
+</style>
+</head>
+<body>
+<header><h1>World <b>Strip</b></h1><p class="tag">Nº 065 · the planet, already awake or still asleep — click your home</p></header>
+<p id="local"></p>
+<div id="list"></div>
+<script>
+(function(){
+"use strict";
+var CITIES=[
+['Reykjavík','Atlantic/Reykjavik'],['London','Europe/London'],['Lagos','Africa/Lagos'],
+['Berlin','Europe/Berlin'],['Cairo','Africa/Cairo'],['Moscow','Europe/Moscow'],
+['Mumbai','Asia/Kolkata'],['Bangkok','Asia/Bangkok'],['Beijing','Asia/Shanghai'],
+['Tokyo','Asia/Tokyo'],['Sydney','Australia/Sydney'],['Auckland','Pacific/Auckland'],
+['Honolulu','Pacific/Honolulu'],['Los Angeles','America/Los_Angeles'],['Denver','America/Denver'],
+['Chicago','America/Chicago'],['New York','America/New_York'],['São Paulo','America/Sao_Paulo']];
+var home='Europe/London',now=new Date();
+var list=document.getElementById('list');
+function parts(tz){
+  var f=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour12:false,
+    year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var o={};
+  f.formatToParts(now).forEach(function(p){o[p.type]=p.value});
+  return o;
+}
+function cityMs(tz){
+  var p=parts(tz);
+  return Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute,+p.second);
+}
+function render(){
+  list.innerHTML='';
+  var homeMs=cityMs(home);
+  CITIES.forEach(function(c){
+    var p=parts(c[1]);
+    var diffMin=Math.round((cityMs(c[1])-homeMs)/60000);
+    var h=+p.hour%24,m=+p.minute;
+    var frac=(h*3600+m*60)/86400;
+    var row=document.createElement('div');
+    row.className='row'+(c[1]===home?' home':'');
+    var df=diffMin===0?'home':(diffMin>0?'+':'−')+Math.abs(diffMin/60|0)+'h'+(diffMin%60?' '+(Math.abs(diffMin)%60)+'m':'');
+    row.innerHTML='<div class="nm">'+c[0]+'<small>'+df+'</small></div>'+
+      '<div class="hm">'+('0'+h).slice(-2)+':'+('0'+m).slice(-2)+'</div>'+
+      '<div class="arc"><div class="sun'+(frac<0.25||frac>0.79?' night':'')+'"></div></div>'+
+      '<div class="df">'+('0'+h).slice(-2)+'h</div>';
+    row.querySelector('.sun').style.left=(frac*100)+'%';
+    row.addEventListener('click',function(){home=c[1];render()});
+    list.appendChild(row);
+  });
+  var d=new Date();
+  document.getElementById('local').textContent='this machine says '+
+    d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+', '+d.toLocaleDateString();
+}
+render();
+setInterval(function(){now=new Date();render()},15000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wordfall · Nº 037</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;background:#eef0e7;color:#2e332b;font-family:Georgia,"Times New Roman",serif}
+body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 10px 18px;min-height:100vh}
+header{text-align:center}
+h1{font-size:22px;font-weight:400;letter-spacing:.04em}
+h1 i{font-style:italic;color:#5a7d5a}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;color:#8a8f80;margin-top:5px}
+#msg{font:italic 13px Georgia,serif;height:18px;color:#7a5d2e;text-align:center}
+#grid{display:grid;grid-template-rows:repeat(6,1fr);gap:6px}
+.rowg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.tile{width:min(58px,16vw);height:min(58px,16vw);border:2px solid #c9ccbe;background:#f7f6ef;
+display:flex;align-items:center;justify-content:center;font:700 min(30px,9vw)/1 Georgia,serif;text-transform:uppercase;
+transition:transform .45s;transform-style:preserve-3d;position:relative}
+.tile.flip{animation:flip .5s}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg) scale(1.05)}100%{transform:rotateX(0)}}
+.tile.g{background:#5a7d5a;border-color:#5a7d5a;color:#f7f6ef}
+.tile.y{background:#c4883a;border-color:#c4883a;color:#f7f6ef}
+.tile.b{background:#8f9488;border-color:#8f9488;color:#f7f6ef}
+.tile.pop{transform:scale(1.08)}
+#kbd{display:flex;flex-direction:column;gap:6px;align-items:center}
+.krow{display:flex;gap:5px}
+.k{min-width:min(30px,8vw);padding:11px 6px;font:600 11px ui-monospace,monospace;background:#f7f6ef;border:1.5px solid #c9ccbe;
+border-radius:5px;cursor:pointer;color:#2e332b;text-transform:uppercase}
+.k:hover{background:#e2e4d7}
+.k.g{background:#5a7d5a;border-color:#5a7d5a;color:#f7f6ef}
+.k.y{background:#c4883a;border-color:#c4883a;color:#f7f6ef}
+.k.b{background:#8f9488;border-color:#8f9488;color:#f7f6ef}
+#again{font:italic 13px Georgia,serif;padding:9px 20px;background:transparent;border:1px solid #2e332b;color:#2e332b;cursor:pointer;display:none}
+#again:hover{background:#2e332b;color:#eef0e7}
+@media(max-height:640px){.tile{width:min(46px,13vw);height:min(46px,13vw);font-size:min(24px,8vw)}}
+</style>
+</head>
+<body>
+<header><h1>Word<i>fall</i></h1><p class="tag">Nº 037 · a daily-feeling word game · six guesses</p></header>
+<p id="msg">type or tap letters · enter to plant a guess</p>
+<div id="grid"></div>
+<div id="kbd"></div>
+<button id="again">new word</button>
+<script>
+(function(){
+"use strict";
+var WORDS=['angle','crane','slate','train','house','light','ocean','maple','stone','river',
+'flame','grove','chime','bloom','frost','ember','cloud','storm','delta','piano',
+'chair','table','porch','globe','beach','meadow','plaza','tower','quilt',
+'jewel','ivory','amber','olive','coral','peach','lemon','mango','grape','berry',
+'fable','rhyme','novel','poems','atlas','quest','jolly','merry','brave','swift',
+'trick','snail','zebra','koala','otter','heron','robin','finch','egret',
+'mocha','cocoa','sugar','spice','bagel','wafer','crepe','toast','honey','cider',
+'lantern','ferry','troll','giant','magic','wands','spell','charm','runic','elves',
+'wharf','pilot','comet','lunar','solar','orbit','radar','sonar','signal','radio',
+'joker','vital','noble','valor','honor','merit','ninth','tenth','third','twelve'
+].filter(function(w){return /^[a-z]{5}$/.test(w)});
+var answer,guess=0,row=0,busy=false,over=false;
+var grid=document.getElementById('grid'),kbd=document.getElementById('kbd'),msg=document.getElementById('msg');
+var rows=[],tileEls=[];
+function build(){
+  grid.innerHTML='';rows=[];tileEls=[];
+  for(var r=0;r<6;r++){
+    var g=document.createElement('div');g.className='rowg';
+    var trow=[];
+    for(var c=0;c<5;c++){
+      var t=document.createElement('div');t.className='tile';
+      g.appendChild(t);trow.push(t);
+    }
+    grid.appendChild(g);rows.push(trow);
+  }
+}
+var KROWS=['qwertyuiop','asdfghjkl','zxcvbnm'];
+var keys={};
+function buildKbd(){
+  kbd.innerHTML='';
+  KROWS.forEach(function(rowStr,ri){
+    var rd=document.createElement('div');rd.className='krow';
+    if(ri===2){var ent=mk('enter');rd.appendChild(ent)}
+    for(var i=0;i<rowStr.length;i++){var k=mk(rowStr[i]);rd.appendChild(k)}
+    if(ri===2){var bs=mk('del');rd.appendChild(bs)}
+    kbd.appendChild(rd);
+  });
+}
+function mk(ch){
+  var b=document.createElement('button');b.className='k';b.textContent=ch;
+  if(ch!=='enter'&&ch!=='del')keys[ch]=b;
+  b.addEventListener('click',function(){
+    if(ch==='enter')submit();
+    else if(ch==='del')back();
+    else letter(ch);
+  });
+  return b;
+}
+function reset(){
+  answer=WORDS[(Math.random()*WORDS.length)|0];
+  guess=0;row=0;over=false;busy=false;
+  build();
+  document.getElementById('again').style.display='none';
+  msg.textContent='type or tap letters · enter to plant a guess';
+  Object.keys(keys).forEach(function(k){keys[k].className='k'});
+}
+function letter(ch){
+  if(over||busy)return;
+  if(row>=5)return;
+  rows[guess][row].textContent=ch;
+  rows[guess][row].classList.add('pop');
+  setTimeout((function(el){return function(){el.classList.remove('pop')}})(rows[guess][row]),120);
+  row++;
+}
+function back(){
+  if(over||busy||row===0)return;
+  row--;rows[guess][row].textContent='';
+}
+function submit(){
+  if(over||busy)return;
+  if(row<5){msg.textContent='a full word, please';shake();return}
+  var word=rows[guess].map(function(t){return t.textContent.toLowerCase()}).join('');
+  if(WORDS.indexOf(word)<0){msg.textContent='“'+word+'” is not in our small dictionary';shake();return}
+  busy=true;
+  var letters=answer.split('');
+  var res=new Array(5).fill('b');
+  var used=new Array(5).fill(false),i;
+  for(i=0;i<5;i++){
+    if(letters[i]===word[i]){res[i]='g';used[i]=true}
+  }
+  for(i=0;i<5;i++){
+    if(res[i]==='g')continue;
+    for(var j=0;j<5;j++){
+      if(!used[j]&&letters[j]===word[i]){res[i]='y';used[j]=true;break}
+    }
+  }
+  (function anim(i){
+    if(i>=5){
+      finish(word);
+      return;
+    }
+    var t=rows[guess][i];
+    t.classList.add('flip');
+    setTimeout(function(){t.classList.add(res[i])},230);
+    setTimeout(function(){
+      var k=keys[word[i]];
+      if(k){
+        var cur=k.className;
+        if(cur.indexOf('g')<0){
+          if(res[i]==='g')k.className='k g';
+          else if(res[i]==='y'&&cur.indexOf('y')<0)k.className='k y';
+          else if(cur==='k')k.className='k b';
+        }
+      }
+      anim(i+1);
+    },260);
+  })(0);
+}
+function finish(word){
+  busy=false;
+  if(word===answer){
+    over=true;
+    msg.textContent='the word was '+answer+' — '+['flawless','elegant','tidy','adequate','heroic','lucky'][guess]+'.';
+    done();
+  }else{
+    guess++;row=0;
+    if(guess>=6){
+      over=true;
+      msg.textContent='the word was '+answer+'.';
+      done();
+    }else msg.textContent='';
+  }
+}
+function done(){
+  document.getElementById('again').style.display='inline-block';
+}
+function shake(){
+  var g=rows[guess];
+  g.forEach(function(t,i){
+    t.style.transition='transform .08s';
+    var base=i%2?-4:4;
+    t.style.transform='translateX('+base+'px)';
+    setTimeout(function(){t.style.transform='';t.style.transition=''},110);
+  });
+}
+window.addEventListener('keydown',function(e){
+  if(e.key==='Enter')submit();
+  else if(e.key==='Backspace')back();
+  else if(/^[a-zA-Z]$/.test(e.key))letter(e.key.toLowerCase());
+});
+document.getElementById('again').addEventListener('click',reset);
+buildKbd();reset();
+})();
+</script>
+</body>
+</html>

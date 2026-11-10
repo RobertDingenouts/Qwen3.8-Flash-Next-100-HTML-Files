@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>People Count · Nº 074</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#f6ece2;color:#4a2f24;font-family:Optima,Candara,"Gill Sans",sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px}
+header{text-align:center}
+h1{font-size:14px;font-weight:400;letter-spacing:.34em;text-transform:uppercase}
+h1 b{color:#b5623a}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#a5836c;margin-top:5px}
+canvas{touch-action:none}
+#parties{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.pt{display:flex;gap:8px;align-items:center;font-size:10px;letter-spacing:.16em;text-transform:uppercase;cursor:pointer;user-select:none}
+.pt.off{opacity:.35;text-decoration:line-through}
+.pt i{width:12px;height:12px;border-radius:3px}
+.pt b{font:700 13px ui-monospace,Menlo,monospace}
+.dock{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:min(240px,70vw);accent-color:#b5623a}
+button{font:700 8px Optima,sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 14px;
+background:transparent;border:1.5px solid #4a2f24;color:#4a2f24;cursor:pointer}
+button:hover{background:#4a2f24;color:#f6ece2}
+#seatnote{font:700 10px ui-monospace,monospace;letter-spacing:.16em;color:#8a5a3e}
+</style>
+</head>
+<body>
+<header><h1>People <b>Count</b></h1><p class="tag">Nº 074 · one hundred humans, one election, zero chill</p></header>
+<canvas id="c"></canvas>
+<div id="parties"></div>
+<div class="dock">
+<label>left bloc <input id="sl" type="range" min="0" max="100" value="38"></label>
+<label>greens <input id="gr" type="range" min="0" max="100" value="16"></label>
+<button id="rnd">snap election ▸</button>
+<span id="seatnote"></span>
+</div>
+<script>
+(function(){
+"use strict";
+var P=[
+{n:'civic red',c:'#b5623a'},
+{n:'labour teal',c:'#3f7f7a'},
+{n:'greens',c:'#6f8f4a'},
+{n:'independents',c:'#d9a441'}];
+var shares=[38,27,16,19];
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var off=[false,false,false,false];
+var seats=P.map(function(){return 0});
+function alloc(){
+  var live=P.map(function(p,i){return off[i]?0:shares[i]});
+  var tot=live.reduce(function(a,b){return a+b},0)||1;
+  var raw=live.map(function(v){return v/tot*100});
+  var base=raw.map(function(v){return Math.floor(v)});
+  var used=base.reduce(function(a,b){return a+b},0);
+  var rem=raw.map(function(v,i){return{f:v-Math.floor(v),i:i}})
+    .sort(function(a,b){return b.f-a.f});
+  for(var k=0;k<100-used;k++)base[rem[k%4].i]++;
+  seats=live.map(function(v,i){return off[i]?0:base[i]});
+}
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-16,innerHeight-230,440);S=Math.max(250,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+function person(x,y,r,col){
+  ctx.fillStyle=col;
+  ctx.beginPath();ctx.arc(x,y-r*0.55,r*0.42,0,7);ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x-r*0.55,y+r);
+  ctx.quadraticCurveTo(x-r*0.6,y-r*0.05,x,y-r*0.08);
+  ctx.quadraticCurveTo(x+r*0.6,y-r*0.05,x+r*0.55,y+r);
+  ctx.closePath();ctx.fill();
+}
+function draw(){
+  ctx.clearRect(0,0,S,S);
+  var gs=S/10;
+  var idx=0;
+  var order=seats.map(function(n,i){
+    var arr=[];for(var k=0;k<n;k++)arr.push(i);return arr;
+  }).reduce(function(a,b){return a.concat(b)},[]);
+  for(var r=0;r<10;r++)for(var c=0;c<10;c++){
+    var pi=order[idx]!==undefined?order[idx]:-1;
+    idx++;
+    if(pi>=0)person(c*gs+gs/2,r*gs+gs/2+gs*0.08,gs*0.4,P[pi].c);
+  }
+  var note=seats.map(function(n,i){return n}).join(' / ');
+  var maj=seats.indexOf(Math.max.apply(null,seats));
+  document.getElementById('seatnote').textContent=
+   note+' — '+(seats[maj]>=51?P[maj].n+' governs alone':P[maj].n+' needs friends');
+  document.querySelectorAll('.pt b').forEach(function(b,i){b.textContent=seats[i]});
+}
+document.getElementById('sl').addEventListener('input',function(e){
+  shares[0]=+e.target.value;alloc();draw();
+});
+document.getElementById('gr').addEventListener('input',function(e){
+  shares[2]=+e.target.value;alloc();draw();
+});
+document.getElementById('rnd').addEventListener('click',function(){
+  var a=Math.random()*70,b=Math.random()*50,c=Math.random()*45,d=Math.random()*55;
+  var t=a+b+c+d;
+  shares=[a,b,c,d].map(function(v){return Math.round(v/t*100)});
+  document.getElementById('sl').value=shares[0];
+  document.getElementById('gr').value=shares[2];
+  alloc();draw();
+});
+var pEl=document.getElementById('parties');
+P.forEach(function(p,i){
+  var d=document.createElement('div');d.className='pt';
+  d.innerHTML='<i style="background:'+p.c+'"></i>'+p.n+' <b></b>';
+  d.addEventListener('click',function(){
+    off[i]=!off[i];d.classList.toggle('off',off[i]);alloc();draw();
+  });
+  pEl.appendChild(d);
+});
+window.addEventListener('resize',fit);
+alloc();fit();
+})();
+</script>
+</body>
+</html>

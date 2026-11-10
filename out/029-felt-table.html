@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Felt Table · Nº 029</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#1a120b;color:#f3e8d2;font-family:Palatino,"Palatino Linotype",Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px}
+header{display:flex;justify-content:space-between;align-items:center;width:min(720px,96vw)}
+h1{font:italic 400 22px Palatino,serif}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;color:#b8865a;margin-bottom:4px}
+#c{border-radius:14px;touch-action:none;cursor:crosshair}
+#msg{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#b8865a;height:14px;text-align:center}
+.dock{display:flex;gap:8px}
+button{font:italic 13px Palatino,serif;padding:8px 16px;background:transparent;border:1px solid #b8865a;color:#f3e8d2;cursor:pointer}
+button:hover{background:#b8865a;color:#1a120b}
+@media(max-width:600px){h1{font-size:17px}}
+</style>
+</head>
+<body>
+<header>
+<h1><span>Nº 029 · six pockets, no mercy</span>Felt Table</h1>
+</header>
+<canvas id="c"></canvas>
+<p id="msg">aim with the cursor — hold to charge, release to strike</p>
+<div class="dock"><button id="rack">re-rack</button></div>
+<script>
+(function(){
+"use strict";
+var VW=800,VH=420;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),sc=1,D=1;
+var R=13,balls=[],pockets=[],over=false,aim={x:600,y:200},charging=false,power=0,potted=0,broken=false;
+var msg=document.getElementById('msg');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var availW=innerWidth-16,availH=innerHeight-150;
+  sc=Math.min(availW/VW,availH/VH);
+  var w=Math.round(VW*sc),h=Math.round(VH*sc);
+  cv.style.width=w+'px';cv.style.height=h+'px';
+  cv.width=w*D;cv.height=h*D;
+}
+function rack(){
+  balls=[{x:180,y:210,vx:0,vy:0,c:'#f6f1e2',cue:true}];
+  var cols=['#e8c53f','#274b9b','#c8382e','#6b3f8f','#3f8f5f','#b8865a'];
+  var px=560,py=210,g=R*2+1,k=0;
+  var rows=[[0],[1,-1],[2,0,-2]];
+  for(var r=0;r<3;r++)for(var i=0;i<rows[r].length;i++){
+    var b={x:px+r*(R*1.75),y:py+rows[r][i]*(R*0.92),vx:0,vy:0,c:cols[k%cols.length],num:k+1};
+    balls.push(b);k++;
+  }
+  balls.push({x:px-40,y:py+60,vx:0,vy:0,c:'#181818',eight:true});
+  pockets=[];
+  var m=24;
+  [[m,m],[VW/2,m-6],[VW-m,m],[m,VH-m],[VW/2,VH-m+6],[VW-m,VH-m]].forEach(function(p){
+    pockets.push({x:p[0],y:p[1],r:20});
+  });
+  over=false;potted=0;power=0;broken=true;
+  msg.textContent='break the rack — clear the colours before the eight';
+}
+function cue(){return balls[0]}
+function moving(){for(var i=0;i<balls.length;i++){var b=balls[i];if(Math.abs(b.vx)>0.02||Math.abs(b.vy)>0.02)return true}return false}
+function shoot(){
+  var c=cue();
+  var dx=aim.x-c.x,dy=aim.y-c.y,d=Math.hypot(dx,dy)||1;
+  var sp=4+power*13;
+  c.vx=dx/d*sp;c.vy=dy/d*sp;
+}
+function step(){
+  if(charging)power=Math.min(1,power+0.018);
+  var i,j;
+  for(i=0;i<balls.length;i++){var b=balls[i];
+    b.x+=b.vx;b.y+=b.vy;b.vx*=0.986;b.vy*=0.986;
+    if(Math.hypot(b.vx,b.vy)<0.04){b.vx=0;b.vy=0}
+    var pad=R+14;
+    if(b.x<pad){b.x=pad;b.vx=Math.abs(b.vx)*0.8}
+    if(b.x>VW-pad){b.x=VW-pad;b.vx=-Math.abs(b.vx)*0.8}
+    if(b.y<pad){b.y=pad;b.vy=Math.abs(b.vy)*0.8}
+    if(b.y>VH-pad){b.y=VH-pad;b.vy=-Math.abs(b.vy)*0.8}
+    for(j=0;j<pockets.length;j++){var p=pockets[j];
+      if(Math.hypot(b.x-p.x,b.y-p.y)<p.r-4){
+        if(b.eight){
+          if(potted>=6){over=true;msg.textContent='eight in the lap — the table is yours'}
+          else{over=true;msg.textContent='you sank the eight too early. shame.'}
+        }
+        if(b.cue){
+          msg.textContent='scratch! cue ball respotted';
+          b.x=180;b.y=210;b.vx=0;b.vy=0;
+          var near=balls.some(function(o,oi){return oi>0&&Math.hypot(o.x-180,o.y-210)<R*2.2});
+          if(near)b.y=140;
+        }else{
+          if(!b.eight)potted++;
+          balls.splice(i,1);i--;
+          msg.textContent=potted+' of 6 cleared';
+        }
+        break;
+      }
+    }
+  }
+  for(i=0;i<balls.length;i++)for(j=i+1;j<balls.length;j++){
+    var a=balls[i],c=balls[j];
+    var dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy);
+    if(d<R*2&&d>0.001){
+      var nx=dx/d,ny=dy/d;
+      var overlap=(R*2-d)/2+0.1;
+      a.x-=nx*overlap;a.y-=ny*overlap;
+      c.x+=nx*overlap;c.y+=ny*overlap;
+      var va=a.vx*nx+a.vy*ny,vc=c.vx*nx+c.vy*ny;
+      var diff=vc-va;
+      if(diff<0){
+        a.vx+=nx*(-diff)*0.98;a.vy+=ny*(-diff)*0.98;
+        c.vx-=nx*(-diff)*0.98;c.vy-=ny*(-diff)*0.98;
+      }
+    }
+  }
+  if(over)power=0;
+}
+function draw(){
+  ctx.setTransform(D*sc,0,0,D*sc,0,0);
+  ctx.fillStyle='#4a2f1c';
+  ctx.fillRect(0,0,VW,VH);
+  var g=ctx.createLinearGradient(0,0,VW,VH);
+  g.addColorStop(0,'#1e6b4a');g.addColorStop(0.5,'#186143');g.addColorStop(1,'#145238');
+  ctx.fillStyle=g;ctx.fillRect(14,14,VW-28,VH-28);
+  ctx.strokeStyle='rgba(255,255,255,0.06)';
+  ctx.strokeRect(R*2+20,R*2+20,VW-2*(R*2+20),VH-2*(R*2+20));
+  pockets.forEach(function(p){
+    var pg=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,p.r+4);
+    pg.addColorStop(0,'#000');pg.addColorStop(1,'#2a1a0e');
+    ctx.fillStyle=pg;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.r+4,0,7);ctx.fill();
+  });
+  var c=cue();
+  if(!over&&(!moving()||charging)&&c){
+    var dx=aim.x-c.x,dy=aim.y-c.y,d=Math.hypot(dx,dy)||1;
+    ctx.setLineDash([5,7]);
+    ctx.strokeStyle='rgba(255,255,255,0.4)';
+    ctx.beginPath();ctx.moveTo(c.x,c.y);
+    ctx.lineTo(c.x+dx/d*260,c.y+dy/d*260);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(255,255,255,0.55)';
+    ctx.beginPath();ctx.arc(c.x+dx/d*260,c.y+dy/d*260,R,0,7);ctx.stroke();
+    ctx.strokeStyle='#f0e4c8';ctx.lineWidth=5;
+    ctx.beginPath();
+    ctx.moveTo(c.x-dx/d*(30+power*60),c.y-dy/d*(30+power*60));
+    ctx.lineTo(c.x-dx/d*(140+power*60),c.y-dy/d*(140+power*60));
+    ctx.stroke();ctx.lineWidth=1;
+  }
+  balls.forEach(function(b){
+    var bg=ctx.createRadialGradient(b.x-4,b.y-5,2,b.x,b.y,R+2);
+    bg.addColorStop(0,'#ffffff');bg.addColorStop(0.25,b.c);bg.addColorStop(1,'#00000055');
+    ctx.fillStyle=bg;
+    ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+    ctx.beginPath();ctx.arc(b.x,b.y,R,0,7);ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    if(b.num){
+      ctx.fillStyle='#f8f4e8';
+      ctx.beginPath();ctx.arc(b.x,b.y,R*0.52,0,7);ctx.fill();
+      ctx.fillStyle='#222';ctx.font='700 10px ui-monospace,monospace';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(b.num,b.x,b.y+0.5);
+    }
+    if(b.eight){
+      ctx.fillStyle='#f8f4e8';
+      ctx.beginPath();ctx.arc(b.x,b.y,R*0.52,0,7);ctx.fill();
+      ctx.fillStyle='#111';ctx.font='700 10px ui-monospace,monospace';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('8',b.x,b.y+0.5);
+    }
+  });
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  if(charging){
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.fillRect(VW/2-70,VH-34,140,12);
+    ctx.fillStyle='hsl('+(120-power*120)+',80%,55%)';
+    ctx.fillRect(VW/2-68,VH-32,136*power,8);
+  }
+}
+function toV(e){
+  var r=cv.getBoundingClientRect();
+  return{x:(e.clientX-r.left)/sc,y:(e.clientY-r.top)/sc};
+}
+cv.addEventListener('pointermove',function(e){aim=toV(e)},{passive:true});
+cv.addEventListener('pointerdown',function(e){
+  if(over)return;
+  aim=toV(e);
+  if(!moving()){charging=true;power=0}
+});
+window.addEventListener('pointerup',function(){
+  if(charging){charging=false;if(power>0.03)shoot();power=0}
+});
+document.getElementById('rack').addEventListener('click',rack);
+window.addEventListener('resize',fit);
+fit();rack();
+(function loop(){step();draw();requestAnimationFrame(loop)})();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+Create a collection of 100 HTML files in the folder ./out (numbered 001 to 100). You choose every subject yourself.
+
+Rules, exactly three creative ones:
+1. Every page must look STUNNING.
+2. Zero repetitive designs — every page a different concept, layout, palette and type of interactivity. Mix generative art, playable games, physics toys, editorial layouts, clocks, tools, data visualisations, puzzles.
+3. Go full creative mode.
+
+Engineering rules for every page:
+- One self-contained file: ./out/NNN-slug.html — <!DOCTYPE html> on line 1, all CSS in one <style>, all JS in one <script> IIFE at the end of <body>.
+- Zero external references: the substring "http" must not appear anywhere in the file. System fonts only. The file must work fully offline.
+- Responsive down to 360px; canvas pages devicePixelRatio-aware. Every page at least 3000 bytes of real, hand-authored craft.
+- Alongside each page write ./out/NNN-slug.txt containing five short fields for that page: TITLE, PROMPT (the creative brief you gave yourself for this page), DESCRIPTION, TECHNIQUES, INTERACTION.
+
+Work continuously through the numbers. Quality over speed: before moving on, mentally verify the page has no JS errors and actually renders something beautiful. After each 10 files, briefly report which numbers are done.

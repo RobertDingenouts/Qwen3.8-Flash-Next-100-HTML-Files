@@ -1,0 +1,8 @@
+scripts/node_modules/
+scripts/package-lock.json
+contactvel.jpg
+gallery.png
+metrics/smoke.json
+metrics/smoke2.json
+*.tmp*
+.dsh-*

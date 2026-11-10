@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel Timeline · Nº 079</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0b0b12;color:#d8d8e8;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+body{display:flex;flex-direction:column}
+header{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px}
+h1{font-size:11px;letter-spacing:.4em;text-transform:uppercase}
+h1 b{color:#ff4fa3}
+h1 i{color:#4fffc8;font-style:normal}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#5c5c7a}
+#rail{height:44px;border-bottom:1px solid #26264a;position:relative;margin:0 16px}
+#track{position:absolute;left:0;right:0;top:50%;height:2px;background:#26264a}
+#head{position:absolute;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;background:#ff4fa3;
+box-shadow:0 0 14px 2px rgba(255,79,163,0.7);transition:left .2s}
+.tick{position:absolute;top:50%;width:1px;height:12px;margin-top:-6px;background:#3c3c6a}
+#scroller{flex:1;overflow-x:auto;overflow-y:hidden;cursor:grab;position:relative;
+scrollbar-width:none}
+#scroller::-webkit-scrollbar{display:none}
+#lane{height:100%;position:relative;min-width:100%}
+.ev{position:absolute;bottom:6%;width:210px;padding:12px;
+background:#12121f;border:1px solid #26264a;transition:border-color .2s}
+.ev:hover{border-color:#4fffc8}
+.ev .yr{font-size:20px;font-weight:700;letter-spacing:.04em;color:#4fffc8}
+.ev h2{font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin:6px 0 4px}
+.ev p{font-size:9px;line-height:1.8;color:#8a8aa8}
+.ev canvas{position:absolute;top:10px;right:10px;image-rendering:pixelated;width:32px;height:32px}
+.ev.up{bottom:auto;top:6%}
+#hint{text-align:center;font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#5c5c7a;padding:10px}
+body.dragging #scroller{cursor:grabbing}
+</style>
+</head>
+<body>
+<header>
+<h1>pixel<i>timeline</i> <b>1972—2024</b></h1>
+<p class="tag">Nº 079 · fifty-two years of pixels, dragged by hand</p>
+</header>
+<div id="rail"><div id="track"></div><div id="head"></div></div>
+<div id="scroller"><div id="lane"></div></div>
+<p id="hint">drag · wheel · arrow keys — the timeline has no autoplay, only nostalgia</p>
+<script>
+(function(){
+"use strict";
+var EV=[
+[1972,'Pong','Two paddles, one dot, and the first time a public paid per pixel.',3],
+[1978,'Space Invaders','Japanese arcades run out of 100-yen coins.',31],
+[1984,'Apple Macintosh','A mouse clicks a 512×342 bitmap desktop. Goodbye, command line.',6],
+[1985,'NES','8-bit palettes get a home, and a front-loading flap.',9],
+[1989,'Game Boy','Tetris in four shades of pea-green on a bus to work.',17],
+[1991,'Sonic','Blast processing: pixels now have motion blur and attitude.',12],
+[1996,'Nintendo 64','Pixels leave the sprite sheet and grow polygons.',26],
+[2004,'DOOM 3 normals','Normal maps make pixel-era faces suddenly damp.',39],
+[2010,'Retina','Twice the pixels; the pixel finally retires from being visible.',3],
+[2014,'Pixel art renaissance','Hipsters ship 64×64 sprites as a deliberate aesthetic again.',22],
+[2018,'Ray tracing demo','Light bounces off virtual puddles and nobody remembers sprites.',35],
+[2024,'Neural upscaling','A model dreams new pixels where the tapestries used to be.',31]
+];
+function rng(s){return function(){s|=0;s=(s+0x6D2B79F5)|0;var t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+function icon(cv,seed){
+  cv.width=16;cv.height=16;
+  var x=cv.getContext('2d');
+  var r=rng(seed);
+  var pal=['#ff4fa3','#4fffc8','#ffd94f','#7f7fff','#ff7f4f'];
+  var c=pal[(r()*pal.length)|0];
+  for(var i=0;i<8;i++){
+    var rr=r(),cx=1+((r()*7)|0),cy=1+((r()*7)|0),w=1+((r()*5)|0),h=1+((r()*5)|0);
+    x.fillStyle=rr<0.65?c:'#d8d8e8';
+    x.fillRect(cx,cy,w,h);
+    x.fillRect(15-cx,cy,w,h);
+  }
+}
+var lane=document.getElementById('lane'),sc=document.getElementById('scroller');
+var SPAN=3200;
+lane.style.width=SPAN+'px';
+EV.forEach(function(e,i){
+  var d=document.createElement('div');
+  d.className='ev'+(i%2?' up':'');
+  var x=(e[0]-1970)/56*(SPAN-230);
+  d.style.left=x+'px';
+  d.innerHTML='<div class="yr">'+e[0]+'</div><h2>'+e[1]+'</h2><p>'+e[2]+'</p><canvas></canvas>';
+  icon(d.querySelector('canvas'),e[2].length*13+e[0]);
+  lane.appendChild(d);
+});
+var rail=document.getElementById('rail');
+for(var y=1970;y<=2026;y+=2){
+  var t=document.createElement('div');t.className='tick';
+  t.style.left=((y-1970)/56*100)+'%';
+  rail.appendChild(t);
+}
+var dragging=false,sx=0,sl=0;
+sc.addEventListener('pointerdown',function(e){dragging=true;sx=e.clientX;sl=sc.scrollLeft;document.body.classList.add('dragging')});
+window.addEventListener('pointermove',function(e){if(dragging)sc.scrollLeft=sl-(e.clientX-sx)});
+window.addEventListener('pointerup',function(){dragging=false;document.body.classList.remove('dragging')});
+sc.addEventListener('wheel',function(e){
+  if(Math.abs(e.deltaY)>Math.abs(e.deltaX))e.preventDefault();
+  sc.scrollLeft+=e.deltaY;
+},{passive:false});
+window.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight')sc.scrollLeft+=200;
+  if(e.key==='ArrowLeft')sc.scrollLeft-=200;
+});
+sc.addEventListener('scroll',function(){
+  var f=sc.scrollLeft/Math.max(1,SPAN-sc.clientWidth);
+  document.getElementById('head').style.left=(f*100)+'%';
+});
+sc.scrollLeft=0;
+document.getElementById('head').style.left='0%';
+})();
+</script>
+</body>
+</html>

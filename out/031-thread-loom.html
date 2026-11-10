@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Thread Loom · Nº 031</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#2b3138;color:#e8e4da;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.tl{position:fixed;top:16px;left:20px;pointer-events:none}
+h1{font-size:12px;font-weight:800;letter-spacing:.3em;text-transform:uppercase}
+h1 em{display:block;font:italic 11px Georgia,serif;letter-spacing:.02em;text-transform:none;opacity:.7;margin-top:5px}
+.dock{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+button{font:700 9px "Helvetica Neue",sans-serif;letter-spacing:.18em;text-transform:uppercase;padding:10px 13px;background:rgba(43,49,56,.85);color:#e8e4da;border:1px solid rgba(232,228,218,.35);cursor:pointer}
+button:hover{background:#e8e4da;color:#2b3138}
+button.on{background:#ff7a59;border-color:#ff7a59;color:#2b3138}
+@media(max-width:560px){h1{font-size:10px}button{padding:8px 9px;font-size:8px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Thread Loom<em>Nº 031 — drag the fabric · switch to shears and slice</em></h1></div>
+<div class="dock">
+<button data-p="cloth">handkerchief</button>
+<button data-p="rope">rope bridge</button>
+<button data-p="flag">banner</button>
+<button data-p="curtain">curtain</button>
+<button id="cut">shears: off</button>
+<button id="reset">re-tie</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var pts=[],sticks=[],grab=-1,cutting=false,preset='cloth';
+var PAL=['#ff7a59','#ffb347','#7ad3a1','#5aa9e6','#b28ff5','#f5e663','#f58ac9'];
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);build(preset)}
+function P(x,y,fx,fy){return{x:x,y:y,px:x,py:y,fx:fx?1:0,fy:fy?1:0}}
+function S(a,b,rest,hue){sticks.push({a:a,b:b,rest:rest===undefined?Math.hypot(pts[a].x-pts[b].x,pts[a].y-pts[b].y):rest,h:hue})}
+function build(kind){
+  preset=kind;pts=[];sticks=[];
+  if(kind==='cloth'){
+    var cols=Math.min(26,Math.max(12,Math.floor(W/34))),rows=Math.min(16,Math.max(8,Math.floor(H/46)));
+    var sp=Math.min(34,W*0.8/cols),x0=(W-(cols-1)*sp)/2,y0=H*0.14;
+    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++)
+      pts.push(P(x0+c*sp,y0+r*sp,c===0&&r===0||c===cols-1&&r===0,kind==='cloth'&&r===0&&(c%4===0||c===cols-1)&&c%2===0));
+    for(r=0;r<rows;r++)for(c=0;c<cols;c++){
+      var i=r*cols+c;
+      if(c<cols-1)S(i,i+1,sp,(i%PAL.length));
+      if(r<rows-1)S(i,i+cols,sp,(i%PAL.length));
+    }
+  }else if(kind==='rope'){
+    var n=34,sp=18,x1=W*0.1,y1=H*0.3;
+    for(var i2=0;i2<n;i2++)pts.push(P(x1+i2*sp,y1+ (i2%2)*2,i2===0,i2===n-1));
+    for(i2=0;i2<n-1;i2++)S(i2,i2+1,sp+2,i2%PAL.length);
+    pts.push(P(W*0.5,H*0.75));
+    S(0,n,undefined,(n)%PAL.length);S(n-1,n,undefined,(n+2)%PAL.length);
+  }else if(kind==='flag'){
+    var fc=16,fr=10,spx=Math.min(26,W*0.35/fc),spy=spx;
+    var px0=W*0.2,py0=H*0.18;
+    for(var rr=0;rr<fr;rr++)for(var cc=0;cc<fc;cc++)
+      pts.push(P(px0+cc*spx,py0+rr*spy,cc===0));
+    for(rr=0;rr<fr;rr++)for(cc=0;cc<fc;cc++){
+      var id=rr*fc+cc;
+      if(cc<fc-1)S(id,id+1,spx,cc%PAL.length);
+      if(rr<fr-1)S(id,id+fc,spx,(rr+cc)%PAL.length);
+    }
+  }else{
+    var kc=Math.min(30,Math.max(14,Math.floor(W/28))),kr=14,ksp=Math.min(26,W*0.9/kc);
+    var kx0=(W-(kc-1)*ksp)/2,ky0=H*0.1;
+    for(var r2=0;r2<kr;r2++)for(var c2=0;c2<kc;c2++){
+      pts.push(P(kx0+c2*ksp+ (r2%2?3:0),ky0+r2*ksp, r2===0&&c2%3===0));
+    }
+    for(r2=0;r2<kr;r2++)for(c2=0;c2<kc;c2++){
+      var j=r2*kc+c2;
+      if(c2<kc-1)S(j,j+1,ksp+6,c2%PAL.length);
+      if(r2<kr-1)S(j,j+kc,ksp+6,(c2+r2)%PAL.length);
+    }
+  }
+}
+function step(){
+  var i,pt;
+  for(i=0;i<pts.length;i++){pt=pts[i];
+    if(pt.fx){continue}
+    var vx=(pt.x-pt.px)*0.995,vy=(pt.y-pt.py)*0.995;
+    pt.px=pt.x;pt.py=pt.y;
+    pt.x+=vx;pt.y+=vy+0.28;
+    if(pt.x<4)pt.x=4;if(pt.x>W-4)pt.x=W-4;
+    if(pt.y>H-6)pt.y=H-6;if(pt.y<4)pt.y=4;
+  }
+  for(var it=0;it<3;it++)for(i=0;i<sticks.length;i++){
+    var s=sticks[i];
+    if(s.dead)continue;
+    var a=pts[s.a],b=pts[s.b];
+    var dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||0.0001;
+    var diff=(s.rest-d)/d*0.5;
+    var ox=dx*diff,oy=dy*diff;
+    if(!a.fx){a.x-=ox;a.y-=oy}
+    if(!b.fx){b.x+=ox;b.y+=oy}
+  }
+  sticks=sticks.filter(function(s){return !s.dead});
+}
+function draw(){
+  ctx.fillStyle='#2b3138';ctx.fillRect(0,0,W,H);
+  var i;
+  for(i=0;i<sticks.length;i++){
+    var s=sticks[i],a=pts[s.a],b=pts[s.b];
+    var stretch=Math.abs(Math.hypot(b.x-a.x,b.y-a.y)/s.rest-1);
+    ctx.strokeStyle=PAL[s.h%PAL.length];
+    ctx.globalAlpha=0.85;
+    ctx.lineWidth=Math.max(1.2,3.4-stretch*6);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  for(i=0;i<pts.length;i++){var p=pts[i];
+    if(p.fx){ctx.fillStyle='#f5e663';
+      ctx.beginPath();ctx.arc(p.x,p.y,4.2,0,7);ctx.fill()}
+  }
+}
+function nearest(x,y){
+  var bi=-1,bd=26*26;
+  for(var i=0;i<pts.length;i++){
+    var dx=pts[i].x-x,dy=pts[i].y-y,d2=dx*dx+dy*dy;
+    if(d2<bd){bd=d2;bi=i}
+  }
+  return bi;
+}
+var mx=0,my=0,pmx=0,pmy=0;
+cv.addEventListener('pointerdown',function(e){
+  mx=pmx=e.clientX;my=pmy=e.clientY;
+  if(cutting)return;
+  grab=nearest(mx,my);
+});
+window.addEventListener('pointermove',function(e){
+  pmx=mx;pmy=my;mx=e.clientX;my=e.clientY;
+  if(grab>=0&&grab<pts.length){pts[grab].x=mx;pts[grab].y=my;pts[grab].px=pmx;pts[grab].py=pmy}
+  if(cutting){
+    for(var i=0;i<sticks.length;i++){
+      var s=sticks[i];
+      var a=pts[s.a],b=pts[s.b];
+      if(segDist(pmx,pmy,mx,my,a.x,a.y,b.x,b.y)<7)s.dead=true;
+    }
+  }
+},{passive:true});
+window.addEventListener('pointerup',function(){grab=-1});
+function segDist(x1,y1,x2,y2,x3,y3,x4,y4){
+  var den=(x2-x1)*(y4-y3)-(y2-y1)*(x4-x3);
+  if(Math.abs(den)<0.0001)return Math.min(Math.hypot(x3-x1,y3-y1),Math.hypot(x4-x1,y4-y1));
+  var t=((x3-x1)*(y4-y3)-(y3-y1)*(x4-x3))/den;
+  var u=((x3-x1)*(y2-y1)-(y3-y1)*(x2-x1))/den;
+  if(t>=0&&t<=1&&u>=0&&u<=1){
+    var ix=x1+t*(x2-x1),iy=y1+t*(y2-y1);
+    return Math.hypot(ix-x3,iy-y3);
+  }
+  return Math.min(Math.hypot(x3-x1,y3-y1),Math.hypot(x4-x1,y4-y1),Math.hypot(x3-x2,y3-y2),Math.hypot(x4-x2,y4-y2));
+}
+document.querySelectorAll('[data-p]').forEach(function(b){
+  b.addEventListener('click',function(){build(b.dataset.p)});
+});
+var cutBtn=document.getElementById('cut');
+cutBtn.addEventListener('click',function(){
+  cutting=!cutting;
+  cutBtn.textContent='shears: '+(cutting?'on':'off');
+  cutBtn.classList.toggle('on',cutting);
+  cv.style.cursor=cutting?'crosshair':'grab';
+});
+document.getElementById('reset').addEventListener('click',function(){build(preset)});
+window.addEventListener('resize',fit);
+fit();
+(function loop(){step();draw();requestAnimationFrame(loop)})();
+})();
+</script>
+</body>
+</html>

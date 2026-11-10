@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Silk Serpent · Nº 016</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#1b0820;font-family:"Trebuchet MS",Verdana,sans-serif;color:#f3e5ff}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:space-between;padding:0 20px;pointer-events:none}
+.stat{font-size:10px;letter-spacing:.3em;text-transform:uppercase}
+.stat b{font:700 22px ui-monospace,Menlo,monospace;display:block;letter-spacing:0;color:#ffd2f2}
+h1{position:fixed;bottom:14px;left:20px;font-size:11px;letter-spacing:.34em;text-transform:uppercase;font-weight:400;pointer-events:none}
+h1 em{display:block;font:italic 11px Georgia,serif;letter-spacing:.02em;text-transform:none;opacity:.7;margin-top:4px}
+.tip{position:fixed;bottom:16px;right:20px;font-size:9px;letter-spacing:.22em;text-transform:uppercase;opacity:.55;pointer-events:none}
+#over{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(27,8,32,.72);backdrop-filter:blur(3px);text-align:center}
+#over h2{font:italic 40px Georgia,serif;color:#ffd2f2}
+#over p{font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+#over button{font:700 10px "Trebuchet MS";letter-spacing:.24em;padding:12px 26px;background:transparent;border:1px solid #ffd2f2;color:#ffd2f2;cursor:pointer;text-transform:uppercase}
+#over button:hover{background:#ffd2f2;color:#1b0820}
+@media(max-width:560px){h1 em,.tip{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud">
+<div class="stat">silk<b id="sc">0</b></div>
+<div class="stat" style="text-align:right">best<b id="hs">0</b></div>
+</div>
+<h1>Silk Serpent<em>Nº 016 — steer it, and it embroiders the dark</em></h1>
+<p class="tip">arrows / wasd / swipe</p>
+<div id="over"><h2>the thread runs out</h2><p id="final">0 dewdrops</p><button id="again">weave again</button></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var head,ang,targ,segs,spd,hue,score,best=0,dews=[],dead=false,t=0;
+var scEl=document.getElementById('sc'),hsEl=document.getElementById('hs'),overEl=document.getElementById('over');
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+ ctx.fillStyle='#1b0820';ctx.fillRect(0,0,W,H)}
+function reset(){
+  head={x:W/2,y:H/2};ang=0;targ=0;segs=[{x:W/2,y:H/2}];spd=2.2;hue=Math.random()*360;score=0;dead=false;
+  scEl.textContent=0;overEl.style.display='none';
+  dews=[];for(var i=0;i<3;i++)dews.push(rndDew());
+}
+function rndDew(){return{x:30+Math.random()*(W-60),y:30+Math.random()*(H-60),p:Math.random()*6.28}}
+function setDir(a){targ=a}
+window.addEventListener('keydown',function(e){
+  var k=e.key.toLowerCase();
+  if(k==='arrowup'||k==='w')setDir(-Math.PI/2);
+  else if(k==='arrowdown'||k==='s')setDir(Math.PI/2);
+  else if(k==='arrowleft'||k==='a')setDir(Math.PI);
+  else if(k==='arrowright'||k==='d')setDir(0);
+});
+var tsx=0,tsy=0;
+cv.addEventListener('touchstart',function(e){tsx=e.touches[0].clientX;tsy=e.touches[0].clientY},{passive:true});
+cv.addEventListener('touchmove',function(e){
+  var dx=e.touches[0].clientX-tsx,dy=e.touches[0].clientY-tsy;
+  if(Math.hypot(dx,dy)>24){setDir(Math.abs(dx)>Math.abs(dy)?(dx>0?0:Math.PI):(dy>0?Math.PI/2:-Math.PI/2));
+    tsx=e.touches[0].clientX;tsy=e.touches[0].clientY}
+},{passive:true});
+function diffAng(a,b){var d=b-a;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;return d}
+function loop(){
+  t++;
+  ctx.fillStyle='rgba(27,8,32,0.035)';ctx.fillRect(0,0,W,H);
+  if(!dead){
+    ang+=diffAng(ang,targ)*0.22;
+    var px=head.x,py=head.y;
+    head.x+=Math.cos(ang)*spd;head.y+=Math.sin(ang)*spd;
+    if(head.x<8){head.x=8;ang=Math.PI}if(head.x>W-8){head.x=W-8;ang=0}
+    if(head.y<8){head.y=8;ang=Math.PI/2}if(head.y>H-8){head.y=H-8;ang=-Math.PI/2}
+    segs.push({x:head.x,y:head.y});
+    var want=Math.round(26+score*7);
+    while(segs.length>want+40)segs.shift();
+    hue=(hue+0.7)%360;
+    ctx.strokeStyle='hsla('+hue+',85%,66%,0.34)';
+    ctx.lineWidth=3;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(head.x,head.y);ctx.stroke();
+    for(var d=0;d<dews.length;d++){var dw=dews[d];
+      if(Math.hypot(head.x-dw.x,head.y-dw.y)<16){score++;scEl.textContent=score;
+        best=Math.max(best,score);hsEl.textContent=best;
+        dews[d]=rndDew();spd=Math.min(4.2,2.2+score*0.06);
+        ctx.fillStyle='rgba(255,255,255,0.5)';
+        ctx.beginPath();ctx.arc(dw.x,dw.y,14,0,7);ctx.fill()}}
+    for(var i=0;i<segs.length-14;i+=2){var s=segs[i];
+      if(Math.hypot(head.x-s.x,head.y-s.y)<7){die();break}}
+  }else{
+    ctx.fillStyle='rgba(27,8,32,0.02)';ctx.fillRect(0,0,W,H);
+  }
+  ctx.lineCap='round';
+  for(var j=1;j<segs.length;j++){
+    var a=segs[j-1],b=segs[j],f=j/segs.length;
+    ctx.strokeStyle='hsla('+((hue-j*1.1)%360)+',70%,'+(70-f*25)+'%,'+(0.9-f*0.55)+')';
+    ctx.lineWidth=Math.max(0.5,6.5*(1-f)+1);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  var g=ctx.createRadialGradient(head.x,head.y,0,head.x,head.y,16);
+  g.addColorStop(0,'rgba(255,240,255,0.9)');g.addColorStop(1,'rgba(255,240,255,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(head.x,head.y,16,0,7);ctx.fill();
+  for(var k2=0;k2<dews.length;k2++){var dew=dews[k2];dew.p+=0.07;
+    var rr=4+Math.sin(dew.p)*1.4;
+    ctx.fillStyle='rgba(180,255,230,0.9)';
+    ctx.beginPath();ctx.arc(dew.x,dew.y,rr,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(180,255,230,0.25)';
+    ctx.beginPath();ctx.arc(dew.x,dew.y,rr+4+Math.sin(dew.p*0.6)*3,0,7);ctx.stroke();
+  }
+  requestAnimationFrame(loop);
+}
+function die(){dead=true;document.getElementById('final').textContent=score+' dewdrops woven';overEl.style.display='flex'}
+document.getElementById('again').addEventListener('click',reset);
+window.addEventListener('resize',fit);
+fit();reset();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

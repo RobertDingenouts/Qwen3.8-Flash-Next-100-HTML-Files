@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Word Ticker · Nº 048</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0e0f11;color:#d8d5cd;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:14px}
+header{text-align:center}
+h1{font-size:10px;font-weight:700;letter-spacing:.5em;text-transform:uppercase}
+h1 b{color:#e8b84b}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#6a6d74;margin-top:6px}
+#boardwrap{padding:10px;background:#1a1c20;border-radius:10px;box-shadow:0 24px 60px -20px rgba(0,0,0,0.9)}
+canvas{display:block;border-radius:4px}
+#ui{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:94vw}
+#txt{flex:1 1 240px;min-width:180px;background:#1a1c20;border:1px solid #3c4046;color:#e8e5dd;
+padding:11px 12px;font:13px ui-monospace,Menlo,monospace;border-radius:4px;letter-spacing:.06em}
+#txt:focus{outline:none;border-color:#e8b84b}
+label{font-size:8px;letter-spacing:.24em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:90px;accent-color:#e8b84b}
+button{font:700 8px "Helvetica Neue",sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:11px 13px;
+background:transparent;border:1px solid #3c4046;color:#d8d5cd;cursor:pointer;border-radius:3px}
+button:hover{background:#e8b84b;color:#0e0f11;border-color:#e8b84b}
+@media(max-width:560px){.tag{display:none}}
+</style>
+</head>
+<body>
+<header><h1>Word <b>Ticker</b> Nº 048</h1><p class="tag">the flap board at gate 3 · departures, endlessly</p></header>
+<div id="boardwrap"><canvas id="c"></canvas></div>
+<div id="ui">
+<input id="txt" maxlength="64" value="ALL SYSTEMS FLAPPING   GATE 3 OPEN   MIND THE GAP   ">
+<label>pace <input id="spd" type="range" min="60" max="500" value="200"></label>
+<button id="rewind">rewind ▮▮</button>
+<button id="bell">ring bell</button>
+</div>
+<script>
+(function(){
+"use strict";
+var CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,;:!?-+*()/'+"'";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,W=0,H=0;
+var COLS=22,flaps=[],line='',ofs=0,stepMs=200,stepAcc=0,prevT=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  COLS=Math.min(26,Math.max(10,Math.floor((innerWidth-70)/Math.min(46,innerWidth/18))));
+  var cw=Math.min(46,(innerWidth-80)/COLS);
+  var ch=cw*1.42;
+  W=Math.round(cw*COLS);H=Math.round(ch);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  resetFlaps();
+}
+function resetFlaps(){
+  flaps=[];
+  for(var i=0;i<COLS;i++)flaps.push({cur:' ',queue:[],p:0,flip:false});
+}
+function targetChar(i){
+  var idx=(ofs+i)%line.length;
+  return line[idx]||' ';
+}
+function pushLine(){
+  for(var i=0;i<COLS;i++){
+    var t=targetChar(i);
+    var f=flaps[i];
+    if(t!==f.cur&&f.queue.length===0){
+      f.queue=[rnd(),rnd(),t];
+      startFlip(f);
+    }else if(t!==f.cur&&f.queue[f.queue.length-1]!==t){
+      f.queue[f.queue.length-1]=t;
+    }
+  }
+}
+function rnd(){return CHARS[(Math.random()*CHARS.length)|0]}
+function startFlip(f){
+  if(!f.queue.length){f.flip=false;return}
+  f.next=f.queue.shift();
+  f.p=0;f.flip=true;
+}
+function step(){
+  ofs++;
+  pushLine();
+}
+function draw(dt){
+  ctx.clearRect(0,0,W,H);
+  var cw=W/COLS,ch=H;
+  for(var i=0;i<COLS;i++){
+    var f=flaps[i];
+    if(f.flip){
+      f.p+=dt/70;
+      if(f.p>=1){
+        f.cur=f.next;
+        f.p=0;
+        if(f.queue.length)startFlip(f);
+        else f.flip=false;
+      }
+    }
+    var x=i*cw;
+    var p=f.flip?f.p:1;
+    ctx.save();
+    ctx.translate(x,0);
+    ctx.fillStyle='#16181c';
+    ctx.fillRect(0.5,0,cw-1,ch);
+    var topCh=f.flip?(p<0.5?f.cur:f.next):f.cur;
+    var botCh=f.cur;
+    if(f.flip&&p>0.5)botCh=f.next;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.font='700 '+Math.round(ch*0.62)+'px ui-monospace,Menlo,monospace';
+    ctx.save();
+    ctx.beginPath();ctx.rect(0,0,cw,ch/2);ctx.clip();
+    ctx.fillStyle='#212429';
+    ctx.fillRect(0,0,cw,ch/2);
+    if(f.flip&&p<0.5){
+      var s=1-p*2;
+      ctx.save();ctx.translate(cw/2,ch/2);ctx.scale(1,Math.max(0.01,s));
+      ctx.fillStyle='#e8e3d5';ctx.fillText(topCh,0,-ch*0.25/s*1);
+      ctx.restore();
+    }else{
+      ctx.fillStyle='#e8e3d5';ctx.fillText(topCh,cw/2,ch*0.25);
+    }
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();ctx.rect(0,ch/2,cw,ch/2);ctx.clip();
+    ctx.fillStyle='#1c1e23';
+    ctx.fillRect(0,ch/2,cw,ch/2);
+    if(f.flip&&p>0.5){
+      var s2=(p-0.5)*2;
+      ctx.save();ctx.translate(cw/2,ch/2);ctx.scale(1,Math.max(0.01,s2));
+      ctx.fillStyle='#d8d2c2';ctx.fillText(botCh,0,ch*0.25/s2);
+      ctx.restore();
+    }else{
+      ctx.fillStyle='#d8d2c2';ctx.fillText(botCh,cw/2,ch*0.76);
+    }
+    ctx.restore();
+    ctx.strokeStyle='rgba(0,0,0,0.9)';
+    ctx.beginPath();ctx.moveTo(0,ch/2);ctx.lineTo(cw,ch/2);ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.04)';
+    ctx.strokeRect(1,1,cw-2,ch-2);
+    ctx.restore();
+  }
+}
+function loop(ts){
+  var dt=Math.min(50,ts-(prevT||ts));prevT=ts;
+  stepAcc+=dt;
+  if(stepAcc>=stepMs){stepAcc=0;step()}
+  draw(dt);
+  requestAnimationFrame(loop);
+}
+document.getElementById('txt').addEventListener('input',function(e){
+  line=e.target.value.toUpperCase()+'  ';
+  ofs=0;
+  for(var i=0;i<COLS;i++){flaps[i].queue=[]}
+  pushLine();
+});
+document.getElementById('spd').addEventListener('input',function(e){stepMs=+e.target.value});
+document.getElementById('rewind').addEventListener('click',function(){
+  ofs=0;pushLine();
+});
+document.getElementById('bell').addEventListener('click',function(){
+  var AC=new (window.AudioContext||window.webkitAudioContext)();
+  var t0=AC.currentTime;
+  [[1760,0],[1320,0.18]].forEach(function(h){
+    var o=AC.createOscillator(),g=AC.createGain();
+    o.type='triangle';o.frequency.value=h[0];
+    g.gain.setValueAtTime(0.0001,t0+h[1]);
+    g.gain.exponentialRampToValueAtTime(0.2,t0+h[1]+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+h[1]+0.6);
+    o.connect(g);g.connect(AC.destination);
+    o.start(t0+h[1]);o.stop(t0+h[1]+0.7);
+  });
+});
+window.addEventListener('resize',fit);
+line=document.getElementById('txt').value.toUpperCase()+'  ';
+fit();pushLine();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Untangle Stars · Nº 042</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0b1026;color:#dce6ff;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font-size:12px;letter-spacing:.42em;text-transform:uppercase;font-weight:400}
+h1 b{color:#ffd27a;font-weight:700}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.28em;text-transform:uppercase;color:#5c6a9c;margin-top:6px}
+#c{touch-action:none;cursor:grab}
+.dock{display:flex;gap:8px;align-items:center}
+button{font:700 9px "Century Gothic",sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:10px 16px;background:transparent;border:1px solid #43527e;color:#dce6ff;cursor:pointer}
+button:hover{background:#dce6ff;color:#0b1026}
+#cross{font:700 13px ui-monospace,monospace;color:#ff7a7a;min-width:70px;text-align:center}
+#msg{font-size:10px;letter-spacing:.16em;height:14px;color:#8ea0d8;text-align:center}
+@media(max-width:520px){h1{font-size:10px}}
+</style>
+</head>
+<body>
+<header><h1>Untangle <b>Stars</b></h1><p class="tag">Nº 042 · pull the constellation until no threads cross</p></header>
+<canvas id="c"></canvas>
+<div class="dock">
+<span id="cross">—</span>
+<button id="next">new knot</button>
+</div>
+<p id="msg">drag the stars · zero crossings unties the knot</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var nodes=[],edges=[],drag=-1,N=7,level=0,t=0;
+var crossEl=document.getElementById('cross'),msg=document.getElementById('msg');
+function rnd(a,b){return a+Math.random()*(b-a)}
+function segInt(a,b,c,d){
+  function o(p,q,r){return (q.x-p.x)*(r.y-p.y)-(q.y-p.y)*(r.x-p.x)}
+  var o1=o(a,b,c),o2=o(a,b,d),o3=o(c,d,a),o4=o(c,d,b);
+  return ((o1>0)!==(o2>0))&&((o3>0)!==(o4>0));
+}
+function gen(){
+  nodes=[];edges=[];
+  var i,j;
+  var cx=W/2,cy=H/2,r=Math.min(W,H)*0.36;
+  var gp=[];
+  for(i=0;i<N;i++){
+    var a=Math.random()*6.283,rr=r*Math.sqrt(Math.random());
+    gp.push({x:cx+Math.cos(a)*rr,y:cy+Math.sin(a)*rr});
+  }
+  var par=[];for(i=0;i<N;i++)par.push(i);
+  function find(x){while(par[x]!==x)x=par[x]=par[par[x]];return x}
+  var pairs=[];
+  for(i=0;i<N;i++)for(j=i+1;j<N;j++)pairs.push([i,j]);
+  pairs.sort(function(){return Math.random()-0.5});
+  pairs.forEach(function(p){
+    if(find(p[0])!==find(p[1])){par[find(p[0])]=find(p[1]);edges.push([p[0],p[1]])}
+  });
+  var extra=0,maxE=N+3;
+  for(i=0;i<pairs.length&&extra<maxE-N;i++){
+    var p=pairs[i];
+    if(find(p[0])===find(p[1])&&Math.random()<0.7)continue;
+    if(edges.some(function(e){return (e[0]===p[0]&&e[1]===p[1])}))continue;
+    var ok=true;
+    for(j=0;j<edges.length;j++){
+      var e=edges[j];
+      if(e[0]===p[0]||e[1]===p[1]||e[0]===p[1]||e[1]===p[0])continue;
+      if(segInt(gp[p[0]],gp[p[1]],gp[e[0]],gp[e[1]])){ok=false;break}
+    }
+    if(ok){edges.push([p[0],p[1]]);extra++}
+  }
+  for(i=0;i<N;i++){
+    var ta=Math.random()*6.283;
+    nodes.push({x:cx+Math.cos(ta)*r*rnd(0.3,1.05),y:cy+Math.sin(ta)*r*rnd(0.3,1.05),
+      r:rnd(4.5,8.5),ph:Math.random()*6.283});
+  }
+  if(crossCount()===0){gen();return}
+}
+function crossCount(){
+  var bad={},c=0;
+  for(var i=0;i<edges.length;i++)for(var j=i+1;j<edges.length;j++){
+    var a=edges[i],b=edges[j];
+    if(a[0]===b[0]||a[1]===b[0]||a[0]===b[1]||a[1]===b[1])continue;
+    if(segInt(nodes[a[0]],nodes[a[1]],nodes[b[0]],nodes[b[1]])){
+      bad[i]=1;bad[j]=1;c++;
+    }
+  }
+  nodes.forEach(function(n){n.hot=false});
+  for(var e in bad){
+    edges[e]&&0;
+    nodes[edges[e][0]].hot=true;nodes[edges[e][1]].hot=true;
+  }
+  window._bad=bad;
+  return c;
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=Math.min(innerWidth,innerHeight-150);
+  H=Math.min(innerHeight-150,innerWidth);
+  W=Math.max(260,W);H=Math.max(260,H);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+}
+function draw(){
+  t++;
+  ctx.fillStyle='#0b1026';ctx.fillRect(0,0,W,H);
+  var i,c=0;
+  ctx.fillStyle='rgba(220,230,255,0.35)';
+  for(i=0;i<40;i++){
+    var x=(i*197%W),y=(i*523%H);
+    var a=0.2+0.2*Math.sin(t/50+i);
+    ctx.globalAlpha=a;ctx.fillRect(x,y,1.5,1.5);
+  }
+  ctx.globalAlpha=1;
+  var bad=window._bad||{};
+  for(i=0;i<edges.length;i++){
+    var e=edges[i],a=nodes[e[0]],b=nodes[e[1]];
+    var isBad=bad[i];
+    ctx.strokeStyle=isBad?'rgba(255,110,110,'+(0.5+0.3*Math.sin(t/8))+')':'rgba(140,170,255,0.55)';
+    ctx.lineWidth=isBad?2:1.2;
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  for(i=0;i<N;i++){
+    var n=nodes[i];
+    var g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r*3.6);
+    var col=n.hot?'255,120,120':'255,220,150';
+    g.addColorStop(0,'rgba('+col+',0.85)');
+    g.addColorStop(1,'rgba('+col+',0)');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r*3.6,0,7);ctx.fill();
+    ctx.fillStyle=n.hot?'#ffd0d0':'#fff6e0';
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r*(1+0.12*Math.sin(t/20+n.ph)),0,7);ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+function nearest(x,y){
+  var bi=-1,bd=1e9;
+  for(var i=0;i<N;i++){
+    var d=Math.hypot(nodes[i].x-x,nodes[i].y-y);
+    if(d<bd&&d<30){bd=d;bi=i}
+  }
+  return bi;
+}
+function upd(){
+  var c=crossCount();
+  crossEl.textContent=c?c+' ✕':'✓';
+  crossEl.style.color=c?'#ff7a7a':'#8affc0';
+  if(c===0&&msg.textContent.indexOf('knotless')<0){
+    msg.textContent='knotless! the constellation breathes easier — NEXT KNOT tightens it again.';
+    level++;
+  }
+}
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left,y=e.clientY-r.top;
+  drag=nearest(x,y);
+  cv.style.cursor=drag>=0?'grabbing':'grab';
+});
+window.addEventListener('pointermove',function(e){
+  if(drag<0)return;
+  var r=cv.getBoundingClientRect();
+  nodes[drag].x=Math.max(10,Math.min(W-10,e.clientX-r.left));
+  nodes[drag].y=Math.max(10,Math.min(H-10,e.clientY-r.top));
+  upd();
+},{passive:true});
+window.addEventListener('pointerup',function(){drag=-1;cv.style.cursor='grab'});
+document.getElementById('next').addEventListener('click',function(){
+  N=Math.min(14,7+level);
+  msg.textContent='drag the stars · zero crossings unties the knot';
+  gen();upd();
+});
+window.addEventListener('resize',function(){fit();gen();upd()});
+fit();gen();upd();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

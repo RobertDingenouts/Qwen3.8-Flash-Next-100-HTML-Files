@@ -1,0 +1,5 @@
+TITLE: Silk Serpent — a snake that embroiders the dark
+PROMPT: Rebirth the arcade snake as a textile toy: a luminous serpent swims a plum-black void eating dewdrops, and the only thing it ever really does is sew — the game must end with a glowing embroidered scarf of pure play leftover on screen.
+DESCRIPTION: A smooth-turning snake (interpolated heading, tapering rainbow body, glowing head halo) that lays down translucent hue-cycling silk strokes behind it on a slowly fading canvas, so every route you take stays as embroidery. Collect dewdrops to grow and accelerate; self-collision ends the run, and the finished scarf becomes the post-mortem art behind the score.
+TECHNIQUES: angle-shortest-path steering with pointer/swipe/keyboard input, trail accumulation via low-alpha body strokes over a slowly fading canvas (no clear), sampled self-collision against the segment chain, growth model on persistent point queue, pulsing dew pickup, serif/monospace hybrid HUD.
+INTERACTION: Steer with arrows, WASD, or swipes; eat the mint dewdrops to grow longer and faster; the ribbon you trail is the score made visible — bite your own scarf and the loom stops until WEAVE AGAIN.

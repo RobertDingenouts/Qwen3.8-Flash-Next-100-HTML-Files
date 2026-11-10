@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coral Growth · Nº 007</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#03181f;color:#cfe9e2;font-family:"Avenir Next",Futura,"Century Gothic",sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none;image-rendering:auto}
+.tl{position:fixed;top:18px;left:20px;pointer-events:none;text-shadow:0 1px 10px #000}
+h1{font-size:14px;font-weight:600;letter-spacing:.42em;text-transform:uppercase}
+h1 em{display:block;font:italic 12px Georgia,serif;letter-spacing:.04em;text-transform:none;opacity:.8;margin-top:6px}
+.panel{position:fixed;right:14px;bottom:14px;background:rgba(3,24,31,.78);border:1px solid rgba(160,230,210,.25);padding:12px 14px;font-size:10px;letter-spacing:.12em}
+.panel label{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:6px 0;text-transform:uppercase}
+input[type=range]{width:110px;accent-color:#59c2a6}
+.prow{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+button{font:inherit;letter-spacing:.14em;text-transform:uppercase;padding:6px 9px;background:transparent;border:1px solid rgba(160,230,210,.4);color:#cfe9e2;cursor:pointer}
+button:hover{background:#cfe9e2;color:#03181f}
+.hint{position:fixed;left:20px;bottom:16px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;opacity:.65;pointer-events:none;text-shadow:0 1px 6px #000}
+@media(max-width:640px){.panel{right:8px;left:8px;bottom:8px}.hint{display:none}h1{font-size:11px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Coral Growth<em>reaction–diffusion Nº 007 · feed your reefs with a brush</em></h1></div>
+<div class="panel">
+<label>feed F <input id="F" type="range" min="20" max="70" value="54"></label>
+<label>kill K <input id="K" type="range" min="50" max="75" value="63"></label>
+<div class="prow" id="presets"></div>
+<div class="prow"><button id="clear">bleach reef</button></div>
+</div>
+<p class="hint">drag anywhere to inject activator</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var off=document.createElement('canvas'),octx=off.getContext('2d');
+var GW=0,GH=0,u=null,v=null,u2=null,v2=null,img=null,D=1,W=0,H=0;
+var Du=1.0,Dv=0.5,steps=8;
+var FEl=document.getElementById('F'),KEl=document.getElementById('K');
+function Fv(){return +FEl.value/1000}
+function Kv(){return +KEl.value/1000}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;cv.style.width=W+'px';cv.style.height=H+'px';
+  GW=Math.max(60,Math.round(W/4.4));GH=Math.max(60,Math.round(H/4.4));
+  off.width=GW;off.height=GH;
+  var n=GW*GH;
+  u=new Float32Array(n);v=new Float32Array(n);u2=new Float32Array(n);v2=new Float32Array(n);
+  img=octx.createImageData(GW,GH);
+  for(var i=0;i<n;i++){u[i]=1;v[i]=0}
+  for(var s=0;s<7;s++){var cx=GW/3+ (s%3)*GW/6,cy=GH/2+((s>>1)-1)*GH/5;paint(cx,cy,4)}
+}
+function paint(gx,gy,r){
+  for(var y=-r;y<=r;y++)for(var x=-r;x<=r;x++){
+    var i=(gy+y)*GW+(gx+x);
+    if(i>=0&&i<u.length&&x*x+y*y<=r*r){u[i]=1;v[i]=0.5+Math.random()*0.5}
+  }
+}
+function lap(a,x,y){
+  var i=y*GW+x;
+  return 0.05*(a[i-GW-1]+a[i-GW+1]+a[i+GW-1]+a[i+GW+1])+
+         0.2*(a[i-GW]+a[i+GW]+a[i-1]+a[i+1])-a[i];
+}
+function step(){
+  var F=Fv(),K=Kv(),dv=Dv;
+  for(var y=1;y<GH-1;y++){
+    var row=y*GW;
+    for(var x=1;x<GW-1;x++){
+      var i=row+x,uu=u[i],vv=v[i],uvv=uu*vv*vv;
+      u2[i]=uu+Du*lap(u,x,y)-uvv+F*(1-uu);
+      v2[i]=vv+dv*lap(v,x,y)+uvv-(F+K)*vv;
+    }
+  }
+  var t=u;u=u2;u2=t;t=v;v=v2;v2=t;
+}
+var LUT=null;
+function buildLUT(){
+  LUT=new Uint8Array(256*3);
+  for(var i=0;i<256;i++){
+    var t=i/255,r,g,b;
+    if(t<0.5){var s=t*2;r=4+s*(15-4);g=24+s*(150-24);b=31+s*(120-31)}
+    else{var s2=(t-0.5)*2;r=15+s2*(233-15);g=150+s2*(250-150);b=120+s2*(228-120)}
+    LUT[i*3]=r;LUT[i*3+1]=g;LUT[i*3+2]=b;
+  }
+}
+function render(){
+  var d=img.data;
+  for(var i=0,y=0;i<u.length;i++){
+    var tt=v[i]>1?255:Math.round(v[i]*180+(1-u[i])*40);
+    tt=Math.max(0,Math.min(255,tt));
+    d[y]=LUT[tt*3];d[y+1]=LUT[tt*3+1];d[y+2]=LUT[tt*3+2];d[y+3]=255;y+=4;
+  }
+  octx.putImageData(img,0,0);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+}
+function loop(){
+  for(var s=0;s<steps;s++)step();
+  render();requestAnimationFrame(loop);
+}
+function toGrid(e){
+  var r=cv.getBoundingClientRect();
+  return{x:Math.round((e.clientX-r.left)/r.width*GW),y:Math.round((e.clientY-r.top)/r.height*GH)};
+}
+var down=false;
+cv.addEventListener('pointerdown',function(e){down=true;var p=toGrid(e);paint(p.x,p.y,Math.max(3,Math.round(GW/40)))});
+window.addEventListener('pointermove',function(e){if(!down)return;var p=toGrid(e);paint(p.x,p.y,Math.max(2,Math.round(GW/70)))},{passive:true});
+window.addEventListener('pointerup',function(){down=false});
+var presets=[['coral',54,63],['mitosis',37,65],['worms',54,62],['maze',29,57],['diamond',44,64]];
+var pc=document.getElementById('presets');
+presets.forEach(function(pr){
+  var b=document.createElement('button');b.textContent=pr[0];
+  b.addEventListener('click',function(){FEl.value=pr[1];KEl.value=pr[2]});pc.appendChild(b);
+});
+document.getElementById('clear').addEventListener('click',function(){
+  for(var i=0;i<u.length;i++){u[i]=1;v[i]=0}
+});
+window.addEventListener('resize',fit);
+buildLUT();fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

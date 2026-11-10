@@ -1,0 +1,5 @@
+TITLE: Frostwork — diffusion-limited ice on cold glass
+PROMPT: Simulate real crystal growth — let visitors watch a snowflake fern build itself cell by cell from a single seed on a dark window, where every branch is an accident of random walkers sticking to ice, and the branching mood is a dial they can turn.
+DESCRIPTION: A diffusion-limited aggregation simulation rendered at lattice resolution on a dark, star-flecked "window". Random walkers wander in from the growth front and freeze on contact, producing dendritic frost fractals. A BRANCHING slider changes walker step chaos (fine ferns vs chunky blooms), clicking anywhere moves the seed, and the frozen-cell counter ticks live.
+TECHNIQUES: DLA algorithm with adaptive spawn ring and sticky-collision probability, lattice occupancy in a Uint8Array, incremental per-cell drawing for zero-cost redraws, devicePixelRatio-scaled lattice sizing, twinkling frontier sparkle pass, HUD in monospace type.
+INTERACTION: Click or tap the glass to reseed the crystal at your fingertip, drag the branching slider while it grows, and hit RECRYSTALLIZE to start a new flower.

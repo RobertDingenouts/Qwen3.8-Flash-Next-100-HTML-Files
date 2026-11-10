@@ -1,0 +1,5 @@
+TITLE: Murmuration — the flock obeys the hawk
+PROMPT: Recreate the shiver of a starling murmuration at sunset: hundreds of birds obeying only three local rules, an orange sky going violet above dark hills — and the visitor's cursor looms as a hawk that ripples the whole cloud apart.
+DESCRIPTION: A full-bleed dusk scene (layered gradient sky, glowing low sun, two silhouette hill ridges) with a boids flock of up to 500 flapping starlings drawn as two-stroke wing glyphs whose depth varies size and opacity. The pointer is a hawk with an invisible 160px fear radius; tapping triggers a screech shockwave. Controls add or thin the flock and calm the sky.
+TECHNIQUES: classic boids (cohesion, alignment, inverse-square separation) tuned for murmuration shimmer, per-frame procedural sky with radial sun glow and sine hill silhouettes, banking wing-glyph rendering with per-bird depth, pointer repulsion + decaying shockwave impulse, live FPS and population HUD.
+INTERACTION: Sweep the cursor to carve channels through the flock, tap for a startling screech pulse, +40/−40 birds to scale the cloud, CALM THE SKY to reset fear and velocities.

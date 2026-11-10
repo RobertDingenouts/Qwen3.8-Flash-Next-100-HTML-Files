@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>100 HTML Files — Qwen3.8-Flash-Next · Robas Lab</title>
+<meta name="description" content="100 self-contained HTML pages authored end-to-end by one local model (Qwen3.8-Flash-Next) on a single RTX 5090, with full token/time telemetry.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="100 HTML-files — Qwen3.8-Flash-Next, lokaal op één RTX 5090">
+<meta property="og:description" content="Eén lokaal model, één prompt, honderd pagina's — inclusief alle token- en snelheidscijfers.">
+<style>
+:root { --bg:#0c0e12; --panel:#141821; --line:#232a37; --tx:#e8e6e1; --dim:#8b93a5; --acc:#d9a441; --acc2:#5b8dbe; }
+* { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--tx);
+ font:16px/1.55 ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif }
+header { max-width:1240px; margin:0 auto; padding:52px 24px 10px }
+h1 { font-size:clamp(1.7rem,4vw,2.7rem); letter-spacing:-.02em; margin:0 0 10px }
+h1 em { color:var(--acc); font-style:normal }
+.sub { color:var(--dim); max-width:70ch }
+.sub a { color:var(--acc2) }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin:26px 0 8px }
+.stat { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 18px }
+.stat b { display:block; font-size:1.25rem; color:var(--acc) } .stat span { font-size:.8rem; color:var(--dim) }
+.controls { max-width:1240px; margin:18px auto 0; padding:0 24px; position:sticky; top:0; z-index:5 }
+#q { width:100%; padding:13px 18px; border-radius:12px; border:1px solid var(--line);
+ background:var(--panel); color:var(--tx); font:inherit; outline:none }
+#q:focus { border-color:var(--acc) }
+main { max-width:1240px; margin:22px auto 80px; padding:0 24px;
+ display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:20px }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:14px; overflow:hidden;
+ display:flex; flex-direction:column }
+.card a.open img { width:100%; aspect-ratio:16/10; object-fit:cover; display:block }
+.card .ph { width:100%; aspect-ratio:16/10; display:grid; place-items:center; color:var(--dim); background:#0a0c10 }
+.body { padding:14px 16px 16px }
+.num { color:var(--dim); font-size:.78rem; letter-spacing:.12em }
+.t { font-size:1.02rem; margin:2px 0 6px }
+.d { color:var(--dim); font-size:.86rem; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden }
+.badges { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap }
+.badge { font-size:.72rem; padding:3px 9px; border-radius:99px; background:#1a2030; color:var(--dim) }
+.badge.gold { color:#0c0e12; background:var(--acc); font-weight:600 }
+details { margin-top:10px } summary { cursor:pointer; color:var(--acc2); font-size:.84rem }
+details p { font-size:.84rem; color:var(--dim); margin:.5em 0 }
+details p b { color:var(--tx); font-weight:600 }
+.row { display:flex; gap:10px; margin-top:12px }
+.row a { flex:1; text-align:center; text-decoration:none; font-size:.84rem; padding:8px 0;
+ border-radius:9px; border:1px solid var(--acc); color:var(--acc) }
+.row a.p { border-color:var(--line); color:var(--dim) }
+footer { max-width:1240px; margin:0 auto 60px; padding:0 24px; color:var(--dim); font-size:.84rem }
+footer a { color:var(--acc2) }
+@media (prefers-reduced-motion) { * { animation:none!important } }
+</style></head><body>
+<header>
+ <div class="num">ROBAS LAB · EXPERIMENT 001 · NOV 2026</div>
+ <h1>100 HTML-files — <em>Qwen3.8-Flash-Next</em>, lokaal op één RTX 5090</h1>
+ <p class="sub">Honderd self-contained webpagina's — één bestand per pagina, alle CSS/JS inline, volledig offline —
+ geschreven door één lokaal model zonder tussenkomst: het model bedacht elke eigen brief zelf.
+ Format geïnspireerd op het <a href="https://mia-ai.net/lab/experiments/100-htmls" rel="noopener">100-HTML-experiment van Mia's AI Lab</a>;
+ hier draaide het model dat zij nog niet testte — op eigen hardware, met alle cijfers erbij.</p>
+ <div class="stats">
+  <div class="stat"><b>100</b><span>pagina's · 0 externe verwijzingen</span></div>
+  <div class="stat"><b>__OUTTOK__</b><span>output tokens (hoofdrun)</span></div>
+  <div class="stat"><b>__WALL__</b><span>bouwtijd (1 sessie)</span></div>
+  <div class="stat"><b>__TPS__</b><span>tok/s gemiddeld, incl. agent-overhead</span></div>
+  <div class="stat"><b>&euro;0</b><span>API-kosten · __HW__</span></div>
+ </div>
+</header>
+<div class="controls"><input id="q" type="search" placeholder="Zoek in titels, brieves en technieken…" autofocus></div>
+<main id="grid"></main>
+<footer>
+ <p><b>NL</b> — Bedacht en aangestuurd door Robert Dingenouts (Robas Lab). Het model (Qwen3.8-Flash-Next, UD-IQ3_XXS
+ + DFlash2, 262K context op Strata) draaide in DeepSeek Harness onder één vaste startprompt met drie creatieve regels;
+ elke <code>.txt</code> bevat de brief die het model zich zelf gaf. Draaitijd-, token- en snelheidscijfers per pagina:
+ <code>metrics/run.json</code>. <b>EN</b> — 100 self-contained pages authored end-to-end by one local model on a single
+ RTX 5090 (no API): same three-rule challenge popularised by Mia's AI Lab, first flash-next collection, with full
+ token/time telemetry.</p>
+ <p>Concept-origin: <a href="https://x.com/MiaAI_lab" rel="noopener">@MiaAI_lab</a> · <a href="https://mia-ai.net/lab/experiments/100-htmls" rel="noopener">het experiment</a></p>
+</footer>
+<script>
+const DATA=__DATA__;
+const grid=document.getElementById('grid');
+function badges(it){
+ let b='';
+ if(it.tok) b+='<span class="badge">'+(it.tok/1000).toFixed(1)+'k tok</span>';
+ if(it.sec!=null) b+='<span class="badge">'+Math.round(it.sec)+'s</span>';
+ if(it.tok&&it.sec) b+='<span class="badge gold">'+Math.round(it.tok/it.sec)+' tok/s</span>';
+ return b;
+}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function card(it){
+ const im = it.img
+  ? '<a class="open" href="out/'+it.file+'" target="_blank" rel="noopener"><img src="thumbs/'+it.slug+'.jpg" loading="lazy" alt="'+esc(it.title)+'"></a>'
+  : '<a class="open" href="out/'+it.file+'" target="_blank" rel="noopener"><div class="ph">open pagina →</div></a>';
+ return '<article class="card">'+im+'<div class="body">'
+  +'<div class="num">#'+it.n+'</div>'
+  +'<div class="t">'+esc(it.title)+'</div>'
+  +'<div class="d">'+esc(it.desc)+'</div>'
+  +'<div class="badges">'+badges(it)+'</div>'
+  +'<details><summary>toon de brief van het model</summary>'
+   +'<p><b>Brief:</b> '+esc(it.prompt)+'</p>'
+   +'<p><b>Technieken:</b> '+esc(it.tech)+'</p>'
+   +'<p><b>Interactie:</b> '+esc(it.inter)+'</p></details>'
+  +'<div class="row"><a href="out/'+it.file+'" target="_blank" rel="noopener">openen</a>'
+  +'<a class="p" href="out/'+it.slug+'.txt" target="_blank">.txt</a></div></div></article>';
+}
+function render(list){ grid.innerHTML=list.map(card).join(''); }
+render(DATA);
+document.getElementById('q').addEventListener('input',function(e){
+ const v=e.target.value.toLowerCase();
+ render(DATA.filter(function(it){return (it.n+it.title+it.desc+it.prompt+it.tech+it.inter).toLowerCase().includes(v);}));
+});
+</script></body></html>

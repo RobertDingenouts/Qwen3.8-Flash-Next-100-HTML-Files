@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pass Vault · Nº 062</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#12211f;color:#d7e8e2;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:14px}
+header{text-align:center}
+h1{font-size:12px;font-weight:400;letter-spacing:.42em;text-transform:uppercase}
+h1 b{color:#4fd8c7}
+.tag{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#3f5d57;margin-top:6px}
+#door{position:relative;width:min(220px,54vw);height:min(220px,54vw);border-radius:50%;
+background:radial-gradient(circle at 35% 30%,#3a5a54,#1c322e);
+border:6px solid #4fd8c733;box-shadow:0 26px 50px -18px rgba(0,0,0,0.8),inset 0 0 40px rgba(0,0,0,0.5);
+display:flex;align-items:center;justify-content:center}
+#hub{position:absolute;inset:22%;border-radius:50%;background:#162724;border:2px solid #4fd8c744;
+display:flex;align-items:center;justify-content:center;transition:transform .9s cubic-bezier(.4,0,.2,1)}
+#hub .bars{position:absolute;width:100%;height:8px;background:#4fd8c722;border-radius:4px}
+#hub.open{transform:rotate(300deg)}
+#pw{font-size:clamp(14px,3.4vw,22px);letter-spacing:.04em;text-align:center;color:#eafff8;
+min-height:30px;cursor:pointer;padding:10px 16px;border:1px dashed #4fd8c755;border-radius:6px;max-width:94vw;word-break:break-all}
+#pw:hover{border-color:#4fd8c7;background:rgba(79,216,199,0.06)}
+#bits{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#7fb8ac;min-height:14px}
+#meter{width:min(420px,90vw);height:6px;background:#1c322e;border-radius:4px;overflow:hidden}
+#meter div{height:100%;width:0;transition:width .3s,background .3s}
+.dock{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+label{font-size:8px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:100px;accent-color:#4fd8c7}
+button{font:700 8px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;padding:11px 14px;
+background:transparent;border:1px solid #3f5d57;color:#d7e8e2;cursor:pointer;border-radius:3px}
+button:hover{background:#4fd8c7;color:#12211f}
+button.on{background:#2c4a44}
+@media(max-width:480px){#ctrls{display:contents}}
+</style>
+</head>
+<body>
+<header><h1>Pass<b>Vault</b></h1><p class="tag">Nº 062 · forged locally, never leaves this tab</p></header>
+<div id="door"><div id="hub"><div class="bars"></div></div></div>
+<p id="pw">click FORGE</p>
+<div id="meter"><div id="mfill"></div></div>
+<p id="bits">—</p>
+<div class="dock" id="ctrls">
+<button data-m="words" class="on">passphrase</button>
+<button data-m="chars">chaos string</button>
+<label>length <input id="len" type="range" min="3" max="8" value="5"></label>
+<button id="forge">forge ▸</button>
+</div>
+<script>
+(function(){
+"use strict";
+var WORDS=['anch','beam','beet','bell','bark','bird','barn','brim','cask','cuff','cask','dell','dock','dusk','damp','elf',
+'fern','fen','fig','flax','ford','fulmar','gale','gar','glen','gold','hemp','hollow','isle','ink','jar','keel','kelp',
+'kiln','loom','loam','lynx','moss','mire','mule','oak','opus','pact','peer','pier','plum','quay','pox','raft','reed','rock','rook','rowan',
+'salt','silk','slate','spur','stag','sulphur','tar','tide','topaz','trellis','umber','upland','vane','vale','veil','vetch','ware',
+'willow','wisp','yarn','yew','zinc','ale','ark','aspen','bloom','brack','brook','cinder','clod','crisp','cove','crown','drum',
+'ember','flint','flake','fort','gild','grove','hail','harbour','ice','ivory','knot','leek','lime','marl','mist','moor','moorhen','nimbus'];
+WORDS=WORDS.filter(function(w,i){return WORDS.indexOf(w)===i});
+var mode='words',cur='';
+var pwEl=document.getElementById('pw'),bits=document.getElementById('bits'),mfill=document.getElementById('mfill');
+function rand(n){
+  var a=new Uint32Array(n);
+  if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);
+  else for(var i=0;i<n;i++)a[i]=Math.floor(Math.random()*4294967296);
+  return a;
+}
+function pick(arr){return arr[rand(1)[0]%arr.length]}
+function genWords(){
+  var n=+document.getElementById('len').value;
+  var w=[];
+  for(var i=0;i<n;i++)w.push(pick(WORDS));
+  cur=w.join('-');
+  var bitsV=Math.round(n*Math.log2(WORDS.length));
+  return{pw:cur,bits:bitsV};
+}
+var SETS={lower:26,upper:26,digit:10,sym:27};
+function genChars(){
+  var n=+document.getElementById('len').value*5+5;
+  var all='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:,.?';
+  var out='';
+  var r=rand(n);
+  for(var i=0;i<n;i++)out+=all[r[i]%all.length];
+  cur=out;
+  return{pw:cur,bits:Math.round(n*Math.log2(all.length))};
+}
+function forge(){
+  var r=mode==='words'?genWords():genChars();
+  pwEl.textContent=r.pw;
+  bits.textContent=r.bits+' bits of entropy · '+r.pw.length+' chars';
+  var pct=Math.min(100,r.bits/128*100);
+  mfill.style.width=pct+'%';
+  mfill.style.background=pct>70?'#4fd8c7':pct>45?'#e8c84f':'#e06a5a';
+  var hub=document.getElementById('hub');
+  hub.classList.add('open');
+  setTimeout(function(){hub.classList.remove('open')},950);
+}
+document.querySelectorAll('[data-m]').forEach(function(b){
+  b.addEventListener('click',function(){
+    mode=b.dataset.m;
+    document.querySelectorAll('[data-m]').forEach(function(x){x.classList.toggle('on',x===b)});
+    document.getElementById('len').min=mode==='words'?3:4;
+    document.getElementById('len').max=mode==='words'?8:24;
+    forge();
+  });
+});
+document.getElementById('forge').addEventListener('click',forge);
+document.getElementById('len').addEventListener('input',forge);
+pwEl.addEventListener('click',function(){
+  if(!cur)return;
+  function done(){var o=pwEl.textContent;pwEl.textContent='copied — now go memorise it';setTimeout(function(){pwEl.textContent=o},1200)}
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(cur).then(done);
+  }catch(e){done()}
+});
+forge();
+})();
+</script>
+</body>
+</html>

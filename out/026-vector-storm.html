@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vector Storm · Nº 026</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#020204;color:#eafcff;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.glass{position:fixed;inset:0;pointer-events:none;
+ background:radial-gradient(ellipse at center,rgba(0,0,0,0) 60%,rgba(0,10,12,0.5)),
+ repeating-linear-gradient(0deg,rgba(120,255,240,0.02) 0 2px,rgba(0,0,0,0) 2px 4px)}
+.hud{position:fixed;top:14px;left:0;right:0;display:flex;justify-content:center;gap:40px;pointer-events:none;text-shadow:0 0 10px rgba(120,255,240,.6)}
+.stat{font-size:9px;letter-spacing:.3em;text-transform:uppercase}
+.stat b{display:block;font-size:19px;letter-spacing:.05em}
+h1{position:fixed;left:16px;top:14px;font-size:10px;letter-spacing:.3em;text-transform:uppercase;font-weight:400;pointer-events:none}
+.hint{position:fixed;bottom:14px;right:16px;font-size:8px;letter-spacing:.22em;text-transform:uppercase;opacity:.5;pointer-events:none}
+@media(max-width:560px){h1{display:none}.hud{gap:24px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="glass"></div>
+<h1>Vector Storm — Nº 026</h1>
+<div class="hud">
+<div class="stat">score<b id="sc">0</b></div>
+<div class="stat">hulls<b id="lv">3</b></div>
+<div class="stat">wave<b id="wv">1</b></div>
+</div>
+<p class="hint">arrows/wasd thrust · space fire · touch pads below</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var ship,rocks,shots,parts,keys={},score,lives,wave,deadT,over=false,warpFlash;
+var scEl=document.getElementById('sc'),lvEl=document.getElementById('lv'),wvEl=document.getElementById('wv');
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function rr(a,b){return a+Math.random()*(b-a)}
+function newRock(x,y,deep){
+  var size=deep===undefined?rr(24,44):deep;
+  var v=Math.hypot(ship?ship.x:W/2,ship?ship.y:H/2);
+  if(x===undefined){do{x=rr(0,W);y=rr(0,H)}while(ship&&Math.hypot(x-ship.x,y-ship.y)<140)}
+  var a=rr(0,6.28),sp=rr(0.5,1.6)*(1+wave*0.08);
+  var pts=[],n=8+((Math.random()*5)|0);
+  for(var i=0;i<n;i++)pts.push(rr(0.72,1.15));
+  return{x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:size,rot:rr(0,6.28),vr:rr(-0.02,0.02),pts:pts,deep:deep};
+}
+function boom(x,y,n,hue){
+  for(var i=0;i<n;i++){var a=rr(0,6.28),sp=rr(0.5,4);
+    parts.push({x:x,y:y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:rr(20,50),max:50,h:hue===undefined?'#eafcff':hue})}
+}
+function reset(full){
+  ship={x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,r:13,cool:0,inv:90};
+  shots=[];parts=[];
+  rocks=[];for(var i=0;i<3+wave;i++)rocks.push(newRock());
+  if(full){score=0;lives=3;wave=1;over=false;
+    scEl.textContent=0;lvEl.textContent=3;wvEl.textContent=1}
+}
+function fire(){
+  if(!ship||ship.cool>0||over)return;
+  ship.cool=14;
+  shots.push({x:ship.x+Math.cos(ship.a)*16,y:ship.y+Math.sin(ship.a)*16,
+    vx:Math.cos(ship.a)*9+ship.vx,vy:Math.sin(ship.a)*9+ship.vy,l:55});
+  boom(ship.x+Math.cos(ship.a)*16,ship.y+Math.sin(ship.a)*16,2,'#ffe27a');
+}
+function wrap(o,m){
+  if(o.x<-m)o.x=W+m;if(o.x>W+m)o.x=-m;
+  if(o.y<-m)o.y=H+m;if(o.y>H+m)o.y=-m;
+}
+function loop(){
+  ctx.fillStyle='rgba(2,2,4,0.55)';ctx.fillRect(0,0,W,H);
+  if(!over){
+    if(deadT>0){deadT--;if(deadT===0)ship={x:W/2,y:H/2,vx:0,vy:0,a:-Math.PI/2,r:13,cool:0,inv:120}}
+    if(ship&&deadT===0){
+      if(keys.l)ship.a-=0.075;
+      if(keys.r)ship.a+=0.075;
+      if(keys.u){ship.vx+=Math.cos(ship.a)*0.18;ship.vy+=Math.sin(ship.a)*0.18;
+        if(Math.random()<0.6)parts.push({x:ship.x-Math.cos(ship.a)*14,y:ship.y-Math.sin(ship.a)*14,
+          vx:-Math.cos(ship.a)*rr(1,2)+rr(-0.5,0.5),vy:-Math.sin(ship.a)*rr(1,2)+rr(-0.5,0.5),l:rr(8,18),max:18,h:'#ff9d4a'})}
+      ship.vx*=0.992;ship.vy*=0.992;
+      var sp=Math.hypot(ship.vx,ship.vy);if(sp>5.4){ship.vx*=5.4/sp;ship.vy*=5.4/sp}
+      ship.x+=ship.vx;ship.y+=ship.vy;wrap(ship,20);
+      if(ship.cool>0)ship.cool--;
+      if(keys.f)fire();
+      if(ship.inv>0)ship.inv--;
+    }
+    for(var i=rocks.length-1;i>=0;i--){var rk=rocks[i];
+      rk.x+=rk.vx;rk.y+=rk.vy;rk.rot+=rk.vr;wrap(rk,rk.r);
+      if(ship&&deadT===0&&ship.inv===0&&Math.hypot(ship.x-rk.x,ship.y-rk.y)<rk.r+10){
+        boom(ship.x,ship.y,40,'#eafcff');ship=null;lives--;lvEl.textContent=lives;deadT=110;
+        if(lives<=0){over=true;setTimeout(function(){over=false;wave=1;reset(true)},1400)}
+        continue;
+      }
+      for(var j=shots.length-1;j>=0;j--){var sh=shots[j];
+        if(Math.hypot(sh.x-rk.x,sh.y-rk.y)<rk.r){
+          shots.splice(j,1);
+          score+=rk.deep===undefined?20:40;scEl.textContent=score;
+          boom(rk.x,rk.y,18,'#7affe0');
+          if(rk.r>22){var c1=newRock(rk.x,rk.y,rk.r*0.6),c2=newRock(rk.x,rk.y,rk.r*0.6);
+            c1.vx+=rr(-1,1);c2.vx+=rr(-1,1);rocks.push(c1,c2)}
+          rocks.splice(i,1);
+          break;
+        }
+      }
+    }
+    if(rocks.length===0){wave++;wvEl.textContent=wave;reset(false);
+      if(ship)ship.inv=120;warpFlash=30}
+    for(i=shots.length-1;i>=0;i--){var s2=shots[i];
+      s2.x+=s2.vx;s2.y+=s2.vy;wrap(s2,4);s2.l--;
+      if(s2.l<=0)shots.splice(i,1)}
+  }
+  for(i=parts.length-1;i>=0;i--){var p=parts[i];
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.985;p.vy*=0.985;p.l--;
+    if(p.l<=0){parts.splice(i,1);continue}
+    ctx.globalAlpha=p.l/p.max;ctx.fillStyle=p.h;
+    ctx.fillRect(p.x,p.y,2,2);ctx.globalAlpha=1}
+  ctx.strokeStyle='#eafcff';ctx.lineWidth=1.3;ctx.lineJoin='round';
+  rocks.forEach(function(rk){
+    ctx.beginPath();
+    for(var k=0;k<rk.pts.length;k++){
+      var a=rk.rot+k/rk.pts.length*6.283,rad=rk.r*rk.pts[k];
+      var x=rk.x+Math.cos(a)*rad,y=rk.y+Math.sin(a)*rad;
+      k?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.closePath();
+    ctx.shadowColor='rgba(122,255,224,0.5)';ctx.shadowBlur=8;
+    ctx.stroke();ctx.shadowBlur=0;
+  });
+  ctx.strokeStyle='#ffe27a';
+  shots.forEach(function(sh){
+    ctx.beginPath();ctx.moveTo(sh.x,sh.y);ctx.lineTo(sh.x-sh.vx*1.6,sh.y-sh.vy*1.6);ctx.stroke()});
+  if(ship&&deadT===0){
+    var blink=ship.inv>0&&(Math.floor(Date.now()/90)%2===0);
+    if(!blink){
+      ctx.save();ctx.translate(ship.x,ship.y);ctx.rotate(ship.a);
+      ctx.strokeStyle='#eafcff';
+      ctx.shadowColor='rgba(122,255,224,0.8)';ctx.shadowBlur=10;
+      ctx.beginPath();
+      ctx.moveTo(16,0);ctx.lineTo(-10,-9);ctx.lineTo(-5,0);ctx.lineTo(-10,9);ctx.closePath();
+      ctx.stroke();
+      if(keys.u){ctx.strokeStyle='#ff9d4a';
+        ctx.beginPath();ctx.moveTo(-5,-3);ctx.lineTo(rr(-14,-11),0);ctx.lineTo(-5,3);ctx.stroke()}
+      ctx.shadowBlur=0;ctx.restore();
+    }
+  }
+  if(warpFlash>0){ctx.fillStyle='rgba(122,255,224,'+warpFlash/30*0.12+')';ctx.fillRect(0,0,W,H);warpFlash--}
+  if(over){
+    ctx.fillStyle='#eafcff';ctx.font='20px ui-monospace,monospace';ctx.textAlign='center';
+    ctx.shadowColor='#7affe0';ctx.shadowBlur=18;
+    ctx.fillText('STORM CLAIMED YOU — REBOOTING',W/2,H/2);ctx.shadowBlur=0;ctx.textAlign='left'}
+  requestAnimationFrame(loop);
+}
+window.addEventListener('keydown',function(e){
+  var k=e.key.toLowerCase();
+  if(k==='arrowleft'||k==='a'){keys.l=1;e.preventDefault()}
+  if(k==='arrowright'||k==='d'){keys.r=1;e.preventDefault()}
+  if(k==='arrowup'||k==='w'){keys.u=1;e.preventDefault()}
+  if(k===' '){keys.f=1;e.preventDefault()}
+});
+window.addEventListener('keyup',function(e){
+  var k=e.key.toLowerCase();
+  if(k==='arrowleft'||k==='a')keys.l=0;
+  if(k==='arrowright'||k==='d')keys.r=0;
+  if(k==='arrowup'||k==='w')keys.u=0;
+  if(k===' ')keys.f=0;
+});
+var touches={};
+cv.addEventListener('pointerdown',function(e){
+  var x=e.clientX,y=e.clientY;
+  if(y>H-150&&x<W/3)keys.l=1;
+  else if(y>H-150&&x>W*2/3)keys.r=1;
+  else if(y>H-150)keys.u=1;
+  else touches[e.pointerId]={x:x,y:y};
+  if(Object.keys(touches).length>0||y<H-150)keys.f=1;
+});
+cv.addEventListener('pointerup',function(e){
+  delete touches[e.pointerId];keys.l=0;keys.r=0;keys.u=0;keys.f=0});
+window.addEventListener('resize',fit);
+fit();reset(true);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

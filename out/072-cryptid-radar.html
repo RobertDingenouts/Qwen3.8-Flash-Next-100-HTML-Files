@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cryptid Radar · Nº 072</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0f160f;color:#cde0c2;font-family:"Courier New",ui-monospace,monospace}
+body{display:flex;align-items:center;justify-content:center;gap:20px;padding:12px;flex-wrap:wrap}
+#chart{position:relative;flex:none}
+canvas{cursor:crosshair;touch-action:none}
+#panel{width:260px;max-width:92vw;display:flex;flex-direction:column;gap:8px}
+h1{font-size:13px;letter-spacing:.3em;text-transform:uppercase;font-weight:700}
+h1 b{color:#7fd88f}
+.tag{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#4d6a4f}
+select{background:#16241a;color:#cde0c2;border:1px solid #2f4a34;padding:8px;font:11px "Courier New",monospace}
+.ax{display:grid;grid-template-columns:100px 1fr 30px;gap:8px;align-items:center;font-size:8px;letter-spacing:.16em;text-transform:uppercase}
+.ax input{accent-color:#7fd88f;width:100%}
+#verdict{font-size:10px;line-height:1.9;color:#93b396;min-height:60px;border-left:2px solid #2f4a34;padding-left:10px}
+#cred{font:700 20px "Courier New",monospace;color:#7fd88f}
+@media(max-width:740px){#panel{width:100%}}
+</style>
+</head>
+<body>
+<div id="chart"><canvas id="c"></canvas></div>
+<div id="panel">
+<div><h1>Cryptid <b>Radar</b></h1><p class="tag">Nº 072 · declassified field metrics, allegedly</p></div>
+<select id="who"></select>
+<div id="axes"></div>
+<p id="cred">—</p>
+<p id="verdict">drag the sliders. the bureau does not endorse these findings.</p>
+</div>
+<script>
+(function(){
+"use strict";
+var AX=['sightings','physical evidence','audio anomalies','official denial','photographic clarity','pattern persistence'];
+var C={Mothman:[9,4,8,10,7,9],'Jersey Devil':[8,6,7,9,5,7],Chupacabra:[7,8,3,10,4,6],
+Moke:[2,3,5,6,3,4],'Flatwoods Monster':[8,7,4,9,6,5],Nessie:[9,5,6,10,3,8],
+'Smiling Thing':[6,2,7,8,5,6],'Lizard Man':[7,5,6,7,6,5]};
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var cur='Mothman',vals=C[cur].slice();
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-20,innerHeight-20,460);S=Math.max(250,S);
+ if(innerWidth>740)S=Math.min(S,420);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+function draw(){
+  ctx.clearRect(0,0,S,S);
+  var cx=S/2,cy=S/2,R=S*0.36;
+  for(var ring=1;ring<=4;ring++){
+    ctx.strokeStyle='rgba(127,216,143,'+(ring===4?'0.35':'0.12')+')';
+    ctx.beginPath();
+    for(var i=0;i<=AX.length;i++){
+      var a=i/AX.length*Math.PI*2-Math.PI/2;
+      var rr=R*ring/4;
+      var x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    }
+    ctx.stroke();
+  }
+  for(i=0;i<AX.length;i++){
+    var a=i/AX.length*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle='rgba(127,216,143,0.18)';
+    ctx.beginPath();ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.cos(a)*R,cy+Math.sin(a)*R);ctx.stroke();
+    ctx.fillStyle='#93b396';
+    ctx.font='9px "Courier New",monospace';
+    var lx=cx+Math.cos(a)*(R+22),ly=cy+Math.sin(a)*(R+22);
+    ctx.textAlign=Math.abs(Math.cos(a))<0.3?'center':(Math.cos(a)>0?'left':'right');
+    ctx.fillText(AX[i].toUpperCase(),lx,ly+3);
+  }
+  ctx.textAlign='left';
+  ctx.beginPath();
+  for(i=0;i<=AX.length;i++){
+    var ii=i%AX.length;
+    var a2=ii/AX.length*Math.PI*2-Math.PI/2;
+    var rr2=R*vals[ii]/10;
+    var x=cx+Math.cos(a2)*rr2,y=cy+Math.sin(a2)*rr2;
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle='rgba(127,216,143,0.18)';
+  ctx.fill();
+  ctx.strokeStyle='#7fd88f';ctx.lineWidth=2;
+  ctx.stroke();
+  ctx.setLineDash([2,3]);
+  ctx.strokeStyle='rgba(205,224,194,0.15)';
+  ctx.beginPath();ctx.arc(cx,cy,R*(0.3+0.06*(Date.now()/700%10)),0,7);ctx.stroke();
+  ctx.setLineDash([]);
+  for(i=0;i<AX.length;i++){
+    var a3=i/AX.length*Math.PI*2-Math.PI/2;
+    var rr3=R*vals[i]/10;
+    ctx.fillStyle='#cde0c2';
+    ctx.beginPath();ctx.arc(cx+Math.cos(a3)*rr3,cy+Math.sin(a3)*rr3,4,0,7);ctx.fill();
+  }
+  var cred=Math.round(vals.reduce(function(a,b){return a+b},0)/60*100);
+  document.getElementById('cred').textContent='CREDIBILITY '+cred+'%';
+}
+function verdict(){
+  var v=document.getElementById('verdict');
+  var s=vals[0]+vals[5],p=vals[1]+vals[4];
+  var txt=
+   (s>15&&p<10?'Classic mass hysteria with excellent paperwork. ':'')+
+   (p>15?'Physical evidence this strong means it’s either real or a very committed prank. ':'')+
+   (vals[3]>=9&&s<10?'The bureau thanks you for your continued denial.':'');
+  var m=vals[0]>8?'sightings are epidemic, evidence is devotional.':
+   vals[0]<4?'you will not be seeing anything, ever.':'a credible nuisance.';
+  v.textContent=(txt||m);
+}
+var axes=document.getElementById('axes');
+AX.forEach(function(a,i){
+  var d=document.createElement('div');d.className='ax';
+  d.innerHTML='<span>'+a+'</span><input type=range min=0 max=10><b></b>';
+  var inp=d.querySelector('input');
+  inp.value=vals[i];
+  inp.addEventListener('input',function(e){
+    vals[i]=+e.target.value;draw();verdict();
+  });
+  d.querySelector('b').textContent=vals[i];
+  inp._b=d.querySelector('b');
+  inp.addEventListener('input',function(e){inp._b.textContent=inp.value});
+  axes.appendChild(d);
+});
+function loadName(n){
+  cur=n;vals=C[n].slice();
+  var ins=axes.querySelectorAll('input');
+  vals.forEach(function(v,i){ins[i].value=v;ins[i]._b.textContent=v});
+  draw();verdict();
+}
+var who=document.getElementById('who');
+Object.keys(C).forEach(function(n){
+  var o=document.createElement('option');o.textContent=n;
+  who.appendChild(o);
+});
+who.addEventListener('change',function(){loadName(who.value)});
+window.addEventListener('resize',fit);
+fit();loadName(cur);
+setInterval(draw,80);
+})();
+</script>
+</body>
+</html>

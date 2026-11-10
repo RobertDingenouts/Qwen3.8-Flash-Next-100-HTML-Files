@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ink Currents · Nº 001</title>
+<style>
+:root{--paper:#f2ede2;--ink:#22315b;--seal:#9a2c2c}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--paper)}
+body{font-family:Georgia,"Times New Roman",serif;color:var(--ink)}
+#c{position:fixed;inset:0;display:block;cursor:crosshair}
+.bar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:16px 20px;pointer-events:none}
+h1{font-size:14px;font-weight:400;letter-spacing:.42em;text-transform:uppercase;line-height:1.7}
+h1 em{display:block;font:italic 12px/1.4 Georgia,serif;letter-spacing:.05em;text-transform:none;color:var(--seal)}
+.b{display:flex;gap:8px;pointer-events:auto}
+button{font:italic 13px Georgia,serif;letter-spacing:.1em;padding:9px 15px;background:transparent;color:var(--ink);border:1px solid rgba(34,49,91,.35);border-radius:2px;cursor:pointer;transition:background .25s,color .25s}
+button:hover{background:var(--ink);color:var(--paper)}
+.hint{position:fixed;top:16px;left:20px;font:italic 12px Georgia,serif;opacity:.55;pointer-events:none}
+@media(max-width:520px){.bar{flex-direction:column;align-items:flex-start;gap:8px;padding:10px 12px}h1{font-size:11px}.hint{font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<p class="hint">click or drag to stir the current</p>
+<div class="bar">
+<h1>Ink Currents<em>a flow field of 900 drifting brushes</em></h1>
+<div class="b"><button id="seed">new field</button><button id="wash">wash the paper</button></div>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var N=900,P=[],seed=987654,grid=[],GW=0,GH=0,GS=46,washT=0;
+var px=0,py=0,mvx=0,mvy=0,mlife=0;
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function smooth(t){return t*t*(3-2*t)}
+function newField(s){
+  seed=s|0;var r=rng(seed);GW=Math.ceil(W/GS)+2;GH=Math.ceil(H/GS)+2;
+  grid=new Float32Array(GW*GH);
+  for(var i=0;i<grid.length;i++)grid[i]=r()*Math.PI*4;
+}
+function fieldAt(x,y){
+  var gx=x/GS,gy=y/GS,i=Math.floor(gx),j=Math.floor(gy),fx=gx-i,fy=gy-j;
+  if(i<0)i=0;if(j<0)j=0;if(i>GW-2)i=GW-2;if(j>GH-2)j=GH-2;
+  var a=grid[i+j*GW],b=grid[i+1+j*GW],c=grid[i+(j+1)*GW],d=grid[i+1+(j+1)*GW];
+  var u=smooth(fx),v=smooth(fy),top=a+(b-a)*u,bot=c+(d-c)*u;
+  return top+(bot-top)*v;
+}
+function respawn(p){p.x=Math.random()*W;p.y=Math.random()*H;p.age=60+Math.random()*140;p.q=Math.random()*6.28;p.px=p.x;p.py=p.y}
+function reset(){P.length=0;for(var i=0;i<N;i++){var p={};respawn(p);p.age=Math.random()*180;P.push(p)}}
+function paintBack(a){ctx.fillStyle='rgba(242,237,226,'+a+')';ctx.fillRect(0,0,W,H)}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(D,0,0,D,0,0);paintBack(1);newField(seed);
+}
+function tick(t){
+  paintBack(washT>0?0.1:0.012);if(washT>0)washT--;
+  ctx.lineWidth=0.9;ctx.lineCap='round';
+  for(var i=0;i<P.length;i++){
+    var p=P[i],ang=fieldAt(p.x,p.y)+0.2*Math.sin(t/4000+p.q);
+    var vx=Math.cos(ang),vy=Math.sin(ang);
+    if(mlife>0){var dx=p.x-px,dy=p.y-py,d2=dx*dx+dy*dy;
+      if(d2<8100){var f=mlife/40;vx+=mvx*0.22*f;vy+=mvy*0.22*f}}
+    var sp=1.35;p.px=p.x;p.py=p.y;p.x+=vx*sp;p.y+=vy*sp;p.age--;
+    var inb=p.x>0&&p.x<W&&p.y>0&&p.y<H;
+    if(p.age<=0||!inb){respawn(p);continue}
+    ctx.strokeStyle='rgba(34,49,91,'+(0.05+0.11*Math.sin(p.q)+0.11)+')';
+    ctx.beginPath();ctx.moveTo(p.px,p.py);ctx.lineTo(p.x,p.y);ctx.stroke();
+  }
+  if(mlife>0){mvx*=0.85;mvy*=0.85;mlife--}
+  requestAnimationFrame(tick);
+}
+function pt(e){var r=cv.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+window.addEventListener('pointermove',function(e){
+  var q=pt(e);if(mlife>0){mvx=q.x-px;mvy=q.y-py}px=q.x;py=q.y;mlife=40;
+},{passive:true});
+window.addEventListener('pointerdown',function(e){
+  var q=pt(e);for(var i=0;i<70;i++){var a=Math.random()*6.28,d=8+Math.random()*46;
+    mvx+=Math.cos(a)*2.2;mvy+=Math.sin(a)*2.2}
+  px=q.x;py=q.y;mlife=40;
+},{passive:true});
+document.getElementById('seed').addEventListener('click',function(){newField(Math.random()*1e9);washT=42});
+document.getElementById('wash').addEventListener('click',function(){washT=70});
+window.addEventListener('resize',function(){fit();});
+fit();reset();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

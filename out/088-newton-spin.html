@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Newton Spin · Nº 088</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#f4f2ec;color:#222;font-family:Optima,Candara,"Gill Sans",sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:13px;font-weight:400;letter-spacing:.4em;text-transform:uppercase}
+h1 b{color:#2f6fb5}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#8a8a7c;margin-top:5px}
+canvas{cursor:crosshair;touch-action:none}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+.sw{display:flex;gap:6px}
+.sw div{width:28px;height:28px;border-radius:50%;cursor:pointer;border:3px solid transparent}
+.sw div.on{border-color:#222}
+label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:100px;accent-color:#2f6fb5}
+button{font:700 8px Optima,sans-serif;letter-spacing:.2em;text-transform:uppercase;
+padding:10px 13px;background:transparent;border:1.5px solid #222;cursor:pointer}
+button:hover{background:#222;color:#f4f2ec}
+</style>
+</head>
+<body>
+<header><h1>Newton <b>Spin</b></h1><p class="tag">Nº 088 · paint the disc, spin it, catch the white lie</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<div class="sw" id="pal"></div>
+<label>spin <input id="spin" type="range" min="0" max="100" value="0"></label>
+<label>brush <input id="br" type="range" min="4" max="60" value="22"></label>
+<button id="clr">white disc</button>
+<button id="auto">full spectrum ▸</button>
+</div>
+<script>
+(function(){
+"use strict";
+var COLS=['#e33','#e8862a','#e8c52a','#3fa34d','#2f6fb5','#7b4fb5','#ffffff','#111111'];
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var segs=[],ang=0,col='#e33';
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-20,innerHeight-190,480);S=Math.max(250,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0)}
+function draw(){
+  ctx.setTransform(D,0,0,D,0,0);
+  ctx.clearRect(0,0,S,S);
+  var cx=S/2,cy=S/2,R=S*0.42;
+  ctx.save();
+  ctx.shadowColor='rgba(0,0,0,0.25)';ctx.shadowBlur=24;ctx.shadowOffsetY=10;
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.translate(cx,cy);ctx.rotate(ang);
+  ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.clip();
+  segs.forEach(function(s){
+    ctx.fillStyle=s.c;
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0,R+2,s.a0,s.a1);
+    ctx.closePath();
+    ctx.fill();
+  });
+  ctx.strokeStyle='rgba(0,0,0,0.15)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle='rgba(0,0,0,0.5)';
+  ctx.lineWidth=1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx-4,cy);ctx.lineTo(cx+4,cy);
+  ctx.moveTo(cx,cy-4);ctx.lineTo(cx,cy+4);
+  ctx.stroke();
+}
+function addSeg(a0,a1){
+  var last=segs.length?segs[segs.length-1]:null;
+  if(last&&last.c===col&&Math.abs(last.a1-a0)<0.02)last.a1=a1;
+  else segs.push({a0:a0,a1:a1,c:col});
+  if(segs.length>400)segs.splice(0,80);
+}
+function angAt(e){
+  var r=cv.getBoundingClientRect();
+  return Math.atan2(e.clientY-r.top-S/2,e.clientX-r.left-S/2);
+}
+var down=false,prevA=0;
+cv.addEventListener('pointerdown',function(e){down=true;prevA=angAt(e);
+ var r=cv.getBoundingClientRect();
+ if(Math.hypot(e.clientX-r.left-S/2,e.clientY-r.top-S/2)<S*0.06)addSeg(0,7);
+});
+cv.addEventListener('pointermove',function(e){
+ if(!down)return;
+ var a=angAt(e);
+ var d=a-prevA;
+ if(d>Math.PI)d-=Math.PI*2;
+ if(d<-Math.PI)d+=Math.PI*2;
+ if(Math.abs(d)>0.001){addSeg(Math.min(prevA,a),Math.max(prevA,a));prevA=a}
+});
+window.addEventListener('pointerup',function(){down=false});
+var pal=document.getElementById('pal');
+COLS.forEach(function(c,i){
+ var d=document.createElement('div');
+ d.className=i===0?'on':'';
+ d.style.background=c;
+ d.addEventListener('click',function(){
+  col=c;
+  document.querySelectorAll('.sw div').forEach(function(x,k){x.classList.toggle('on',k===i)});
+ });
+ pal.appendChild(d);
+});
+document.getElementById('clr').addEventListener('click',function(){segs=[]});
+document.getElementById('auto').addEventListener('click',function(){
+ segs=[];
+ for(var i=0;i<6;i++)addSeg(i/6*Math.PI*2,(i+1)/6*Math.PI*2);
+ col=COLS[6];
+ addSeg(0,0);
+});
+function loop(){
+ var spd=+document.getElementById('spin').value/100;
+ ang+=spd*0.12;
+ draw();
+ requestAnimationFrame(loop);
+}
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

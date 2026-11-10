@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lunar Wheel · Nº 049</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0b1020;color:#e6e2d2;font-family:Palatino,"Palatino Linotype",Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px}
+header{text-align:center}
+h1{font:italic 400 24px/1.1 Palatino,serif}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.44em;text-transform:uppercase;color:#7d8ab0;margin-bottom:6px}
+#c{touch-action:none}
+.info{display:flex;gap:26px;text-align:center;align-items:center}
+.i{font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:#7d8ab0}
+.i b{display:block;font-size:16px;letter-spacing:.02em;color:#e6e2d2;text-transform:none}
+#name b{font-style:italic}
+.dock{display:flex;gap:12px;align-items:center}
+input[type=range]{width:min(56vw,300px);accent-color:#cdd6f0}
+button{font:italic 12px Palatino,serif;padding:8px 16px;background:transparent;border:1px solid #7d8ab0;color:#e6e2d2;cursor:pointer}
+button:hover{background:#e6e2d2;color:#0b1020}
+#date{font-size:11px;letter-spacing:.14em;color:#aab4d4}
+@media(max-width:520px){h1{font-size:18px}.info{gap:14px}}
+</style>
+</head>
+<body>
+<header><h1><span>Nº 049 · one synodic month, hand-drawn</span>The Lunar Wheel</h1></header>
+<canvas id="c"></canvas>
+<div class="info">
+<div class="i" id="name">phase<b>—</b></div>
+<div class="i">light<b id="illum">—</b></div>
+<div class="i">lunar age<b id="age">—</b></div>
+</div>
+<p id="date"></p>
+<div class="dock"><button id="today">back to tonight</button><input id="sl" type="range" min="-29" max="29" value="0" step="0.25"></div>
+<script>
+(function(){
+"use strict";
+var SYN=29.53058867,EPOCH=Date.UTC(2000,0,6,18,14);
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,W=0,H=0;
+var offset=0,craters=[],stars=[],R=0,t=0;
+var sl=document.getElementById('sl');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=Math.min(innerWidth-10,560);
+  H=Math.min(innerHeight-230,520);
+  H=Math.max(300,H);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  R=Math.min(W*0.24,H*0.3);
+  stars=[];
+  for(var i=0;i<120;i++)stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()<0.08?1.8:1,p:Math.random()*6.28});
+  var s=99173;
+  function rnd(){s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff}
+  craters=[];
+  for(i=0;i<38;i++){
+    var a=rnd()*6.283,rr=Math.sqrt(rnd())*0.92;
+    craters.push({x:Math.cos(a)*rr,y:Math.sin(a)*rr,r:0.03+Math.pow(rnd(),2.4)*0.16});
+  }
+}
+function ageNow(){
+  var d=new Date();
+  var ms=d.getTime()+offset*86400000;
+  var days=(ms-EPOCH)/86400000;
+  return{age:((days%SYN)+SYN)%SYN,ms:ms};
+}
+function phaseName(a){
+  if(a<1.0||a>SYN-1.0)return['new moon','◐'];
+  if(a<6.4)return['waxing crescent','☾'];
+  if(a<8.8)return['first quarter','◑'];
+  if(a<13.8)return['waxing gibbous','🌔'];
+  if(a<15.8)return['full moon','●'];
+  if(a<20.8)return['waning gibbous','🌖'];
+  if(a<23.2)return['last quarter','◒'];
+  return['waning crescent','☽'];
+}
+function draw(){
+  t++;
+  var st=ageNow();
+  var p=st.age/SYN;
+  var theta=p*2*Math.PI;
+  var k=(1-Math.cos(theta))/2;
+  ctx.fillStyle='#0b1020';ctx.fillRect(0,0,W,H);
+  stars.forEach(function(s){
+    ctx.fillStyle='rgba(230,236,255,'+(0.2+0.25*Math.sin(t/50+s.p))+')';
+    ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();
+  });
+  var cx=W/2,cy=H*0.42;
+  var g=ctx.createRadialGradient(cx,cy,R,cx,cy,R*2.4);
+  g.addColorStop(0,'rgba(214,220,240,'+(0.05+k*0.13)+')');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.arc(cx,cy,R*2.4,0,7);ctx.fill();
+  ctx.fillStyle='#1c2135';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+  ctx.fillStyle='rgba(90,100,130,0.16)';
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+  var waxing=p<0.5;
+  var ageEff=waxing?st.age:SYN-st.age;
+  var pe=ageEff/SYN*2*Math.PI;
+  var b=Math.cos(pe);
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx,cy,R,-Math.PI/2,Math.PI/2,false);
+  ctx.ellipse(cx,cy,Math.abs(b)*R,R,0,Math.PI/2,-Math.PI/2,b>0);
+  ctx.closePath();
+  ctx.clip();
+  var mg=ctx.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.1,cx,cy,R*1.15);
+  mg.addColorStop(0,'#f4f0e2');
+  mg.addColorStop(0.7,'#d8d3c2');
+  mg.addColorStop(1,'#a9a494');
+  ctx.fillStyle=mg;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+  ctx.fillStyle='rgba(120,115,100,0.25)';
+  [[-0.25,-0.2,0.28],[0.3,0.15,0.22],[-0.1,0.35,0.18],[0.15,-0.45,0.15]].forEach(function(m){
+    ctx.beginPath();ctx.arc(cx+m[0]*R,cy+m[1]*R,m[2]*R,0,7);ctx.fill();
+  });
+  craters.forEach(function(c){
+    ctx.fillStyle='rgba(110,105,90,0.5)';
+    ctx.beginPath();ctx.arc(cx+c.x*R,cy+c.y*R,c.r*R,0,7);ctx.fill();
+    ctx.fillStyle='rgba(255,250,235,0.30)';
+    ctx.beginPath();ctx.arc(cx+c.x*R-c.r*R*0.22,cy+c.y*R-c.r*R*0.22,c.r*R*0.55,0,7);ctx.fill();
+  });
+  ctx.restore();
+  var ringY=H-R*0.28,ringR=Math.min(W*0.3,H*0.1);
+  ctx.strokeStyle='rgba(205,214,240,0.25)';
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(cx,ringY,ringR,0,7);ctx.stroke();
+  for(var i=0;i<29;i++){
+    var a=i/29*6.283-1.5708;
+    var r1=ringR+4,r2=ringR+(i%7===0?10:6);
+    ctx.strokeStyle=i%7===0?'rgba(205,214,240,0.55)':'rgba(205,214,240,0.25)';
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*r1,ringY+Math.sin(a)*r1);
+    ctx.lineTo(cx+Math.cos(a)*r2,ringY+Math.sin(a)*r2);
+    ctx.stroke();
+  }
+  ctx.strokeStyle='rgba(255,214,140,0.9)';
+  ctx.lineWidth=2.4;
+  var pa=p*6.283-1.5708;
+  ctx.beginPath();
+  ctx.moveTo(cx,ringY);
+  ctx.lineTo(cx+Math.cos(pa)*ringR,ringY+Math.sin(pa)*ringR);
+  ctx.stroke();
+  var miniA=-1.5708+p*6.283;
+  var miniR=ringR*0.16;
+  var mx=cx+Math.cos(pa)*(ringR+18),my=ringY+Math.sin(pa)*(ringR+18);
+  ctx.fillStyle='#30364c';
+  ctx.beginPath();ctx.arc(mx,my,miniR,0,7);ctx.fill();
+  ctx.save();
+  ctx.beginPath();ctx.arc(mx,my,miniR,0,7);ctx.clip();
+  ctx.fillStyle='#efe9d8';
+  ctx.beginPath();
+  ctx.arc(mx,my,miniR,-Math.PI/2,Math.PI/2,false);
+  ctx.ellipse(mx,my,Math.abs(Math.cos(pe))*miniR,miniR,0,Math.PI/2,-Math.PI/2,Math.cos(pe)>0);
+  ctx.closePath();ctx.fill();
+  ctx.restore();
+  var nm=phaseName(st.age)[0];
+  document.querySelector('#name b').textContent=nm;
+  document.getElementById('illum').textContent=Math.round(k*100)+'%';
+  document.getElementById('age').textContent=st.age.toFixed(1)+' d';
+  var dd=new Date(st.ms);
+  document.getElementById('date').textContent=dd.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  requestAnimationFrame(draw);
+}
+sl.addEventListener('input',function(e){offset=+e.target.value});
+document.getElementById('today').addEventListener('click',function(){sl.value=0;offset=0});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

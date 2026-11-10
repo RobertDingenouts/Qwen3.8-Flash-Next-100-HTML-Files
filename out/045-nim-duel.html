@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nim Duel · Nº 045</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#16211a;color:#eee7d6;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font:italic 400 24px Georgia,serif}
+h1 b{font-style:normal;color:#e2b25a}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.32em;text-transform:uppercase;color:#7d9271;margin-top:5px}
+#c{cursor:pointer;touch-action:none}
+.dock{display:flex;gap:8px;align-items:center}
+button{font:12px Georgia,serif;padding:9px 16px;background:transparent;border:1px solid #7d9271;color:#eee7d6;cursor:pointer}
+button:hover{background:#e2b25a;color:#16211a}
+#turn{font:700 10px ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase;min-width:150px;text-align:center;color:#bfe0a8}
+#msg{font:italic 12px Georgia,serif;height:16px;color:#d8c27a;text-align:center;min-height:16px}
+@media(max-width:520px){h1{font-size:18px}}
+</style>
+</head>
+<body>
+<header><h1>Nim <b>Duel</b></h1><p class="tag">Nº 045 · misère rules · whoever takes the last match loses</p></header>
+<canvas id="c"></canvas>
+<p id="msg">click a match to burn it and every match to its right — your move</p>
+<div class="dock">
+<button id="new">new duel</button>
+<span id="turn">YOU</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var heaps=[1,3,5,7],turn='you',burning=[],over=false,t=0,aiT=0;
+var turnEl=document.getElementById('turn'),msg=document.getElementById('msg');
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ W=Math.min(innerWidth-10,640);H=Math.min(innerHeight-220,400);H=Math.max(240,H);
+ cv.style.width=W+'px';cv.style.height=H+'px';
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function newGame(){
+  heaps=[1,3,5,7];burning=[];over=false;turn='you';
+  turnEl.textContent='YOU';turnEl.style.color='#bfe0a8';
+  msg.textContent='click a match to burn it and every match to its right — your move';
+}
+function total(){return heaps.reduce(function(a,b){return a+b},0)}
+function nsr(){var x=0;heaps.forEach(function(h){x^=h});return x}
+function aiMove(){
+  if(turn!=='ai'||over)return;
+  var maxH=Math.max.apply(null,heaps);
+  var bigCount=heaps.filter(function(h){return h>1}).length;
+  var mv=null;
+  if(bigCount<=1){
+    var ones=heaps.filter(function(h){return h===1}).length;
+    if(ones%2===0){
+      for(var i=0;i<heaps.length;i++)if(heaps[i]>0){mv=[i,heaps[i]];break}
+    }
+    if(!mv)mv=[heaps.indexOf(Math.max.apply(null,heaps)),1];
+  }else{
+    var s=nsr();
+    for(i=0;i<heaps.length;i++){
+      var target=heaps[i]^s;
+      if(target<heaps[i]){mv=[i,heaps[i]-target];break}
+    }
+    if(!mv)mv=[heaps.indexOf(maxH),1];
+  }
+  take(mv[0],mv[1]);
+  msg.textContent='the machine takes '+mv[1]+' from pile '+(mv[0]+1)+'.';
+}
+function take(r,k){
+  for(var i=0;i<k;i++){
+    burning.push({h:r,x:heaps[r]-i,t:30+Math.random()*8});
+  }
+  heaps[r]-=k;
+  checkEnd('ai');
+}
+function checkEnd(justMoved){
+  var s=nsr(),t2=total();
+  if(t2===0){
+    over=true;
+    var loser=justMoved;
+    msg.textContent=loser==='you'?'you took the last match. the machine straightens its cuffs.':'the machine took the last match — you win!';
+    turnEl.textContent=loser==='you'?'MACHINE WINS':'YOU WIN';
+    turnEl.style.color=loser==='you'?'#ff8f7a':'#8affc0';
+    return true;
+  }
+  return false;
+}
+cv.addEventListener('pointerdown',function(e){
+  if(over||turn!=='you')return;
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left,y=e.clientY-r.top;
+  var idx=rowAt(y);
+  if(idx<0)return;
+  var n=heaps[idx];
+  if(n<=0)return;
+  var k=colAt(x,idx);
+  if(k<1||k>n)return;
+  for(var i=0;i<k;i++)burning.push({h:idx,x:n-i,t:30+Math.random()*8});
+  heaps[idx]-=k;
+  if(!checkEnd('you')){
+    turn='ai';turnEl.textContent='MACHINE';turnEl.style.color='#ff8f7a';
+    aiT=setTimeout(aiMove,700);
+  }
+});
+function rowY(i){return H*0.16+i*(H*0.68/(heaps.length-1+1e-9))*1}
+function rowAt(y){
+  for(var i=0;i<heaps.length;i++){
+    if(Math.abs(y-rowY(i))<H*0.09)return i;
+  }
+  return -1;
+}
+function colAt(x,r){
+  var maxN=7;
+  var left=W*0.5-maxN*W*0.055;
+  var cw=W*0.11;
+  var idx=Math.floor((x-left)/cw)+1;
+  return idx;
+}
+function draw(){
+  t++;
+  ctx.fillStyle='#16211a';ctx.fillRect(0,0,W,H);
+  var grad=ctx.createRadialGradient(W/2,H*0.4,10,W/2,H*0.4,W*0.7);
+  grad.addColorStop(0,'rgba(60,90,60,0.25)');grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+  for(var r=0;r<heaps.length;r++){
+    var y=rowY(r);
+    var n=heaps[r];
+    for(var i=0;i<n;i++){
+      var x=colX(i);
+      drawMatch(x,y,1);
+    }
+    if(n===0){
+      ctx.fillStyle='rgba(200,220,180,0.25)';
+      ctx.font='italic 13px Georgia,serif';
+      ctx.fillText('—',W*0.5-4,y+5);
+    }
+  }
+  for(var b=burning.length-1;b>=0;b--){
+    var m=burning[b];
+    m.t--;
+    if(m.t<=0){burning.splice(b,1);continue}
+    var x=colX(m.x),y=rowY(m.h);
+    var p=m.t/38;
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,p*1.4);
+    ctx.translate(x,y);
+    ctx.rotate((1-p)*1.2);
+    ctx.translate((1-p)*8,(1-p)*-30);
+    drawMatch(0,0,p);
+    ctx.restore();
+    var g2=ctx.createRadialGradient(x,y-24,0,x,y-24,14*p+4);
+    g2.addColorStop(0,'rgba(255,200,90,'+p+')');
+    g2.addColorStop(1,'rgba(255,80,20,0)');
+    ctx.fillStyle=g2;
+    ctx.beginPath();ctx.arc(x,y-24,14*p+4,0,7);ctx.fill();
+  }
+  requestAnimationFrame(draw);
+}
+function colX(i){
+  var maxN=7;
+  var left=W*0.5-maxN*W*0.055;
+  return left+i*W*0.11+W*0.055;
+}
+function drawMatch(x,y,p){
+  ctx.save();
+  ctx.globalAlpha*=1;
+  var g=ctx.createLinearGradient(x,y-20,x,y+20);
+  g.addColorStop(0,'#e8dcc0');g.addColorStop(1,'#b8a880');
+  ctx.strokeStyle=p>0.5?'#d8c8a0':'#7a6a50';
+  ctx.lineWidth=4;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x,y-16);ctx.lineTo(x,y+16);ctx.stroke();
+  ctx.fillStyle=p>0.5?'#c2452f':'#4a3020';
+  ctx.beginPath();ctx.ellipse(x,y-20,4.5,7,0,0,7);ctx.fill();
+  ctx.restore();
+}
+document.getElementById('new').addEventListener('click',newGame);
+window.addEventListener('resize',fit);
+fit();newGame();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Klotski Box · Nº 043</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#241d17;color:#f0e2c8;font-family:"Palatino Linotype",Palatino,Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;padding:10px}
+header{text-align:center}
+h1{font:400 22px Palatino,serif}
+h1 b{color:#d8a24a}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#8a6f4e;margin-top:5px}
+#wrap{position:relative}
+#c{border-radius:8px;cursor:grab;touch-action:none}
+#gate{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);
+font:700 9px ui-monospace,monospace;letter-spacing:.3em;color:#d8a24a;pointer-events:none}
+.dock{display:flex;gap:7px;align-items:center}
+button{font:11px Palatino,serif;padding:9px 15px;background:transparent;border:1px solid #8a6f4e;color:#f0e2c8;cursor:pointer}
+button:hover{background:#d8a24a;color:#241d17}
+#stats{font:10px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#c9a870}
+#msg{font:italic 12px Palatino,serif;min-height:16px;color:#d8c27a;text-align:center}
+@media(max-width:520px){h1{font-size:17px}}
+</style>
+</head>
+<body>
+<header><h1>Klotski <b>Box</b> · 横刀立马</h1><p class="tag">Nº 043 · walk the general out through the gate below</p></header>
+<div id="wrap"><canvas id="c"></div><div id="gate">◤  exits south  ◥</div></div>
+<p id="msg">drag the blocks · only the empty squares let anyone move</p>
+<div class="dock">
+<button id="undo">undo</button>
+<button id="reset">re-rack</button>
+<span id="stats">MOVES 0 · LEGEND SAYS 81</span>
+</div>
+<script>
+(function(){
+"use strict";
+var CV_W=4,CV_H=5;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,CELL=0,BW=0,BH=0;
+var pieces,moves=0,hist=[],win=false,exitT=0,drag=null;
+var stats=document.getElementById('stats'),msg=document.getElementById('msg');
+function start(){
+  pieces=[
+    {x:1,y:0,w:2,h:2,n:'曹操',c:'#b8623c',big:true},
+    {x:0,y:0,w:1,h:2,n:'張飛',c:'#7a8a5c'},
+    {x:3,y:0,w:1,h:2,n:'趙雲',c:'#7a8a5c'},
+    {x:0,y:2,w:1,h:2,n:'馬超',c:'#7a8a5c'},
+    {x:3,y:2,w:1,h:2,n:'黃忠',c:'#7a8a5c'},
+    {x:1,y:2,w:2,h:1,n:'關羽',c:'#5c7a8a'},
+    {x:1,y:4,w:1,h:1,n:'兵',c:'#9a8660'},
+    {x:2,y:4,w:1,h:1,n:'兵',c:'#9a8660'},
+    {x:0,y:4,w:1,h:1,n:'兵',c:'#9a8660'},
+    {x:3,y:4,w:1,h:1,n:'兵',c:'#9a8660'}
+  ];
+  moves=0;hist=[];win=false;exitT=0;drag=null;
+  stats.textContent='MOVES 0 · LEGEND SAYS 81';
+  msg.textContent='drag the blocks · only the empty squares let anyone move';
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var availH=innerHeight-200,availW=innerWidth-20;
+  CELL=Math.min(availW/CV_W,availH/CV_H);
+  CELL=Math.max(52,CELL);
+  BW=CELL*CV_W;BH=CELL*CV_H;
+  cv.style.width=BW+'px';cv.style.height=BH+'px';
+  cv.width=BW*D;cv.height=BH*D;ctx.setTransform(D,0,0,D,0,0);
+}
+function cellFree(x,y,p){
+  if(x<0||y<0||x+p.w>CV_W||y+p.h>CV_H)return false;
+  for(var i=0;i<pieces.length;i++){
+    var q=pieces[i];
+    if(q===p||q.dead)continue;
+    if(x<q.x+q.w&&x+p.w>q.x&&y<q.y+q.h&&y+p.h>q.y)return false;
+  }
+  return true;
+}
+function draw(){
+  ctx.clearRect(0,0,BW,BH);
+  ctx.fillStyle='#2c2319';
+  ctx.fillRect(0,0,BW,BH);
+  var x,y;
+  for(x=0;x<CV_W;x++)for(y=0;y<CV_H;y++){
+    ctx.strokeStyle='rgba(240,226,200,0.06)';
+    ctx.strokeRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
+  }
+  pieces.forEach(function(p){
+    if(p.dead)return;
+    var ox=p.ox||0,oy=p.oy||0;
+    var px=p.x*CELL+ox,py=p.y*CELL+oy;
+    if(p===drag&&drag.piece===p){px+=drag.dx;py+=drag.dy}
+    var g=ctx.createLinearGradient(px,py,px,py+p.h*CELL);
+    g.addColorStop(0,p.c);g.addColorStop(1,'#00000066');
+    ctx.fillStyle=g;
+    ctx.shadowColor='rgba(0,0,0,0.55)';ctx.shadowBlur=10;ctx.shadowOffsetY=3;
+    roundRect(px+3,py+3,p.w*CELL-6,p.h*CELL-6,7);
+    ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    ctx.strokeStyle='rgba(255,240,200,0.25)';
+    roundRect(px+7,py+7,p.w*CELL-14,p.h*CELL-14,5);
+    ctx.stroke();
+    ctx.fillStyle='#f8efdc';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(p.big){
+      ctx.font='700 '+Math.round(CELL*0.55)+'px "Palatino Linotype",serif';
+      ctx.fillText(p.n,px+p.w*CELL/2,py+p.h*CELL/2-CELL*0.05);
+    }else if(p.w===1&&p.h===2){
+      ctx.font='700 '+Math.round(CELL*0.44)+'px "Palatino Linotype",serif';
+      ctx.fillText(p.n[0],px+CELL/2,py+CELL*0.55);
+      if(p.n[1])ctx.fillText(p.n[1],px+CELL/2,py+CELL*1.35);
+    }else{
+      ctx.font='700 '+Math.round(CELL*0.44)+'px "Palatino Linotype",serif';
+      if(p.w===2)ctx.fillText(p.n,px+CELL,py+CELL/2);
+      else ctx.fillText(p.n,px+CELL/2,py+CELL/2);
+    }
+  });
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  if(win){
+    exitT++;
+    var big=pieces[0];
+    if(exitT<70){
+      big.oy=(big.oy||0)+10;
+      if(big.oy>=BH){big.dead=true}
+    }
+    if(big.dead){
+      ctx.fillStyle='rgba(240,226,200,0.92)';
+      ctx.font='italic '+Math.round(BW*0.085)+'px Palatino,serif';
+      ctx.textAlign='center';
+      ctx.fillText('the general walks free',BW/2,BH*0.4);
+      ctx.font=italic10;
+      ctx.fillText(moves+' moves — the monks near the end of time approve',BW/2,BH*0.5);
+      ctx.textAlign='left';
+    }
+  }
+  requestAnimationFrame(draw);
+}
+var italic10='10px ui-monospace,Menlo,monospace';
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function pieceAt(cx,cy){
+  for(var i=0;i<pieces.length;i++){
+    var p=pieces[i];
+    if(p.dead)continue;
+    if(cx>=p.x*CELL&&cx<(p.x+p.w)*CELL&&cy>=p.y*CELL&&cy<(p.y+p.h)*CELL)return p;
+  }
+  return null;
+}
+cv.addEventListener('pointerdown',function(e){
+  if(win)return;
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left,y=e.clientY-r.top;
+  var p=pieceAt(x,y);
+  if(p)drag={piece:p,sx:x,sy:y,dx:0,dy:0};
+});
+window.addEventListener('pointermove',function(e){
+  if(!drag)return;
+  var r=cv.getBoundingClientRect();
+  drag.dx=e.clientX-r.left-drag.sx;
+  drag.dy=e.clientY-r.top-drag.sy;
+},{passive:true});
+window.addEventListener('pointerup',function(){
+  if(!drag)return;
+  var p=drag.piece;
+  var mx=Math.abs(drag.dx)>Math.abs(drag.dy)?(drag.dx>0?1:-1):0;
+  var my=mx===0?(drag.dy>0?1:-1):0;
+  var steps=Math.floor(Math.max(Math.abs(drag.dx),Math.abs(drag.dy))/CELL);
+  var moved=0;
+  while(steps-->0){
+    if(!cellFree(p.x+mx,p.y+my,p))break;
+    p.x+=mx;p.y+=my;moved++;
+  }
+  if(moved){
+    hist.push({p:p,fx:p.x-mx*moved,fy:p.y-my*moved,n:moved});
+    moves+=moved;
+    stats.textContent='MOVES '+moves+' · MIN 81';
+    if(p.big&&p.x===1&&p.y===3){
+      win=true;
+      msg.textContent='the gate stands open — 曹操 slides south…';
+    }else{
+      msg.textContent='';
+    }
+  }
+  drag=null;
+});
+document.getElementById('undo').addEventListener('click',function(){
+  if(win||!hist.length)return;
+  var h=hist.pop();
+  moves-=h.n;
+  h.p.x=h.fx;h.p.y=h.fy;
+  stats.textContent='MOVES '+moves+' · MIN 81';
+});
+document.getElementById('reset').addEventListener('click',start);
+window.addEventListener('resize',fit);
+fit();start();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

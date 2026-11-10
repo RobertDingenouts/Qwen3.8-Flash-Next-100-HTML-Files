@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vesica · Nº 010</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#e9dfc9;color:#4a3b28;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column}
+header{flex:none;padding:18px 24px 8px;text-align:center}
+h1{font:italic 400 24px Georgia,serif;letter-spacing:.04em}
+h1 b{font:700 10px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;display:block;color:#8a6d4b;margin-bottom:6px}
+#plate{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:6px 14px}
+#svg{max-width:min(94vw,calc(100vh - 250px));max-height:100%;background:
+ radial-gradient(circle at 30% 20%,rgba(255,250,235,.7),rgba(0,0,0,0) 60%),
+ #efe6d2;border:1px solid #c9b68f;box-shadow:0 2px 0 #c9b68f,0 18px 40px -18px rgba(74,59,40,.5)}
+footer{flex:none;padding:10px 22px 18px;display:flex;flex-direction:column;align-items:center;gap:10px}
+#cap{font:italic 14px/1.5 Georgia,serif;text-align:center;min-height:42px;max-width:560px;color:#5b4630}
+.row{display:flex;gap:14px;align-items:center}
+button{font:italic 14px Georgia,serif;padding:8px 20px;background:transparent;border:1px solid #8a6d4b;color:#4a3b28;cursor:pointer}
+button:hover{background:#4a3b28;color:#efe6d2}
+.dot{width:8px;height:8px;border-radius:50%;background:#c9b68f;transition:.3s;cursor:pointer}
+.dot.on{background:#8a1e1e;transform:scale(1.35)}
+.c{fill:none;stroke:#3b566b;stroke-width:.35}
+.hl{stroke:#8a1e1e;stroke-width:.5}
+.ax{stroke:#8a6d4b;stroke-width:.3;stroke-dasharray:2 1.5;fill:none}
+@media(max-width:600px){h1{font-size:18px}#cap{font-size:12px;min-height:38px}button{padding:7px 14px}}
+</style>
+</head>
+<body>
+<header><h1><b>Nº 010 · compass &amp; straightedge</b>Vesica Piscis</h1></header>
+<div id="plate">
+<svg id="svg" viewBox="0 0 100 100" width="640" height="640" aria-label="step-by-step compass construction of the flower of life"></svg>
+</div>
+<footer>
+<p id="cap">A single point, held still — the stillness before measurement. Press “later” to begin.</p>
+<div class="row"><button id="prev">← earlier</button><div id="dots" style="display:flex;gap:7px"></div><button id="next">later →</button></div>
+</footer>
+<script>
+(function(){
+"use strict";
+var SVGNS='http://www.w3.org/2000/svg';
+var svg=document.getElementById('svg'),cap=document.getElementById('cap'),dotsEl=document.getElementById('dots');
+var CX=50,CY=50,R=16;
+function cpath(cx,cy,r){return'M'+(cx-r)+' '+cy+' a'+r+' '+r+' 0 1 0 '+(2*r)+' 0 a'+r+' '+r+' 0 1 0 '+(-2*r)+' 0'}
+var steps=[];
+function addC(cx,cy,r,cls){steps.push({t:'c',d:cpath(cx,cy,r),cls:cls||'c'})}
+function addLine(x1,y1,x2,y2){steps.push({t:'l',d:'M'+x1+' '+y1+' L'+x2+' '+y2,cls:'ax'})}
+steps.push({t:'d',x:CX,y:CY});
+addC(CX,CY,R);
+addC(CX+R,CY,R,'c hl');
+addLine(CX,CY-2*R,CX,CY+2*R);
+addLine(CX-2.4*R,CY,CX+2.4*R,CY);
+for(var i=0;i<6;i++){var a=i*Math.PI/3;addC(CX+R*Math.cos(a),CY+R*Math.sin(a),R)}
+for(var i2=0;i2<6;i2++){var a2=i2*Math.PI/3;
+ addC(CX+2*R*Math.cos(a2),CY+2*R*Math.sin(a2),R);
+ var a3=a2+Math.PI/6;
+ addC(CX+R*Math.sqrt(3)*Math.cos(a3),CY+R*Math.sqrt(3)*Math.sin(a3),R)}
+addC(CX,CY,3*R,'c hl');
+var STAGES=[[0,0],[1,1],[2,2],[3,4],[5,10],[11,22],[23,23]];
+var CAPS=[
+ 'A single point, held still — the stillness before measurement.',
+ 'Open the compass to one radius and walk it once around: the first circle, a self-contained world.',
+ 'Without changing the span, set the needle on the rim and draw a second circle. Where they kiss appears the vesica piscis — the fish-bladder, the first doorway between two worlds.',
+ 'Join the two meeting points: an upright axis. Join the two hearts: its horizontal twin. Crossings become meaning.',
+ 'Carry the radius to each new crossing. Six circles guard the first, and the seed of life unfolds its petals.',
+ 'One more ring of twelve, and the pattern becomes the flower of life — nineteen breaths of the same radius.',
+ 'Bound the whole with a great circle and let it hold the flower: the geometry of snowflakes, of Gothic roses, of everything that grew before it was drawn.'
+];
+var made=steps.map(function(s){
+  var el;
+  if(s.t==='c'||s.t==='l'){
+    el=document.createElementNS(SVGNS,'path');
+    el.setAttribute('d',s.d);el.setAttribute('class',s.cls);
+  }else{
+    el=document.createElementNS(SVGNS,'circle');
+    el.setAttribute('cx',s.x);el.setAttribute('cy',s.y);el.setAttribute('r','0.9');
+    el.setAttribute('class','c hl');
+  }
+  el.style.opacity='0';svg.appendChild(el);return el;
+});
+var dotEls=CAPS.map(function(c,i){
+  var d=document.createElement('div');d.className='dot';d.title=c;
+  d.addEventListener('click',function(){stageTo(i)});
+  dotsEl.appendChild(d);return d;
+});
+var stage=-1,busy=false;
+function drawOne(idx,done){
+  var el=made[idx],s=steps[idx];
+  el.style.transition='none';
+  if(s.t==='d'){el.style.opacity='1';setTimeout(done,250);return}
+  var L=el.getTotalLength();
+  el.style.strokeDasharray=L;el.style.strokeDashoffset=L;el.style.opacity='1';
+  requestAnimationFrame(function(){
+    el.style.transition='stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)';
+    el.style.strokeDashoffset='0';
+  });
+  var pen=document.createElementNS(SVGNS,'circle');
+  pen.setAttribute('r','0.8');pen.setAttribute('class','c hl');svg.appendChild(pen);
+  var t0=performance.now(),dur=1000;
+  function anim(t){
+    var k=Math.min(1,(t-t0)/dur),q=el.getPointAtLength(L*k);
+    pen.setAttribute('cx',q.x);pen.setAttribute('cy',q.y);
+    if(k<1)requestAnimationFrame(anim);
+    else{svg.removeChild(pen);setTimeout(done,80)}
+  }
+  requestAnimationFrame(anim);
+}
+function chainStage(si){
+  var lo=STAGES[si][0],hi=STAGES[si][1],i=lo;
+  function next(){
+    if(i>hi){busy=false;return}
+    drawOne(i++,next);
+  }
+  busy=true;next();
+}
+function stageTo(n){
+  if(busy||n===stage||n<-1||n>STAGES.length-1)return;
+  if(n<stage){
+    var upto=STAGES[n][1];
+    for(var i=upto+1;i<made.length;i++){made[i].style.transition='none';made[i].style.opacity='0'}
+    stage=n;paintUI();return;
+  }
+  if(n>stage+1)n=stage+1;
+  stage=n;paintUI();chainStage(n);
+}
+function paintUI(){
+  cap.textContent=stage<0?CAPS[0]:CAPS[stage];
+  dotEls.forEach(function(d,i){d.classList.toggle('on',i<=stage)});
+}
+document.getElementById('next').addEventListener('click',function(){stageTo(stage+1)});
+document.getElementById('prev').addEventListener('click',function(){stageTo(stage-1)});
+window.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight')stageTo(stage+1);
+  if(e.key==='ArrowLeft')stageTo(stage-1);
+});
+paintUI();
+})();
+</script>
+</body>
+</html>

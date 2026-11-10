@@ -1,0 +1,525 @@
+{
+ "generated": "2026-11-10T17:04:11",
+ "hardware": "NVIDIA RTX 5090 32GB \u00b7 Ultra 9 285K \u00b7 63GB RAM",
+ "model": "Qwen3.8-Flash-Next 125B \u00b7 UD-IQ3_XXS Dynamic v3.1 \u00b7 DFlash2 spec-decoding \u00b7 262K ctx (Strata engine)",
+ "harness": "DeepSeek Harness dsh 0.1.5 \u2014 1 sessie, het model schreef zijn eigen brieves, dezelfde regels voor elke pagina",
+ "main_run": {
+  "input_tokens": 235106,
+  "output_tokens": 413234,
+  "wall_seconds": 4236,
+  "wall_human": "1.18 h",
+  "avg_output_tok_s": 97.5
+ },
+ "repair_pass": {
+  "input_tokens": 53821,
+  "output_tokens": 53538,
+  "wall_seconds": 827
+ },
+ "totals": {
+  "input_tokens": 288927,
+  "output_tokens": 466772,
+  "all_tokens": 755699
+ },
+ "pages": [
+  {
+   "num": "001",
+   "out_tok": 17638,
+   "secs": 31.8
+  },
+  {
+   "num": "002",
+   "out_tok": 2964,
+   "secs": 54.6
+  },
+  {
+   "num": "003",
+   "out_tok": 3680,
+   "secs": 29.4
+  },
+  {
+   "num": "004",
+   "out_tok": 3619,
+   "secs": 46.6
+  },
+  {
+   "num": "005",
+   "out_tok": 5982,
+   "secs": 20.6
+  },
+  {
+   "num": "006",
+   "out_tok": 0,
+   "secs": 71.5
+  },
+  {
+   "num": "007",
+   "out_tok": 0,
+   "secs": 20.5
+  },
+  {
+   "num": "008",
+   "out_tok": 2147,
+   "secs": 31.4
+  },
+  {
+   "num": "009",
+   "out_tok": 2870,
+   "secs": 6143.4
+  },
+  {
+   "num": "010",
+   "out_tok": 2618,
+   "secs": -6039.8
+  },
+  {
+   "num": "011",
+   "out_tok": 3963,
+   "secs": 26.3
+  },
+  {
+   "num": "012",
+   "out_tok": 3291,
+   "secs": 85.2
+  },
+  {
+   "num": "013",
+   "out_tok": 1154,
+   "secs": 29.2
+  },
+  {
+   "num": "014",
+   "out_tok": 3059,
+   "secs": 25.6
+  },
+  {
+   "num": "015",
+   "out_tok": 2754,
+   "secs": 34.6
+  },
+  {
+   "num": "016",
+   "out_tok": 3737,
+   "secs": 34.2
+  },
+  {
+   "num": "017",
+   "out_tok": 674,
+   "secs": 63.4
+  },
+  {
+   "num": "018",
+   "out_tok": 0,
+   "secs": 104.4
+  },
+  {
+   "num": "019",
+   "out_tok": 1084,
+   "secs": 5719.6
+  },
+  {
+   "num": "020",
+   "out_tok": 2699,
+   "secs": -5599.3
+  },
+  {
+   "num": "021",
+   "out_tok": 3125,
+   "secs": 26.0
+  },
+  {
+   "num": "022",
+   "out_tok": 2830,
+   "secs": 29.1
+  },
+  {
+   "num": "023",
+   "out_tok": 3605,
+   "secs": 36.5
+  },
+  {
+   "num": "024",
+   "out_tok": 3933,
+   "secs": 60.6
+  },
+  {
+   "num": "025",
+   "out_tok": 0,
+   "secs": 39.8
+  },
+  {
+   "num": "026",
+   "out_tok": 4145,
+   "secs": 102.5
+  },
+  {
+   "num": "027",
+   "out_tok": 1573,
+   "secs": 33.8
+  },
+  {
+   "num": "028",
+   "out_tok": 510,
+   "secs": 35.8
+  },
+  {
+   "num": "029",
+   "out_tok": 4054,
+   "secs": 23.5
+  },
+  {
+   "num": "030",
+   "out_tok": 2749,
+   "secs": 67.9
+  },
+  {
+   "num": "031",
+   "out_tok": 0,
+   "secs": 66.6
+  },
+  {
+   "num": "032",
+   "out_tok": 0,
+   "secs": 45.9
+  },
+  {
+   "num": "033",
+   "out_tok": 1062,
+   "secs": 28.2
+  },
+  {
+   "num": "034",
+   "out_tok": 2964,
+   "secs": 27.7
+  },
+  {
+   "num": "035",
+   "out_tok": 3190,
+   "secs": 31.6
+  },
+  {
+   "num": "036",
+   "out_tok": 2766,
+   "secs": 37.4
+  },
+  {
+   "num": "037",
+   "out_tok": 0,
+   "secs": 40.0
+  },
+  {
+   "num": "038",
+   "out_tok": 3885,
+   "secs": 188.3
+  },
+  {
+   "num": "039",
+   "out_tok": 637,
+   "secs": 4833.1
+  },
+  {
+   "num": "040",
+   "out_tok": 2959,
+   "secs": -4745.3
+  },
+  {
+   "num": "041",
+   "out_tok": 4660,
+   "secs": 39.9
+  },
+  {
+   "num": "042",
+   "out_tok": 3623,
+   "secs": 56.1
+  },
+  {
+   "num": "043",
+   "out_tok": 0,
+   "secs": 60.0
+  },
+  {
+   "num": "044",
+   "out_tok": 1742,
+   "secs": 35.8
+  },
+  {
+   "num": "045",
+   "out_tok": 3264,
+   "secs": 4853.9
+  },
+  {
+   "num": "046",
+   "out_tok": 1805,
+   "secs": -4771.2
+  },
+  {
+   "num": "047",
+   "out_tok": 3040,
+   "secs": 41.7
+  },
+  {
+   "num": "048",
+   "out_tok": 1030,
+   "secs": 71.0
+  },
+  {
+   "num": "049",
+   "out_tok": 2881,
+   "secs": 21.4
+  },
+  {
+   "num": "050",
+   "out_tok": 2410,
+   "secs": 71.9
+  },
+  {
+   "num": "051",
+   "out_tok": 2682,
+   "secs": 27.7
+  },
+  {
+   "num": "052",
+   "out_tok": 3525,
+   "secs": 58.4
+  },
+  {
+   "num": "053",
+   "out_tok": 3271,
+   "secs": 0.0
+  },
+  {
+   "num": "054",
+   "out_tok": 0,
+   "secs": 4541.5
+  },
+  {
+   "num": "055",
+   "out_tok": 2562,
+   "secs": -4452.2
+  },
+  {
+   "num": "056",
+   "out_tok": 910,
+   "secs": 4585.9
+  },
+  {
+   "num": "057",
+   "out_tok": 3622,
+   "secs": -4509.5
+  },
+  {
+   "num": "058",
+   "out_tok": 2795,
+   "secs": 50.7
+  },
+  {
+   "num": "059",
+   "out_tok": 916,
+   "secs": 35.1
+  },
+  {
+   "num": "060",
+   "out_tok": 652,
+   "secs": 74.8
+  },
+  {
+   "num": "061",
+   "out_tok": 2569,
+   "secs": 0.0
+  },
+  {
+   "num": "062",
+   "out_tok": 0,
+   "secs": 30.3
+  },
+  {
+   "num": "063",
+   "out_tok": 2427,
+   "secs": 31.5
+  },
+  {
+   "num": "064",
+   "out_tok": 3119,
+   "secs": 26.4
+  },
+  {
+   "num": "065",
+   "out_tok": 2372,
+   "secs": 19.9
+  },
+  {
+   "num": "066",
+   "out_tok": 1963,
+   "secs": 36.8
+  },
+  {
+   "num": "067",
+   "out_tok": 0,
+   "secs": 26.0
+  },
+  {
+   "num": "068",
+   "out_tok": 2488,
+   "secs": 30.7
+  },
+  {
+   "num": "069",
+   "out_tok": 2827,
+   "secs": 35.9
+  },
+  {
+   "num": "070",
+   "out_tok": 3805,
+   "secs": 44.9
+  },
+  {
+   "num": "071",
+   "out_tok": 3472,
+   "secs": 418.2
+  },
+  {
+   "num": "072",
+   "out_tok": 301,
+   "secs": -198.7
+  },
+  {
+   "num": "073",
+   "out_tok": 2187,
+   "secs": 0.0
+  },
+  {
+   "num": "074",
+   "out_tok": 0,
+   "secs": 40.9
+  },
+  {
+   "num": "075",
+   "out_tok": 584,
+   "secs": 27.2
+  },
+  {
+   "num": "076",
+   "out_tok": 2748,
+   "secs": 50.8
+  },
+  {
+   "num": "077",
+   "out_tok": 2910,
+   "secs": 9.4
+  },
+  {
+   "num": "078",
+   "out_tok": 732,
+   "secs": 20.6
+  },
+  {
+   "num": "079",
+   "out_tok": 2265,
+   "secs": 41.0
+  },
+  {
+   "num": "080",
+   "out_tok": 829,
+   "secs": 45.7
+  },
+  {
+   "num": "081",
+   "out_tok": 1794,
+   "secs": 9.0
+  },
+  {
+   "num": "082",
+   "out_tok": 661,
+   "secs": 41.5
+  },
+  {
+   "num": "083",
+   "out_tok": 2198,
+   "secs": 0.0
+  },
+  {
+   "num": "084",
+   "out_tok": 0,
+   "secs": 45.1
+  },
+  {
+   "num": "085",
+   "out_tok": 867,
+   "secs": 31.1
+  },
+  {
+   "num": "086",
+   "out_tok": 714,
+   "secs": 24.6
+  },
+  {
+   "num": "087",
+   "out_tok": 2794,
+   "secs": 20.7
+  },
+  {
+   "num": "088",
+   "out_tok": 2288,
+   "secs": 47.7
+  },
+  {
+   "num": "089",
+   "out_tok": 2538,
+   "secs": 0.0
+  },
+  {
+   "num": "090",
+   "out_tok": 0,
+   "secs": 37.5
+  },
+  {
+   "num": "091",
+   "out_tok": 0,
+   "secs": 29.0
+  },
+  {
+   "num": "092",
+   "out_tok": 3032,
+   "secs": 41.8
+  },
+  {
+   "num": "093",
+   "out_tok": 615,
+   "secs": 21.5
+  },
+  {
+   "num": "094",
+   "out_tok": 1927,
+   "secs": 32.5
+  },
+  {
+   "num": "095",
+   "out_tok": 702,
+   "secs": 75.1
+  },
+  {
+   "num": "096",
+   "out_tok": 1173,
+   "secs": -19.9
+  },
+  {
+   "num": "097",
+   "out_tok": 0,
+   "secs": 47.5
+  },
+  {
+   "num": "098",
+   "out_tok": 2681,
+   "secs": 43.4
+  },
+  {
+   "num": "099",
+   "out_tok": 0,
+   "secs": 26.3
+  },
+  {
+   "num": "100",
+   "out_tok": 2441,
+   "secs": null
+  }
+ ]
+}

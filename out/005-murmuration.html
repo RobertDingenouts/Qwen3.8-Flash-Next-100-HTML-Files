@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Murmuration · Nº 005</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#191227}
+body{font-family:Optima,Candara,"Gill Sans","Gill Sans MT",sans-serif;color:#f4e3d0}
+#c{position:fixed;inset:0;display:block;cursor:none}
+.tl{position:fixed;top:18px;left:22px;pointer-events:none}
+h1{font-size:15px;font-weight:400;letter-spacing:.5em;text-transform:uppercase;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+h1 em{display:block;font:italic 12px Georgia,serif;letter-spacing:.05em;text-transform:none;opacity:.75;margin-top:6px}
+.dock{position:fixed;left:22px;bottom:18px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{font:inherit;font-size:11px;letter-spacing:.2em;text-transform:uppercase;padding:9px 14px;background:rgba(25,18,39,.45);color:#f4e3d0;border:1px solid rgba(244,227,208,.35);cursor:pointer;backdrop-filter:blur(3px)}
+button:hover{background:rgba(244,227,208,.9);color:#191227}
+.count{position:fixed;right:22px;bottom:20px;font-size:11px;letter-spacing:.25em;opacity:.8;text-shadow:0 1px 8px #000;pointer-events:none}
+@media(max-width:560px){h1{font-size:11px;letter-spacing:.3em}.count{font-size:9px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Murmuration<em>the flock obeys the hawk — you are the hawk</em></h1></div>
+<div class="dock">
+<button id="more">+40 birds</button>
+<button id="less">−40 birds</button>
+<button id="calm">calm the sky</button>
+</div>
+<div class="count"><span id="n">0</span> STARLINGS · <span id="fps">60</span> FPS</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var B=[],N=260,hx=-999,hy=-999,hawkOn=false,pulse=0,screech=0,t=0;
+var nEl=document.getElementById('n'),fpsEl=document.getElementById('fps'),lastT=0,frames=0,fpsT=0;
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function addBirds(k){
+  for(var i=0;i<k;i++){var a=rnd(0,6.28);
+    B.push({x:rnd(0,W),y:rnd(0,H*0.75),vx:Math.cos(a)*2,vy:Math.sin(a)*2,ph:rnd(0,6.28),z:rnd(0.6,1.4)})}
+  N=B.length;nEl.textContent=N;
+}
+function sky(){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#241a3d');g.addColorStop(0.55,'#5c3357');g.addColorStop(0.78,'#c65f4a');g.addColorStop(1,'#f0a04b');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  var sx=W*0.72,sy=H*0.82;
+  var sg=ctx.createRadialGradient(sx,sy,0,sx,sy,H*0.42);
+  sg.addColorStop(0,'rgba(255,214,140,0.85)');sg.addColorStop(0.25,'rgba(255,160,90,0.35)');sg.addColorStop(1,'rgba(255,140,80,0)');
+  ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ffd9a0';ctx.beginPath();ctx.arc(sx,sy,H*0.05,0,7);ctx.fill();
+  hills(H*0.86,18,'rgba(30,17,44,0.55)',1.3);
+  hills(H*0.93,26,'rgba(17,9,28,0.95)',2.1);
+}
+function hills(base,amp,col,f){
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(0,H);
+  for(var x=0;x<=W;x+=14){ctx.lineTo(x,base+amp*Math.sin(x/140*f+base)-amp*0.4)}
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+}
+function flock(){
+  var R=52,R2=R*R,sep=24,sep2=sep*sep;
+  for(var i=0;i<N;i++){var b=B[i];
+    var cx=0,cy=0,ax=0,ay=0,sx=0,sy=0,cnt=0;
+    for(var j=0;j<N;j++){if(i===j)continue;var o=B[j],dx=o.x-b.x,dy=o.y-b.y,d2=dx*dx+dy*dy;
+      if(d2<R2){cnt++;cx+=o.x;cy+=o.y;ax+=o.vx;ay+=o.vy;
+        if(d2<sep2&&d2>0.01){sx-=dx/d2*140;sy-=dy/d2*140}}}
+    if(cnt){b.vx+=((cx/cnt)-b.x)*0.0016+(ax/cnt-b.vx)*0.045+sx*0.0012;
+      b.vy+=((cy/cnt)-b.y)*0.0016+(ay/cnt-b.vy)*0.045+sy*0.0012}
+    var dxh=b.x-hx,dyh=b.y-hy,dh2=dxh*dxh+dyh*dyh;
+    if(hawkOn&&dh2<16000){var f=(160-Math.sqrt(dh2))/160;b.vx+=dxh*f*0.02;b.vy+=dyh*f*0.02}
+    if(screech>0){var f2=screech/30;b.vx+=dxh/Math.sqrt(dh2+1)*f2*1.6;b.vy+=dyh/Math.sqrt(dh2+1)*f2*1.6}
+    b.vy+=(Math.sin(t/900+b.ph)*0.012);
+    if(b.y>H*0.8)b.vy-=0.05;if(b.y<40)b.vy+=0.05;
+    if(b.x<30)b.vx+=0.04;if(b.x>W-30)b.vx-=0.04;
+    var sp=Math.hypot(b.vx,b.vy),mx=3.1*b.z;
+    if(sp>mx){b.vx=b.vx/sp*mx;b.vy=b.vy/sp*mx}
+    if(sp<1.4){b.vx*=1.04;b.vy*=1.04}
+    b.x+=b.vx;b.y+=b.vy;b.ph+=0.22+sp*0.05;
+  }
+  if(screech>0)screech--;
+}
+function drawBird(b){
+  var ang=Math.atan2(b.vy,b.vx),w=Math.sin(b.ph)*0.9;
+  ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ang);
+  var s=3.6*b.z;ctx.strokeStyle='rgba(14,8,22,'+(0.55+0.4*b.z)+')';
+  ctx.lineWidth=1.5;ctx.beginPath();
+  ctx.moveTo(-s,-s*(0.5+w*0.7));ctx.lineTo(s*0.5,0);ctx.lineTo(-s,s*(0.5-w*0.7));
+  ctx.stroke();ctx.restore();
+}
+function drawHawk(){
+  if(!hawkOn)return;
+  var s=13,w=Math.sin(t/70)*0.4;
+  ctx.save();ctx.translate(hx,hy);
+  ctx.fillStyle='#0d0716';ctx.beginPath();
+  ctx.moveTo(s*1.5,0);ctx.quadraticCurveTo(0,-s*(1.1+w),-s*2,-s*0.3);
+  ctx.quadraticCurveTo(-s*0.6,0,-s*2,s*0.3);ctx.quadraticCurveTo(0,s*(1.1-w),s*1.5,0);
+  ctx.fill();
+  ctx.strokeStyle='rgba(244,227,208,0.25)';ctx.beginPath();ctx.arc(0,0,58,0,7);ctx.stroke();
+  ctx.restore();
+}
+function loop(ts){
+  t++;sky();flock();
+  for(var i=0;i<N;i++)drawBird(B[i]);
+  drawHawk();
+  frames++;if(ts-fpsT>500){fpsEl.textContent=Math.round(frames*1000/(ts-fpsT));frames=0;fpsT=ts}
+  requestAnimationFrame(loop);
+}
+window.addEventListener('pointermove',function(e){hx=e.clientX;hy=e.clientY;hawkOn=true},{passive:true});
+window.addEventListener('pointerdown',function(e){hx=e.clientX;hy=e.clientY;hawkOn=true;screech=30});
+document.getElementById('more').addEventListener('click',function(){addBirds(40)});
+document.getElementById('less').addEventListener('click',function(){B.splice(0,Math.min(40,B.length-20));N=B.length;nEl.textContent=N});
+document.getElementById('calm').addEventListener('click',function(){hx=-999;hy=-999;hawkOn=false;screech=0;
+  for(var i=0;i<B.length;i++){var b=B[i],sp=Math.hypot(b.vx,b.vy)||1;b.vx/=sp;b.vy/=sp}});
+window.addEventListener('resize',fit);
+fit();addBirds(N);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chord Metro · Nº 068</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#e9e7e1;color:#2a2a2a;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font-size:11px;font-weight:800;letter-spacing:.38em;text-transform:uppercase}
+h1 b{color:#d64f3e}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#8b887e;margin-top:5px}
+#c{touch-action:manipulation;cursor:pointer}
+#legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:94vw}
+.lg{display:flex;gap:6px;align-items:center;font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+padding:6px 10px;border:1px solid #c9c5ba;border-radius:4px;cursor:pointer;user-select:none}
+.lg.off{opacity:.35;text-decoration:line-through}
+.lg i{width:16px;height:4px;border-radius:2px}
+#info{font-size:10px;letter-spacing:.14em;color:#6b685e;height:14px;text-align:center}
+@media(max-width:520px){.lg{font-size:7px}}
+</style>
+</head>
+<body>
+<header><h1>Chord <b>Metro</b></h1><p class="tag">Nº 068 · the interchange diagram for a city drawn by a drunk cartographer</p></header>
+<canvas id="c"></canvas>
+<div id="legend"></div>
+<p id="info">click a station to trace its lines · click legend to toggle routes</p>
+<script>
+(function(){
+"use strict";
+var STATIONS=['Alder Gate','Brack Marsh','Copper Row','Dove Hill','Elm Circus','Ferry Stairs',
+'Gasworks','Hollow Tree','Iron Quay','Jubilee Cross','Kite Hill','Lantern Fields'];
+var LINES=[
+{n:'Central Loop',c:'#d64f3e',s:[0,4,7,10,1]},
+{n:'Ash Line',c:'#3f7fc4',s:[2,5,8,11,3]},
+{n:'Harbour Line',c:'#2f9e6e',s:[8,1,5,9,0]},
+{n:'Kite Line',c:'#e0a52e',s:[10,6,3,11,9]},
+{n:'Marsh Line',c:'#7b5bb8',s:[1,7,4,2,5]},
+{n:'Violet Circle',c:'#c45f9e',s:[7,11,6,10,8]}
+];
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var focus=-1,off=LINES.map(function(){return false});
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-10,innerHeight-180,560);S=Math.max(260,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0)}
+function stPos(i){
+  var a=i/STATIONS.length*Math.PI*2-Math.PI/2;
+  return{x:S/2+Math.cos(a)*S*0.38,y:S/2+Math.sin(a)*S*0.38,a:a};
+}
+function chord(pts,color,alpha,wid){
+  ctx.strokeStyle=color;
+  ctx.globalAlpha=alpha;
+  ctx.lineWidth=wid;
+  ctx.lineCap='round';
+  ctx.beginPath();
+  for(var i=0;i<pts.length-1;i++){
+    var p=pts[i],q=pts[i+1];
+    var mx=(p.x+q.x)/2,my=(p.y+q.y)/2;
+    var cxp=S/2+(mx-S/2)*0.35,cyp=S/2+(my-S/2)*0.35;
+    i?ctx.moveTo(p.x,p.y):ctx.moveTo(p.x,p.y);
+    ctx.quadraticCurveTo(cxp,cyp,q.x,q.y);
+  }
+  ctx.stroke();
+  ctx.globalAlpha=1;
+}
+function draw(){
+  ctx.clearRect(0,0,S,S);
+  ctx.strokeStyle='rgba(42,42,42,0.06)';
+  ctx.beginPath();ctx.arc(S/2,S/2,S*0.38,0,7);ctx.stroke();
+  LINES.forEach(function(L,li){
+    if(off[li])return;
+    var hot=focus<0?true:L.s.indexOf(focus)>=0;
+    var pts=L.s.map(function(s){return stPos(s)});
+    var w=hot&&focus>=0?3.6:2;
+    var al=focus<0?(off.length?0.75:0.75):(hot?0.95:0.1);
+    chord(pts,L.c,al,w);
+  });
+  STATIONS.forEach(function(name,i){
+    var p=stPos(i);
+    var nLines=LINES.filter(function(L,li){return !off[li]&&L.s.indexOf(i)>=0}).length;
+    var hot=focus<0||focus===i||LINES.some(function(L,li){return !off[li]&&L.s.indexOf(i)>=0&&L.s.indexOf(focus)>=0});
+    ctx.fillStyle=focus===i?'#d64f3e':'#2a2a2a';
+    ctx.globalAlpha=hot?1:0.25;
+    ctx.beginPath();ctx.arc(p.x,p.y,4+nLines,0,7);ctx.fill();
+    ctx.strokeStyle='#e9e7e1';ctx.lineWidth=2;ctx.stroke();
+    ctx.font=(focus===i?'700 ':'')+'8px "Helvetica Neue",sans-serif';
+    ctx.fillStyle='#2a2a2a';
+    var lx=S/2+Math.cos(p.a)*S*0.44,ly=S/2+Math.sin(p.a)*S*0.44;
+    ctx.textAlign=Math.cos(p.a)>0.1?'left':(Math.cos(p.a)<-0.1?'right':'center');
+    ctx.fillText(name.toUpperCase(),lx,ly+3);
+    ctx.globalAlpha=1;
+  });
+  ctx.textAlign='left';
+  ctx.beginPath();
+  ctx.arc(S/2,S/2,S*0.055,0,7);
+  ctx.fillStyle='#2a2a2a';
+  ctx.fill();
+  ctx.fillStyle='#e9e7e1';
+  ctx.font='700 8px "Helvetica Neue",sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('TQ',S/2,S/2+3);
+  ctx.textAlign='left';
+}
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left,y=e.clientY-r.top;
+  var bi=-1,bd=26;
+  STATIONS.forEach(function(n,i){
+    var p=stPos(i);
+    var d=Math.hypot(p.x-x,p.y-y);
+    if(d<bd){bd=d;bi=i}
+  });
+  focus=bi;
+  var inf=document.getElementById('info');
+  if(bi>=0){
+    var ls=LINES.filter(function(L,li){return L.s.indexOf(bi)>=0}).map(function(L){return L.n});
+    inf.textContent=STATIONS[bi]+' → '+ls.join(' · ');
+  }else inf.textContent='click a station to trace its lines · click legend to toggle routes';
+  draw();
+});
+var leg=document.getElementById('legend');
+LINES.forEach(function(L,li){
+  var d=document.createElement('div');
+  d.className='lg';
+  d.innerHTML='<i style="background:'+L.c+'"></i>'+L.n;
+  d.addEventListener('click',function(){
+    off[li]=!off[li];
+    d.classList.toggle('off',off[li]);
+    draw();
+  });
+  leg.appendChild(d);
+});
+window.addEventListener('resize',function(){fit();draw()});
+fit();draw();
+})();
+</script>
+</body>
+</html>

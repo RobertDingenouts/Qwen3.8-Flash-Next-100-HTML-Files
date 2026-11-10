@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sundial Lab · Nº 054</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#181c22;color:#e8e2d2;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
+body{display:flex;align-items:center;justify-content:center;gap:20px;padding:14px}
+#panel{width:250px;max-width:42vw;display:flex;flex-direction:column;gap:12px}
+h1{font:italic 400 23px Georgia,serif}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.36em;text-transform:uppercase;color:#8a93a3;margin-bottom:6px}
+label{font:9px ui-monospace,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;display:grid;grid-template-columns:64px 1fr 56px;gap:8px;align-items:center}
+input[type=range]{width:100%;accent-color:#e0b45a}
+b{font-weight:400;text-align:right;color:#c8b78a}
+button{font:italic 12px Georgia,serif;padding:10px 14px;background:transparent;border:1px solid #8a93a3;color:#e8e2d2;cursor:pointer}
+button:hover{background:#e0b45a;color:#181c22;border-color:#e0b45a}
+#read{font-size:11px;line-height:2;color:#aab3c2}
+#read b{color:#e8e2d2;display:inline}
+canvas{flex:none}
+@media(max-width:760px){
+ body{flex-direction:column;gap:8px;padding:8px}
+ #panel{width:100%;max-width:none;flex-direction:row;flex-wrap:wrap;align-items:center}
+ label{flex:1 1 44%;grid-template-columns:52px 1fr 48px}
+ #read{display:none}
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="panel">
+<h1><span>Nº 054 · a stick, a shadow, a planet</span>Sundial Lab</h1>
+<label>hour<input id="hr" type="range" min="0" max="23.9" step="0.1" value="10.4"><b id="hrv"></b></label>
+<label>day<input id="dy" type="range" min="1" max="365" value="172"><b id="dyv"></b></label>
+<label>latitude<input id="lt" type="range" min="-80" max="80" value="48"><b id="ltv"></b></label>
+<button id="now">tell me now</button>
+<p id="read"></p>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var DEG=Math.PI/180;
+var hr=document.getElementById('hr'),dy=document.getElementById('dy'),lt=document.getElementById('lt');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var narrow=innerWidth<760;
+  S=narrow?Math.min(innerWidth-16,innerHeight-320):Math.min(innerWidth-320,innerHeight-30);
+  S=Math.max(250,S);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+}
+function solar(h,N,phi){
+  var dec=23.44*DEG*Math.sin(2*Math.PI*(N-81)/365);
+  var t=(h-12)*15*DEG;
+  phi=phi*DEG;
+  var sinAlt=Math.sin(dec)*Math.sin(phi)+Math.cos(dec)*Math.cos(phi)*Math.cos(t);
+  var alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)));
+  var cosA=(Math.sin(dec)-Math.sin(alt)*Math.sin(phi))/(Math.cos(alt)*Math.cos(phi)+1e-12);
+  cosA=Math.max(-1,Math.min(1,cosA));
+  var A=Math.acos(cosA);
+  if(t>0)A=2*Math.PI-A;
+  return{alt:alt,az:A,dec:dec};
+}
+function draw(){
+  var h=+hr.value,N=+dy.value,phi=+lt.value;
+  document.getElementById('hrv').textContent=('0'+Math.floor(h)).slice(-2)+':'+('0'+Math.round(h%1*60)).slice(-2);
+  document.getElementById('dyv').textContent=N;
+  document.getElementById('ltv').textContent=phi+'°';
+  ctx.clearRect(0,0,S,S);
+  var cx=S/2,cy=S/2,R=S*0.40;
+  var g=ctx.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.1,cx,cy,R);
+  g.addColorStop(0,'#e9e0c8');g.addColorStop(1,'#c9bd9e');
+  ctx.fillStyle=g;
+  ctx.shadowColor='rgba(0,0,0,0.5)';ctx.shadowBlur=30;
+  ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(60,50,30,0.35)';
+  ctx.beginPath();ctx.arc(cx,cy,R*0.99,0,7);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,R*0.8,0,7);ctx.stroke();
+  var s=solar(h,N,phi);
+  var daylight=s.alt>0;
+  for(var hh=4;hh<=20;hh++){
+    var sh=solar(hh,N,phi);
+    if(sh.alt<=0)continue;
+    var az=(sh.az+Math.PI)% (2*Math.PI);
+    var dx=Math.sin(az),dy2=-Math.cos(az);
+    ctx.strokeStyle='rgba(70,55,35,0.4)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(cx+dx*R*0.8,cy+dy2*R*0.8);
+    ctx.lineTo(cx+dx*R*0.97,cy+dy2*R*0.97);
+    ctx.stroke();
+    ctx.fillStyle='rgba(70,55,35,0.55)';
+    ctx.font='9px ui-monospace,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(hh,cx+dx*R*1.07,cy+dy2*R*1.07+3);
+  }
+  ctx.strokeStyle='rgba(70,55,35,0.6)';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-R*0.8);ctx.lineTo(cx,cy-R*0.88);ctx.stroke();
+  ctx.fillStyle='rgba(70,55,35,0.8)';
+  ctx.font='700 12px Georgia,serif';
+  ctx.fillText('N',cx,cy-R*0.93);
+  for(var d=0;d<8;d++){
+    var a=d*Math.PI/4;
+    ctx.strokeStyle='rgba(70,55,35,0.15)';
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+Math.sin(a)*R*0.8,cy-Math.cos(a)*R*0.8);
+    ctx.stroke();
+  }
+  if(daylight){
+    var shLen=Math.min(R*0.8,1/ Math.tan(Math.max(s.alt,4*DEG)))*R*0.16;
+    var saz=(s.az+Math.PI)%(2*Math.PI);
+    var sx=cx+Math.sin(saz)*shLen,sy=cy-Math.cos(saz)*shLen;
+    ctx.strokeStyle='rgba(30,25,15,0.8)';
+    ctx.lineWidth=5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(sx,sy);ctx.stroke();
+    ctx.fillStyle='rgba(30,25,15,0.25)';
+    ctx.beginPath();ctx.ellipse(sx,sy,10,4,saz,0,7);ctx.fill();
+    ctx.fillStyle='#7a6a4a';
+    ctx.beginPath();ctx.arc(cx,cy,6,0,7);ctx.fill();
+    var px=cx+Math.sin(s.az)*R*0.9,py=cy-Math.cos(s.az)*R*0.9;
+    var sr=6+s.alt*20;
+    var sg=ctx.createRadialGradient(px,py,0,px,py,sr*3);
+    sg.addColorStop(0,'rgba(255,214,130,0.9)');
+    sg.addColorStop(1,'rgba(255,180,60,0)');
+    ctx.fillStyle=sg;
+    ctx.beginPath();ctx.arc(px,py,sr*3,0,7);ctx.fill();
+    ctx.fillStyle='#ffdf90';
+    ctx.beginPath();ctx.arc(px,py,sr*0.55,0,7);ctx.fill();
+  }else{
+    ctx.fillStyle='rgba(40,50,80,0.35)';
+    ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+    ctx.fillStyle='rgba(230,235,255,0.7)';
+    ctx.font='italic 15px Georgia,serif';
+    ctx.fillText('the sun is below the horizon',cx,cy);
+  }
+  ctx.textAlign='left';
+  document.getElementById('read').innerHTML=
+    'sun altitude <b>'+(s.alt/DEG).toFixed(1)+'°</b><br>'+
+    'sun azimuth <b>'+(s.az/DEG).toFixed(0)+'°</b><br>'+
+    'declination <b>'+(s.dec/DEG).toFixed(1)+'°</b><br>'+
+    (daylight?'shadow bears <b>'+(((s.az/DEG)+180)%360).toFixed(0)+'°</b>':'shadow <b>—</b>');
+}
+document.getElementById('now').addEventListener('click',function(){
+  var d=new Date();
+  hr.value=(d.getHours()+d.getMinutes()/60).toFixed(1);
+  var start=new Date(d.getFullYear(),0,0);
+  dy.value=Math.floor((d-start)/86400000);
+  draw();
+});
+[hr,dy,lt].forEach(function(el){el.addEventListener('input',draw)});
+window.addEventListener('resize',fit);
+fit();draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crate &amp; Cellar · Nº 019</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#211608;color:#e8d9b8;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px}
+header{text-align:center}
+h1{font:italic 400 24px Georgia,serif}
+h1 span{display:block;font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.42em;text-transform:uppercase;color:#b8863e;margin-bottom:6px}
+#c{display:block;border:6px solid #3a2817;border-radius:4px;box-shadow:0 22px 60px -20px #000,inset 0 0 60px rgba(0,0,0,.5)}
+.dock{display:flex;gap:8px;align-items:center}
+button{font:italic 13px Georgia,serif;padding:9px 16px;background:#2e1f10;border:1px solid #7a5a2e;color:#e8d9b8;cursor:pointer;border-radius:3px}
+button:hover{background:#b8863e;color:#211608}
+.lvl{font:9px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#b8863e}
+.pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,40px);gap:5px}
+.pad button{padding:0;font-size:15px}
+@media(min-width:700px){.pad{display:none}}
+#banner{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity .5s}
+#banner div{background:rgba(33,22,8,.9);border:1px solid #b8863e;padding:26px 44px;text-align:center}
+#banner h2{font:italic 28px Georgia,serif;color:#f2cf8a}
+#banner p{font:9px ui-monospace,monospace;letter-spacing:.3em;text-transform:uppercase;margin-top:8px;color:#b8863e}
+</style>
+</head>
+<body>
+<header><h1><span>Nº 019 · a push puzzle in three vaults</span>Crate &amp; Cellar</h1></header>
+<canvas id="c"></canvas>
+<div class="dock">
+<button id="undo">↶ undo</button>
+<button id="restart">restart</button>
+<span class="lvl" id="lvl">vault i</span>
+</div>
+<div class="pad">
+<button data-d="0"></button><button data-d="up">▲</button><button data-d="0"></button>
+<button data-d="left">◀</button><button data-d="down">▼</button><button data-d="right">▶</button>
+</div>
+<div id="banner"><div><h2 id="bt">The vault opens.</h2><p id="bp">the next chamber awaits</p></div></div>
+<script>
+(function(){
+"use strict";
+var LEVELS=[
+[
+"  ####",
+"###  ####",
+"#     $ #",
+"# #  #$ #",
+"# . .#@ #",
+"#########"],
+[
+"####  ",
+"# .#  ",
+"#  ###",
+"#*@  #",
+"#  $ #",
+"#  ###",
+"####  "],
+[
+"########",
+"#   .  #",
+"# $##  #",
+"#  $ # #",
+"##  $  #",
+"#  ##  #",
+"# . .  #",
+"###  ###",
+"   #   ",
+"   @   "]
+];
+var names=['i','ii','iii'];
+var li=0,grid,boxes,player,moves,undoStack=[],won=false,cell=40,gc=0,gr=0;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1;
+var banner=document.getElementById('banner');
+function load(i){
+  li=i;undoStack=[];moves=0;won=false;
+  banner.style.opacity=0;
+  var src=LEVELS[i];gr=src.length;gc=0;
+  src.forEach(function(r){gc=Math.max(gc,r.length)});
+  grid=[];boxes=[];
+  for(var r=0;r<gr;r++){
+    var row=[];
+    for(var c=0;c<gc;c++){
+      var ch=src[r][c]||' ';
+      row.push(ch==='#'?1:0);
+      if(ch==='$')boxes.push([r,c]);
+      if(ch==='@')player=[r,c];
+    }
+    grid.push(row);
+  }
+  goalsFrom();
+  document.getElementById('lvl').textContent='vault '+names[i];
+  fit();draw();
+}
+var goals=[];
+function goalsFrom(){
+  goals=[];var src=LEVELS[li];
+  for(var r=0;r<src.length;r++)for(var c=0;c<src[r].length;c++){
+    var ch=src[r][c];if(ch==='.'||ch==='*'||ch==='+')goals.push(r+','+c);
+  }
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var availW=Math.min(innerWidth-30,520),availH=innerHeight-230;
+  cell=Math.floor(Math.min(availW/gc,availH/gr));
+  var w=cell*gc,h=cell*gr;
+  cv.style.width=w+'px';cv.style.height=h+'px';
+  cv.width=w*D;cv.height=h*D;ctx.setTransform(D,0,0,D,0,0);
+}
+function key(r,c){return r+','+c}
+function onGoal(r,c){return goals.indexOf(key(r,c))>=0}
+function hasBox(r,c){for(var i=0;i<boxes.length;i++)if(boxes[i][0]===r&&boxes[i][1]===c)return i;return -1}
+function isWin(){
+  for(var i=0;i<boxes.length;i++)if(!onGoal(boxes[i][0],boxes[i][1]))return false;
+  return true;
+}
+function draw(){
+  var w=cell*gc,h=cell*gr;
+  ctx.fillStyle='#241a10';ctx.fillRect(0,0,w,h);
+  for(var r=0;r<gr;r++)for(var c=0;c<gc;c++){
+    var x=c*cell,y=r*cell;
+    if(grid[r][c]){
+      ctx.fillStyle='#4a3626';ctx.fillRect(x,y,cell,cell);
+      ctx.fillStyle='rgba(255,220,160,0.07)';ctx.fillRect(x,y,cell,3);
+      ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(x,y+cell-4,cell,4);
+    }else{
+      ctx.fillStyle=(r+c)%2?'#2a1d10':'#2c1f12';
+      ctx.fillRect(x,y,cell,cell);
+      if(onGoal(r,c)){
+        ctx.strokeStyle='#b8863e';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*0.24,0,7);ctx.stroke();
+        ctx.strokeStyle='rgba(184,134,62,0.35)';
+        ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*0.36,0,7);ctx.stroke();
+      }
+    }
+  }
+  boxes.forEach(function(b){
+    var x=b[1]*cell,y=b[0]*cell,p=cell*0.14;
+    var done=onGoal(b[0],b[1]);
+    ctx.fillStyle=done?'#c8963e':'#8a5a33';
+    ctx.fillRect(x+p,y+p,cell-2*p,cell-2*p);
+    ctx.strokeStyle=done?'#5c3d12':'#3a2412';
+    ctx.lineWidth=2.4;
+    ctx.strokeRect(x+p,y+p,cell-2*p,cell-2*p);
+    ctx.beginPath();
+    ctx.moveTo(x+p,y+p);ctx.lineTo(x+cell-p,y+cell-p);
+    ctx.moveTo(x+cell-p,y+p);ctx.lineTo(x+p,y+cell-p);
+    ctx.stroke();
+    if(done){ctx.fillStyle='rgba(255,240,200,0.5)';
+      ctx.beginPath();ctx.arc(x+cell/2,y+cell/2,cell*0.1,0,7);ctx.fill()}
+  });
+  var px=player[1]*cell+cell/2,py=player[0]*cell+cell/2;
+  ctx.fillStyle='#e8d9b8';
+  ctx.beginPath();ctx.arc(px,py-cell*0.16,cell*0.14,0,7);ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(px-cell*0.2,py+cell*0.3);
+  ctx.quadraticCurveTo(px,py-cell*0.12,px+cell*0.2,py+cell*0.3);
+  ctx.closePath();ctx.fill();
+  var g=ctx.createRadialGradient(px,py,0,px,py,cell*3);
+  g.addColorStop(0,'rgba(255,200,120,0.10)');g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+}
+function move(dr,dc){
+  if(won)return;
+  var nr=player[0]+dr,nc=player[1]+dc;
+  if(nr<0||nr>=gr||nc<0||nc>=gc||grid[nr][nc])return;
+  var bi=hasBox(nr,nc);
+  if(bi>=0){
+    var br=nr+dr,bc=nc+dc;
+    if(br<0||br>=gr||bc<0||bc>=gc||grid[br][bc]||hasBox(br,bc)>=0)return;
+    undoStack.push(JSON.stringify({p:player,b:boxes}));
+    boxes[bi]=[br,bc];
+  }else{
+    undoStack.push(JSON.stringify({p:player,b:boxes}));
+  }
+  if(undoStack.length>400)undoStack.shift();
+  player=[nr,nc];moves++;
+  draw();
+  if(isWin()){
+    won=true;
+    var bt=document.getElementById('bt'),bp=document.getElementById('bp');
+    if(li<LEVELS.length-1){bt.textContent='The vault opens.';bp.textContent='the next chamber awaits'}
+    else{bt.textContent='Every crate home.';bp.textContent='the cellar sleeps · press restart'}
+    banner.style.opacity=1;
+    setTimeout(function(){if(li<LEVELS.length-1){load(li+1)}else{banner.style.opacity=0}},1800);
+  }
+}
+function undo(){
+  if(!undoStack.length||won)return;
+  var s=JSON.parse(undoStack.pop());
+  player=s.p;boxes=s.b;draw();
+}
+window.addEventListener('keydown',function(e){
+  if(e.key==='ArrowUp'||e.key==='w'){e.preventDefault();move(-1,0)}
+  if(e.key==='ArrowDown'||e.key==='s'){e.preventDefault();move(1,0)}
+  if(e.key==='ArrowLeft'||e.key==='a'){e.preventDefault();move(0,-1)}
+  if(e.key==='ArrowRight'||e.key==='d'){e.preventDefault();move(0,1)}
+  if(e.key==='u')undo();
+});
+document.getElementById('undo').addEventListener('click',undo);
+document.getElementById('restart').addEventListener('click',function(){load(li)});
+document.querySelectorAll('.pad button').forEach(function(b){
+  var d=b.dataset.d;
+  if(d==='0'){b.style.visibility='hidden';return}
+  b.addEventListener('click',function(){
+    if(d==='up')move(-1,0);if(d==='down')move(1,0);
+    if(d==='left')move(0,-1);if(d==='right')move(0,1);
+  });
+});
+var tsx=0,tsy=0;
+cv.addEventListener('touchstart',function(e){tsx=e.touches[0].clientX;tsy=e.touches[0].clientY},{passive:true});
+cv.addEventListener('touchend',function(e){
+  var t=e.changedTouches[0],dx=t.clientX-tsx,dy=t.clientY-tsy;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+  if(Math.abs(dx)>Math.abs(dy))move(0,dx>0?1:-1);else move(dy>0?1:-1,0);
+},{passive:true});
+window.addEventListener('resize',function(){fit();draw()});
+load(0);
+})();
+</script>
+</body>
+</html>

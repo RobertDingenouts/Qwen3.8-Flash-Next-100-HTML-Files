@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fusion Lattice · Nº 021</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0e1116;color:#dbe4ee;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:10px}
+header{display:flex;justify-content:space-between;align-items:flex-end;width:min(430px,94vw)}
+h1{font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+h1 b{color:#6fe3c1}
+.scores{display:flex;gap:14px;text-align:right}
+.sc{font-size:8px;letter-spacing:.24em;text-transform:uppercase}
+.sc b{display:block;font-size:16px}
+#grid{position:relative;width:min(430px,94vw);aspect-ratio:1;background:#161b23;border-radius:10px;padding:2.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:2.5%}
+.slot{background:#1c232d;border-radius:8px}
+#tiles{position:absolute;inset:0;pointer-events:none}
+.tile{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:8px;transition:transform .12s ease-out}
+.tile .sym{font-weight:700;line-height:1}
+.tile .z{font-size:9px;opacity:.65}
+.tile.new{animation:pop .18s ease-out}
+.tile.merged{animation:merge .2s ease-out}
+@keyframes pop{from{transform:scale(0.4)}}
+@keyframes merge{50%{transform:scale(1.16)}}
+.dock{display:flex;gap:8px;width:min(430px,94vw);align-items:center}
+button{flex:1;font:inherit;font-size:9px;letter-spacing:.2em;text-transform:uppercase;padding:11px;background:#1c232d;color:#dbe4ee;border:1px solid #2c3542;border-radius:7px;cursor:pointer}
+button:hover{border-color:#6fe3c1;color:#6fe3c1}
+#banner{position:absolute;inset:0;border-radius:10px;display:none;flex-direction:column;gap:8px;align-items:center;justify-content:center;background:rgba(14,17,22,0.82);text-align:center;z-index:5;pointer-events:auto}
+#banner h2{font-size:20px;letter-spacing:.2em;color:#6fe3c1}
+#banner p{font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.7}
+@media(max-width:420px){.tile .z{font-size:7px}}
+</style>
+</head>
+<body>
+<header>
+<h1>Fusion <b>Lattice</b></h1>
+<div class="scores"><div class="sc">energy<b id="sc">0</b></div><div class="sc">best<b id="hs">0</b></div></div>
+</header>
+<div id="grid">
+<div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+<div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+<div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+<div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div>
+<div id="tiles"></div>
+<div id="banner"><h2 id="bt">FUSION COMPLETE</h2><p id="bp">sodium achieved · the lattice continues</p></div>
+</div>
+<div class="dock"><button id="new">re-ignite</button><span style="font-size:8px;letter-spacing:.2em;opacity:.5;text-transform:uppercase">swipe / arrows to fuse elements</span></div>
+<script>
+(function(){
+"use strict";
+var ELEM=[null,['H',1],['He',4],['Li',7],['Be',9],['B',11],['C',12],['N',14],['O',16],['F',19],['Ne',20],['Na',23],['Mg',24],['Al',27],['Si',28],['P',31],['S',32],['Cl',35],['Ar',40],['K',39],['Ca',40],['Ti',48],['Fe',56],['Ni',59],['Cu',64],['Zn',65],['Br',80],['Ag',108],['I',127],['Xe',131],['Au',197],['Hg',201],['Pb',207],['U',238]];
+var HUE=[0,174,48,286,142,24,195,345,210,96,265];
+var grid,score,best=0,won=false,uid=0,animating=false;
+var tilesEl=document.getElementById('tiles'),scEl=document.getElementById('sc'),hsEl=document.getElementById('hs');
+var banner=document.getElementById('banner');
+function cellSize(){var g=document.getElementById('grid');return (g.clientWidth*0.955-g.clientWidth*0.05)/4}
+function px(){var g=document.getElementById('grid');var pad=g.clientWidth*0.025;var gap=g.clientWidth*0.025;
+  return{pad:pad,gap:gap,size:(g.clientWidth-2*pad-3*gap)/4}}
+function make(r,c,v){return{r:r,c:c,v:v,el:document.createElement('div'),id:++uid}}
+function render(){
+  var P=px();
+  grid.forEach(function(row){row.forEach(function(t){
+    if(!t){return}
+    var e=t.el;
+    if(!e.parentNode)tilesEl.appendChild(e);
+    var n=Math.log2(t.v),sym=ELEM[Math.min(n,ELEM.length-1)];
+    var hue=HUE[n%HUE.length],light=62-n*1.4;
+    e.className='tile'+(t.just?' new':'')+(t.merged?' merged':'');
+    e.style.width=P.size+'px';e.style.height=P.size+'px';
+    e.style.transform='translate('+(P.pad+t.c*(P.size+P.gap))+'px,'+(P.pad+t.r*(P.size+P.gap))+'px)';
+    e.style.background='hsl('+hue+',62%,'+Math.max(14,light-32)+'%)';
+    e.style.color='hsl('+hue+',75%,'+light+'%)';
+    e.style.boxShadow='0 0 18px hsla('+hue+',70%,40%,0.35)';
+    e.innerHTML='<span class="sym" style="font-size:'+Math.max(12,P.size*0.34)+'px">'+sym[0]+'</span><span class="z">'+sym[1]+(n>19?'':'')+'</span>';
+    t.just=false;t.merged=false;
+  })});
+}
+function emptyCells(){var out=[];for(var r=0;r<4;r++)for(var c=0;c<4;c++)if(!grid[r][c])out.push([r,c]);return out}
+function addRand(){
+  var e=emptyCells();if(!e.length)return;
+  var p=e[(Math.random()*e.length)|0];
+  grid[p[0]][p[1]]=make(p[0],p[1],Math.random()<0.9?2:4);
+  grid[p[0]][p[1]].just=true;
+}
+function reset(){
+  tilesEl.innerHTML='';
+  grid=[[null,null,null,null],[null,null,null,null],[null,null,null,null],[null,null,null,null]];
+  score=0;won=false;banner.style.display='none';
+  scEl.textContent=0;
+  addRand();addRand();render();
+}
+function gc(i,j,d){
+  if(d==='left')return[i,j];
+  if(d==='right')return[i,3-j];
+  if(d==='up')return[j,i];
+  return[3-j,i];
+}
+function moveVec(d){
+  var moved=false;
+  for(var i=0;i<4;i++){
+    var tiles=[];
+    for(var j=0;j<4;j++){
+      var p=gc(i,j,d),t=grid[p[0]][p[1]];
+      if(t){t.or=p[0];t.oc=p[1];t.justMerged=false;tiles.push(t);grid[p[0]][p[1]]=null}
+    }
+    var pos=0;
+    for(var k=0;k<tiles.length;k++){
+      var tt=tiles[k];
+      if(pos>0){
+        var q=gc(i,pos-1,d),prev=grid[q[0]][q[1]];
+        if(prev.v===tt.v&&!prev.justMerged){
+          prev.v*=2;prev.justMerged=true;prev.merged=true;
+          tt.el.remove();score+=prev.v;moved=true;
+          if(prev.v>=2048&&!won){won=true;
+            banner.style.display='flex';
+            document.getElementById('bt').textContent='FUSION COMPLETE';
+            document.getElementById('bp').textContent='sodium achieved · the lattice continues';
+            setTimeout(function(){if(canMove())banner.style.display='none'},2400)}
+          continue;
+        }
+      }
+      var p2=gc(i,pos,d);
+      grid[p2[0]][p2[1]]=tt;tt.r=p2[0];tt.c=p2[1];
+      if(tt.r!==tt.or||tt.c!==tt.oc)moved=true;
+      pos++;
+    }
+  }
+  if(moved){addRand();best=Math.max(best,score);scEl.textContent=score;hsEl.textContent=best;render();
+    if(!canMove()){banner.style.display='flex';document.getElementById('bt').textContent='LATTICE FROZEN';
+      document.getElementById('bp').textContent='no fusion vectors remain · re-ignite';}
+  }else render();
+}
+function canMove(){
+  for(var r=0;r<4;r++)for(var c=0;c<4;c++){
+    var t=grid[r][c];
+    if(!t)return true;
+    if(c<3&&grid[r][c+1]&&grid[r][c+1].v===t.v)return true;
+    if(r<3&&grid[r+1][c]&&grid[r+1][c].v===t.v)return true;
+  }
+  return false;
+}
+window.addEventListener('keydown',function(e){
+  var m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
+  if(m[e.key]){e.preventDefault();doMove(m[e.key])}
+});
+function doMove(d){if(animating)return;animating=true;setTimeout(function(){animating=false},130);moveVec(d)}
+var sx=0,sy=0;
+document.getElementById('grid').addEventListener('touchstart',function(e){sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+document.getElementById('grid').addEventListener('touchend',function(e){
+  var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+  doMove(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+},{passive:true});
+document.getElementById('new').addEventListener('click',reset);
+window.addEventListener('resize',render);
+reset();
+})();
+</script>
+</body>
+</html>

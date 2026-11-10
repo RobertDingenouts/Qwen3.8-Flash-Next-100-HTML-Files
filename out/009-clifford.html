@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Strange Weather · Nº 009</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#050507;color:#e8e3f2;font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.tl{position:fixed;top:20px;left:22px;pointer-events:none;mix-blend-mode:screen}
+h1{font:italic 400 26px/1.1 "Iowan Old Style",Palatino,Georgia,serif;letter-spacing:.02em}
+h1 span{display:block;font:700 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.5em;text-transform:uppercase;opacity:.55;margin-bottom:10px}
+.panel{position:fixed;left:22px;bottom:20px;width:236px;background:rgba(8,8,12,.72);border:1px solid rgba(232,227,242,.18);padding:14px;backdrop-filter:blur(4px);font-family:ui-monospace,Menlo,monospace}
+.panel label{display:grid;grid-template-columns:18px 1fr 44px;gap:8px;align-items:center;font-size:10px;margin:7px 0}
+.panel i{color:#c9a6ff;font-style:normal}
+.panel b{font-weight:400;color:#9f97b5;text-align:right}
+input[type=range]{width:100%;accent-color:#c9a6ff}
+.prow{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+button{font:9px ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase;padding:6px 8px;background:transparent;border:1px solid rgba(232,227,242,.3);color:#e8e3f2;cursor:pointer}
+button:hover{background:#e8e3f2;color:#050507}
+.hint{position:fixed;right:22px;bottom:22px;font:10px ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase;opacity:.4;pointer-events:none}
+@media(max-width:640px){.panel{left:10px;right:10px;bottom:10px;width:auto}h1{font-size:19px}.hint{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1><span>Clifford attractor · Nº 009</span>Strange Weather</h1></div>
+<div class="panel" id="panel"></div>
+<p class="hint">drag the parameters — the galaxy listens</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var P={a:-1.4,b:1.6,c:1.0,d:0.7},tgt={a:-1.4,b:1.6,c:1.0,d:0.7};
+var x=0,y=0,drift=false,hueBase=260,panel=document.getElementById('panel');
+var KEYS=['a','b','c','d'],RANGES={a:[-3,3],b:[-3,3],c:[-3,3],d:[-3,3]};
+var inputs={},vals={};
+function mkUI(){
+  KEYS.forEach(function(k){
+    var l=document.createElement('label');
+    l.innerHTML='<i>'+k+'</i><input type=range min=-300 max=300 value="'+Math.round(P[k]*100)+'"><b>'+(P[k]).toFixed(2)+'</b>';
+    var inp=l.querySelector('input'),vb=l.querySelector('b');
+    inputs[k]=inp;vals[k]=vb;
+    inp.addEventListener('input',function(){
+      var nv=+inp.value/100;tgt[k]=nv;P[k]=nv;vb.textContent=nv.toFixed(2);drift=false});
+    panel.appendChild(l);
+  });
+  var row=document.createElement('div');row.className='prow';panel.appendChild(row);
+  [['random','randomize'],['bloom','bloom'],['filament','filament'],['whorl','whorl'],['drift','drift +'],
+   ].forEach(function(pr){
+    var b=document.createElement('button');b.textContent=pr[0];
+    b.addEventListener('click',function(){
+      if(pr[0]==='random'){KEYS.forEach(function(k){tgt[k]=-2.6+Math.random()*5.2})}
+      if(pr[0]==='bloom'){tgt={a:-1.8,b:-2.0,c:-0.5,d:-0.9}}
+      if(pr[0]==='filament'){tgt={a:1.7,b:1.9,c:-1.9,d:-0.4}}
+      if(pr[0]==='whorl'){tgt={a:-2.9,b:1.8,d:-0.7,c:1.9}}
+      if(pr[0]==='drift +'){drift=!drift;b.style.borderColor=drift?'#c9a6ff':'rgba(232,227,242,.3)'}
+    });row.appendChild(b);
+  });
+}
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+ ctx.fillStyle='#050507';ctx.fillRect(0,0,W,H);x=0;y=0}
+function step(k){
+  var nx=Math.sin(P.a*y)+P.c*Math.cos(P.a*x);
+  var ny=Math.sin(P.b*x)+P.d*Math.cos(P.b*y);
+  x=nx;y=ny;
+  var sx=W/2+x*(W/4.6),sy=H/2+y*(H/4.6);
+  var t=(k%97)/97;
+  var hue=(hueBase+t*70+260)%360;
+  ctx.fillStyle='hsla('+hue+',75%,'+(58+20*t)+'%,0.06)';
+  ctx.fillRect(sx,sy,1.2,1.2);
+}
+function loop(ts){
+  ctx.globalCompositeOperation='source-over';
+  ctx.fillStyle='rgba(5,5,7,0.028)';ctx.fillRect(0,0,W,H);
+  if(drift){
+    var t=ts/1000;
+    P.a=tgt.a+Math.sin(t*0.11)*0.22;P.b=tgt.b+Math.cos(t*0.09)*0.22;
+    P.c=tgt.c+Math.sin(t*0.07)*0.18;P.d=tgt.d+Math.cos(t*0.13)*0.18;
+    ['a','b','c','d'].forEach(function(k){inputs[k].value=Math.round(P[k]*100);vals[k].textContent=P[k].toFixed(2)});
+  }else{
+    ['a','b','c','d'].forEach(function(k){P[k]+=(tgt[k]-P[k])*0.08});
+  }
+  hueBase=(hueBase+0.02)%360;
+  for(var i=0;i<28000;i++)step(i);
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize',fit);
+mkUI();fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

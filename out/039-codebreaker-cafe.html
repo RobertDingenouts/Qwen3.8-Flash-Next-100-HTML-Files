@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Codebreaker Café · Nº 039</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;background:#241a15;color:#f2e3c9;font-family:"Avenir Next",Avenir,"Century Gothic",sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 8px 16px}
+header{text-align:center}
+h1{font-size:19px;font-weight:600;letter-spacing:.06em}
+h1 em{font-style:italic;font-weight:400;color:#e58f6f}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.34em;text-transform:uppercase;color:#a4886b;margin-top:5px}
+#tabs{display:flex;border:1.5px solid #6b4c38;border-radius:4px;overflow:hidden}
+#tabs button{font:700 9px Avenir,sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 16px;background:transparent;color:#cbb696;border:none;cursor:pointer}
+#tabs button.on{background:#e58f6f;color:#241a15}
+#board{display:flex;flex-direction:column;gap:5px}
+.grow{display:flex;gap:10px;align-items:center}
+.slots{display:grid;grid-template-columns:repeat(4,26px);gap:6px}
+.peg{width:26px;height:26px;border-radius:50%;border:2px solid #4d362a;background:#31221a;cursor:pointer;transition:transform .12s}
+.peg:hover{transform:scale(1.1)}
+.fb{display:flex;gap:8px}
+.fbcol{display:flex;flex-direction:column;gap:3px}
+.fbk{width:11px;height:11px;border-radius:50%;border:1.5px solid #4d362a;background:#31221a}
+.fbk.black{background:#e5533c;border-color:#e5533c}
+.fbk.white{background:#f2e3c9;border-color:#f2e3c9}
+#palette{display:flex;gap:8px;padding:8px 12px;background:#31221a;border-radius:6px}
+.pal{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .12s}
+.pal:hover{transform:scale(1.15)}
+.pal.sel{border-color:#f2e3c9;transform:scale(1.15)}
+#airow{display:none;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+button.act{font:700 9px Avenir,sans-serif;letter-spacing:.18em;text-transform:uppercase;padding:11px 15px;background:transparent;border:1.5px solid #e58f6f;color:#e58f6f;cursor:pointer;border-radius:3px}
+button.act:hover{background:#e58f6f;color:#241a15}
+#msg{font-size:11px;letter-spacing:.1em;min-height:16px;text-align:center;color:#cbb696;max-width:430px;line-height:1.6}
+@media(max-width:480px){.peg{width:21px;height:21px}.slots{grid-template-columns:repeat(4,21px)}.pal{width:26px;height:26px}}
+</style>
+</head>
+<body>
+<header><h1>Codebreaker <em>Café</em></h1><p class="tag">Nº 039 · four sugared tokens · cherry = right jar & place, cream = right jar, wrong place</p></header>
+<div id="tabs"><button id="tcrack" class="on">you crack</button><button id="thide">you hide</button></div>
+<div id="board"></div>
+<div id="palette"></div>
+<div id="airow">
+<button class="act" id="fB">cherries: 0</button>
+<button class="act" id="fW">creams: 0</button>
+<button class="act" id="fGo">report ▸</button>
+</div>
+<div><button class="act" id="submit">serve</button> <button class="act" id="reset">fresh pot</button></div>
+<p id="msg"></p>
+<script>
+(function(){
+"use strict";
+var COLS=['#e5533c','#f2c14e','#8fbf6f','#4ea3a2','#6f7dd1','#c77dd1'];
+var mode='crack',secret=[],cur=[-1,-1,-1,-1],sel=0,guessRow=0,over=false;
+var cand=[],aiBlack=0,aiWhite=0,aiGuess=null,live=false;
+var board=document.getElementById('board'),pal=document.getElementById('palette'),msg=document.getElementById('msg');
+var aiRow=document.getElementById('airow'),subBtn=document.getElementById('submit');
+var rows=[];
+function buildBoard(editableRow0){
+  board.innerHTML='';rows=[];
+  for(var r=0;r<10;r++){
+    var g=document.createElement('div');g.className='grow';
+    var sl=document.createElement('div');sl.className='slots';
+    var pegs=[];
+    for(var c=0;c<4;c++){
+      var p=document.createElement('div');p.className='peg';
+      (function(row,col){
+        p.addEventListener('click',function(){slotClick(row,col)});
+      })(r,c);
+      sl.appendChild(p);pegs.push(p);
+    }
+    var fb=document.createElement('div');fb.className='fb';
+    var colB=document.createElement('div');colB.className='fbcol';
+    var colW=document.createElement('div');colW.className='fbcol';
+    var fB=[],fW=[];
+    for(var f=0;f<4;f++){
+      var k1=document.createElement('div');k1.className='fbk';colB.appendChild(k1);fB.push(k1);
+      var k2=document.createElement('div');k2.className='fbk';colW.appendChild(k2);fW.push(k2);
+    }
+    fb.appendChild(colB);fb.appendChild(colW);
+    g.appendChild(sl);g.appendChild(fb);board.appendChild(g);
+    rows.push({pegs:pegs,fB:fB,fW:fW,edit:!!(editableRow0&&r===0)});
+  }
+}
+function slotClick(r,c){
+  if(over)return;
+  if(mode==='crack'){
+    if(r!==guessRow)return;
+    cur[c]=(cur[c]===sel&&cur[c]>=0)?-1:sel;
+    paintCurrent();
+  }else if(!live&&rows[r].edit){
+    cur[c]=(cur[c]===sel)?-1:sel;
+    paintCurrent();
+  }
+}
+function paintCurrent(){
+  for(var i=0;i<4;i++){
+    var r=mode==='crack'?guessRow:0;
+    rows[r].pegs[i].style.background=cur[i]<0?'#31221a':COLS[cur[i]];
+  }
+}
+function score(g,s){
+  var black=0,white=0,sg=s.slice(),usedG=[0,0,0,0],i,j;
+  for(i=0;i<4;i++)if(g[i]===sg[i]){black++;sg[i]=-1;usedG[i]=1}
+  for(i=0;i<4;i++){
+    if(usedG[i])continue;
+    for(j=0;j<4;j++)if(sg[j]===g[i]){white++;sg[j]=-1;break}
+  }
+  return[black,white];
+}
+function putFB(r,fb){
+  for(var f=0;f<fb[0];f++)rows[r].fB[f].classList.add('black');
+  for(f=0;f<fb[1];f++)rows[r].fW[f].classList.add('white');
+}
+function submitCrack(){
+  if(cur.some(function(c){return c<0})){msg.textContent='four tokens on the tray, please — the barista notices shortcuts.';return}
+  var fb=score(cur,secret);
+  for(var i=0;i<4;i++)rows[guessRow].pegs[i].style.background=COLS[cur[i]];
+  putFB(guessRow,fb);
+  guessRow++;
+  if(fb[0]===4){over=true;msg.textContent='cracked in '+guessRow+' guesses! the café nods, impressed.';return}
+  if(guessRow>=10){over=true;msg.textContent='the code was a '+name(secret[0])+', '+name(secret[1])+', '+name(secret[2])+' and '+name(secret[3])+'. pour another.';return}
+  cur=[-1,-1,-1,-1];paintCurrent();
+  msg.textContent='cherry '+fb[0]+' · cream '+fb[1]+' — keep guessing.';
+}
+function name(i){return['cherry','lemon','pistachio','mint','blueberry','plum'][i]}
+function startHide(){
+  if(cur.some(function(c){return c<0})){msg.textContent='fill all four slots of your secret first.';return}
+  secret=cur.slice();live=true;over=false;
+  guessRow=1;cur=[-1,-1,-1,-1];
+  cand=[];
+  for(var a=0;a<6;a++)for(var b=0;b<6;b++)for(var c2=0;c2<6;c2++)for(var d=0;d<6;d++)cand.push([a,b,c2,d]);
+  aiRow.style.display='flex';
+  subBtn.style.display='none';
+  aiBlack=0;aiWhite=0;updateRep();
+  msg.textContent='code locked. the barista leans in…';
+  aiTurn();
+}
+function pickGuess(){
+  if(!cand.length){var g=[];for(var i=0;i<4;i++)g.push((Math.random()*6)|0);return g}
+  if(cand.length===1)return cand[0];
+  var best=null,bestMax=1e9;
+  var sample=cand.length>120?cand.filter(function(_,i){return i%Math.ceil(cand.length/120)===0}):cand;
+  sample.forEach(function(g){
+    var parts={},max=0;
+    for(var b=0;b<=4;b++)for(var w=0;w+b<=4;w++)parts[b+','+w]=0;
+    cand.forEach(function(s){var f=score(g,s);var k=f[0]+','+f[1];parts[k]++;if(parts[k]>max)max=parts[k]});
+    if(max<bestMax){bestMax=max;best=g}
+  });
+  return best;
+}
+function aiTurn(){
+  aiGuess=pickGuess();
+  for(var i=0;i<4;i++)rows[guessRow].pegs[i].style.background=COLS[aiGuess[i]];
+  aiBlack=0;aiWhite=0;updateRep();
+  msg.textContent='the barista guesses — how many in the right jar AND place?';
+}
+function updateRep(){
+  document.getElementById('fB').textContent='cherries: '+aiBlack;
+  document.getElementById('fW').textContent='creams: '+aiWhite;
+}
+function aiReport(){
+  var fb=[aiBlack,aiWhite];
+  if(fb[0]+fb[1]>4){msg.textContent='four tokens in total — recount the tray.';return}
+  putFB(guessRow,fb);
+  cand=cand.filter(function(s){var r=score(aiGuess,s);return r[0]===fb[0]&&r[1]===fb[1]});
+  guessRow++;
+  if(fb[0]===4){over=true;msg.textContent='the barista cracked your code in '+(guessRow-1)+' guesses. tip the house.';return}
+  if(guessRow>10){over=true;msg.textContent='your code held! the barista concedes and polishes glasses harder.';return}
+  aiTurn();
+}
+function resetCrack(){
+  over=false;live=false;guessRow=0;cur=[-1,-1,-1,-1];
+  secret=[];for(var i=0;i<4;i++)secret.push((Math.random()*6)|0);
+  buildBoard(false);paintCurrent();
+  aiRow.style.display='none';subBtn.style.display='inline-block';subBtn.textContent='serve';
+  msg.textContent='pick a colour, tap the four slots, then SERVE your guess.';
+}
+function resetHide(){
+  over=false;live=false;cur=[-1,-1,-1,-1];
+  buildBoard(true);paintCurrent();
+  aiRow.style.display='none';subBtn.style.display='inline-block';subBtn.textContent='lock code';
+  msg.textContent='build a secret code on the top row: pick a colour, tap a slot. LOCK CODE when ready.';
+}
+function buildPal(){
+  pal.innerHTML='';
+  COLS.forEach(function(c,i){
+    var d=document.createElement('div');d.className='pal'+(i===sel?' sel':'');
+    d.style.background=c;
+    d.addEventListener('click',function(){
+      sel=i;
+      pal.querySelectorAll('.pal').forEach(function(x,j){x.classList.toggle('sel',j===i)});
+    });
+    pal.appendChild(d);
+  });
+}
+subBtn.addEventListener('click',function(){
+  if(mode==='crack')submitCrack();else startHide();
+});
+document.getElementById('fB').addEventListener('click',function(){aiBlack=(aiBlack+1)%5;updateRep()});
+document.getElementById('fW').addEventListener('click',function(){aiWhite=(aiWhite+1)%5;updateRep()});
+document.getElementById('fGo').addEventListener('click',function(){if(live&&!over)aiReport()});
+document.getElementById('reset').addEventListener('click',function(){
+  if(mode==='crack')resetCrack();else resetHide();
+});
+document.getElementById('tcrack').addEventListener('click',function(){
+  mode='crack';this.classList.add('on');
+  document.getElementById('thide').classList.remove('on');resetCrack();
+});
+document.getElementById('thide').addEventListener('click',function(){
+  mode='hide';this.classList.add('on');
+  document.getElementById('tcrack').classList.remove('on');resetHide();
+});
+buildPal();resetCrack();
+})();
+</script>
+</body>
+</html>

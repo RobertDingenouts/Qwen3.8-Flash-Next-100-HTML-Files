@@ -1,0 +1,5 @@
+TITLE: Fractal Seasons — one tree, four selves
+PROMPT: Compress a year into a slider: the same fractal tree must blossom pink, leaf out green, burn orange and drop its leaves, then stand bare in snow, with wind combing through every branch at every moment.
+DESCRIPTION: A recursive binary/ternary fractal tree regrown from a random seed, re-simulated every frame so branches flex with layered sine wind whose amplitude depends on depth and season. A "the year" slider blends sky gradient, ground colour, leaf hue and opacity between spring, summer, autumn and winter; autumn detaches actual falling leaves that tumble across the canvas, winter grows snow caps on twigs and drifts flakes.
+TECHNIQUES: seeded PRNG-driven recursive L-branching drawn fresh each frame (deterministic wobble), per-depth wind phase offsets, piecewise linear seasonal colour interpolation, particle system for detached leaves and snow, Verdana lab-chrome UI over a painterly canvas.
+INTERACTION: Drag THE YEAR to scrub through the seasons and watch the canopy thin or flush, press GROW A NEW SEED for a different tree, watch autumn leaves peel off mid-drag and snow settle in winter.

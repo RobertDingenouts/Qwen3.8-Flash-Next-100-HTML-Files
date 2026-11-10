@@ -1,0 +1,5 @@
+TITLE: Pair Frequencies — a memory game you can hear
+PROMPT: Make concentration synaesthetic: eight waveform glyphs hidden in pairs, where each glyph type owns one true musical note — flipping cards plays their pitches, matched pairs ring out as chords, and the finished board is a little composition.
+DESCRIPTION: A brutalist black-and-white memory match with neon instrument faces. Cards are pure DOM/SVG with 3D CSS flips; every pair is bound to a note of a just-tuned scale, so any two flips form an interval and matches arpeggiate a triad through WebAudio oscillators. Matched cards recolour to coral and keep their chord memory; finishing triggers a rising cadence.
+TECHNIQUES: hand-authored SVG waveform glyph set (sine/square/saw/triangle/pulse/dots/chirp/rings), AudioContext oscillator envelopes with exponential release, preserve-3d rotateY card flipping, Fisher–Yates deal, interval/chord scheduling on audio-clock offsets, fluid CSS grid scaling.
+INTERACTION: Click/tap to flip two cards, listen for the interval as a hint, find all eight waveform pairs in as few moves as possible, DEAL AGAIN reshuffles and resets the stopwatch.

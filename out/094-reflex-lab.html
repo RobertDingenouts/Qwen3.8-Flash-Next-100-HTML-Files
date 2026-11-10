@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reflex Lab · Nº 094</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#232b26;color:#e8efe6;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:12px}
+header{text-align:center}
+h1{font-size:11px;letter-spacing:.4em;text-transform:uppercase;font-weight:400}
+h1 b{color:#8fbf6a}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#6d8271;margin-top:5px}
+#lamp{width:min(210px,52vw);height:min(210px,52vw);border-radius:50%;cursor:pointer;user-select:none;touch-action:manipulation;
+background:radial-gradient(circle at 38% 32%,rgba(255,255,255,0.25),transparent 40%),#7a2a24;
+transition:background .08s;display:flex;align-items:center;justify-content:center;text-align:center;
+box-shadow:0 22px 50px -18px rgba(0,0,0,0.7),inset 0 -10px 30px rgba(0,0,0,0.4)}
+#lamp span{font-size:12px;letter-spacing:.3em;text-transform:uppercase;padding:20px;line-height:2}
+#msg{font:italic 15px Georgia,serif;height:20px;color:#c8d8c2}
+#chart{display:flex;gap:8px;align-items:flex-end;height:90px}
+.b{width:34px;background:#8fbf6a;border-radius:3px 3px 0 0;position:relative;min-height:2px;transition:height .3s}
+.b i{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font:700 9px ui-monospace,monospace;font-style:normal}
+#stats{display:flex;gap:24px;font:700 10px ui-monospace,monospace;letter-spacing:.18em;text-transform:uppercase}
+#stats b{color:#8fbf6a;font-size:16px}
+</style>
+</head>
+<body>
+<header><h1>Reflex <b>Lab</b></h1><p class="tag">Nº 094 · wait for green. you will want to cheat. don’t.</p></header>
+<div id="lamp"><span id="ltxt">click to arm</span></div>
+<p id="msg"></p>
+<div id="chart"></div>
+<div id="stats"><span>best <b id="best">—</b></span><span>avg <b id="avg">—</b></span><span>false starts <b id="fs">0</b></span></div>
+<script>
+(function(){
+"use strict";
+var lamp=document.getElementById('lamp'),ltxt=document.getElementById('ltxt'),msg=document.getElementById('msg');
+var state='idle',t0=0,timer=null,tries=[],falseStarts=0;
+function setLamp(c){lamp.style.background='radial-gradient(circle at 38% 32%,rgba(255,255,255,0.25),transparent 40%),'+c}
+function arm(){
+ state='wait';setLamp('#7a2a24');ltxt.textContent='wait for green';
+ msg.textContent='';
+ var delay=1200+Math.random()*2600;
+ timer=setTimeout(function(){
+  state='go';setLamp('#4f9f4a');ltxt.textContent='GO';
+  t0=performance.now();
+ },delay);
+}
+lamp.addEventListener('pointerdown',function(){
+ if(state==='idle'||state==='done'){arm();return}
+ if(state==='wait'){
+  clearTimeout(timer);state='idle';setLamp('#7a2a24');
+  ltxt.textContent='false start!';falseStarts++;
+  document.getElementById('fs').textContent=falseStarts;
+  msg.textContent='the light hasn’t forgiven you yet';
+  return;
+ }
+ if(state==='go'){
+  var ms=Math.round(performance.now()-t0);
+  state='done';setLamp('#2e5a8a');ltxt.textContent=ms+' ms';
+  tries.push(ms);if(tries.length>12)tries.shift();
+  msg.textContent=
+   ms<180?'inhuman. were you a race car driver?'
+   :ms<250?'sharp. the light never stood a chance.'
+   :ms<350?'respectable highway reflexes.'
+   :'the tortoise is, regrettably, unimpressed.';
+  var mx=Math.max.apply(null,tries.concat([400]));
+  var ch=document.getElementById('chart');
+  ch.innerHTML='';
+  tries.forEach(function(v){
+   var b=document.createElement('div');b.className='b';
+   b.style.height=(v/mx*84)+'px';
+   b.innerHTML='<i>'+v+'</i>';
+   ch.appendChild(b);
+  });
+  var best=Math.min.apply(null,tries);
+  document.getElementById('best').textContent=best+' ms';
+  document.getElementById('avg').textContent=Math.round(tries.reduce(function(a,b){return a+b},0)/tries.length)+' ms';
+ }
+});
+})();
+</script>
+</body>
+</html>

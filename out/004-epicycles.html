@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Epicycle Machine · Nº 004</title>
+<style>
+:root{--paper:#f4f1e6;--grid:rgba(47,74,122,.12);--ink:#26365c;--hot:#b8452f}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#trace{background:
+ linear-gradient(var(--grid) 1px,transparent 1px),
+ linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+ var(--paper);background-size:28px 28px,28px 28px,auto;cursor:crosshair;touch-action:none}
+#epi{pointer-events:none}
+.top{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:16px 20px;pointer-events:none;gap:10px}
+h1{font-size:14px;font-weight:700;letter-spacing:.22em;text-transform:uppercase}
+h1 small{display:block;font:italic 11px Georgia,serif;letter-spacing:.02em;text-transform:none;color:var(--hot);margin-top:5px}
+#msg{font:italic 12px Georgia,serif;max-width:230px;text-align:right;opacity:.85}
+.dock{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;display:flex;gap:10px;align-items:center;background:rgba(244,241,230,.86);border:1px solid rgba(38,54,92,.3);padding:10px 14px}
+.dock label{font-size:10px;letter-spacing:.18em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:100px;accent-color:var(--hot)}
+button{font:700 10px "Trebuchet MS",sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:9px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+button:hover{background:var(--ink);color:var(--paper)}
+@media(max-width:560px){.dock{flex-wrap:wrap;justify-content:center;width:94%}input[type=range]{width:84px}#msg{font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="trace"></canvas>
+<canvas id="epi"></canvas>
+<div class="top"><h1>Epicycle Machine<small>Nº 004 — fourier dissection of a gesture</small></h1><p id="msg">draw any line here, then watch rotating circles rediscover it.</p></div>
+<div class="dock">
+<button id="demo">demo curve</button>
+<label>harmonics <input id="harm" type="range" min="1" max="120" value="60"></label>
+<label>speed <input id="spd" type="range" min="1" max="40" value="14"></label>
+<button id="clear">clear</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('trace'),ctx=cv.getContext('2d');
+var ov=document.getElementById('epi'),ox2=ov.getContext('2d');
+var W=0,H=0,D=1;
+var stage='idle',pts=[],epi=[],t=0,trace=[],sc=1,ox=0,oy=0,total=0;
+var msg=document.getElementById('msg'),harmEl=document.getElementById('harm'),spdEl=document.getElementById('spd');
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ [cv,ov].forEach(function(c){c.width=W*D;c.height=H*D});
+ ctx.setTransform(D,0,0,D,0,0);ox2.setTransform(D,0,0,D,0,0);
+ if(stage==='draw'&&pts.length)redrawStatic();
+}
+function dft(sig){
+  var N=sig.length,out=[];
+  for(var f=0;f<N;f++){var re=0,im=0;
+    for(var n=0;n<N;n++){var ang=-2*Math.PI*f*n/N,c=Math.cos(ang),s=Math.sin(ang);
+      re+=sig[n].x*c-sig[n].y*s;im+=sig[n].x*s+sig[n].y*c}
+    re/=N;im/=N;
+    out.push({amp:Math.hypot(re,im),ph:Math.atan2(im,re),fr:f<=N/2?f:f-N});
+  }
+  out.sort(function(a,b){return b.amp-a.amp});return out;
+}
+function resample(p,n){
+  if(p.length<2)return p;
+  var tot=0,L=[];for(var i=1;i<p.length;i++){var d=Math.hypot(p[i].x-p[i-1].x,p[i].y-p[i-1].y);L.push(d);tot+=d}
+  var out=[],seg=0,stepL=tot/(n-1),acc=0;
+  for(var k=0;k<n;k++){var target=k*stepL;
+    while(seg<L.length-1&&acc+L[seg]<target){acc+=L[seg];seg++}
+    var r=(target-acc)/(L[seg]||1);
+    out.push({x:p[seg].x+(p[seg+1].x-p[seg].x)*r,y:p[seg].y+(p[seg+1].y-p[seg].y)*r});
+  }
+  return out;
+}
+function analyze(p){
+  var n=256;
+  var path=resample(p,n);
+  var minx=1e9,miny=1e9,maxx=-1e9,maxy=-1e9;
+  path.forEach(function(q){minx=Math.min(minx,q.x);miny=Math.min(miny,q.y);maxx=Math.max(maxx,q.x);maxy=Math.max(maxy,q.y)});
+  sc=Math.min(W,H)*0.62/Math.max(maxx-minx,maxy-miny,1);
+  var cx=(minx+maxx)/2,cy=(miny+maxy)/2;
+  ox=W/2-cx*sc;oy=H/2-cy*sc;
+  var centred=path.map(function(q){return{x:(q.x-cx)*sc,y:(q.y-cy)*sc}});
+  epi=dft(centred);
+  ctx.clearRect(0,0,W,H);trace=[];t=0;total=epi.length*10;stage='animate';
+  msg.textContent='dissected into '+epi.length+' rotating phasors — turning now.';
+}
+function demoPts(){
+  var out=[],cx=W/2,cy=H/2,R=Math.min(W,H)*0.24;
+  for(var i=0;i<260;i++){var a=i/260*Math.PI*2;
+    out.push({x:cx+R*Math.sin(2*a)+R*0.35*Math.sin(5*a),y:cy+R*Math.sin(a)*0.9+R*0.3*Math.cos(3*a)})}
+  return out;
+}
+function redrawStatic(){
+  ctx.clearRect(0,0,W,H);ox2.clearRect(0,0,W,H);
+  strokePath(pts,'#26365c',2.4);
+}
+function strokePath(p,col,lw){
+  ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.beginPath();for(var i=0;i<p.length;i++)i?ctx.lineTo(p[i].x,p[i].y):ctx.moveTo(p[i].x,p[i].y);
+  ctx.stroke();
+}
+function tipPos(K,tt){
+  var x=ox,y=oy;
+  for(var k=0;k<Math.min(K,epi.length);k++){var e=epi[k];if(e.amp<0.4)break;
+    var ang=e.fr*tt*2*Math.PI/total+e.ph;
+    x+=e.amp*Math.cos(ang);y+=e.amp*Math.sin(ang)}
+  return{x:x,y:y};
+}
+function frame(){
+  if(stage==='animate'){
+    var K=Math.min(+harmEl.value,epi.length),steps=Math.round(1+ +spdEl.value/4),prev=trace.length?trace[trace.length-1]:null;
+    if(!prev)prev=tipPos(K,t);
+    for(var s=0;s<steps&&t<total;s++,t++){
+      var tip=tipPos(K,t);trace.push(tip);
+      ctx.strokeStyle='#b8452f';ctx.lineWidth=2.2;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(tip.x,tip.y);ctx.stroke();
+      prev=tip;
+    }
+    ox2.clearRect(0,0,W,H);
+    var x=ox,y=oy;
+    for(var k=0;k<K;k++){
+      var e=epi[k];if(e.amp<0.4)break;
+      var ang=e.fr*t*2*Math.PI/total+e.ph;
+      var px=x+e.amp*Math.cos(ang),py=y+e.amp*Math.sin(ang);
+      ox2.beginPath();ox2.arc(x,y,e.amp,0,7);ox2.strokeStyle='rgba(38,54,92,0.15)';ox2.lineWidth=1;ox2.stroke();
+      ox2.beginPath();ox2.moveTo(x,y);ox2.lineTo(px,py);ox2.strokeStyle='rgba(38,54,92,0.55)';ox2.lineWidth=1.2;ox2.stroke();
+      x=px;y=py;
+    }
+    ox2.fillStyle='#b8452f';ox2.beginPath();ox2.arc(x,y,3.4,0,7);ox2.fill();
+    if(t>=total)t=0;
+  }
+  requestAnimationFrame(frame);
+}
+var drawing=false,last=null;
+cv.addEventListener('pointerdown',function(e){
+  ox2.clearRect(0,0,W,H);
+  drawing=true;pts=[{x:e.clientX,y:e.clientY}];last=pts[0];stage='draw';
+  msg.textContent='drawing… lift your finger to dissect.';
+});
+window.addEventListener('pointermove',function(e){
+  if(!drawing)return;var q={x:e.clientX,y:e.clientY};
+  if(last&&Math.hypot(q.x-last.x,q.y-last.y)>2){pts.push(q);last=q;redrawStatic()}
+},{passive:true});
+window.addEventListener('pointerup',function(){
+  if(!drawing)return;drawing=false;
+  if(pts.length>12)analyze(pts);
+  else msg.textContent='that was a bit short — draw a longer stroke.';
+});
+document.getElementById('demo').addEventListener('click',function(){analyze(demoPts())});
+document.getElementById('clear').addEventListener('click',function(){stage='idle';pts=[];trace=[];ctx.clearRect(0,0,W,H);ox2.clearRect(0,0,W,H);msg.textContent='clean sheet. draw any line, then watch rotating circles rediscover it.'});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

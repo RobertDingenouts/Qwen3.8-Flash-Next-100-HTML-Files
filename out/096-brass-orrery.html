@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Brass Orrery · Nº 096</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0c0a08;color:#e8ddc4;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font:italic 400 21px Georgia,serif;color:#c9a45c}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.32em;text-transform:uppercase;color:#6b5c3e;margin-top:4px}
+#c{cursor:pointer;touch-action:manipulation}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:110px;accent-color:#c9a45c}
+#info{font-size:10px;letter-spacing:.14em;color:#9a8a66;min-height:14px;font-style:italic}
+</style>
+</head>
+<body>
+<header><h1>The Brass Orrery</h1><p class="tag">Nº 096 · clockwork heavens, wound by hand</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<label>warp <input id="warp" type="range" min="1" max="100" value="18"></label>
+<span id="info">click a planet for its almanac entry</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var P=[
+{n:'Aster',r:0.16,sz:4,c:'#d8c49c',yr:0.24},
+{n:'Ferrum',r:0.26,sz:6,c:'#c98f5c',yr:0.62},
+{n:'Terra Nova',r:0.36,sz:7,c:'#8fb0c9',yr:1.0},
+{n:'Marrow',r:0.46,sz:5,c:'#b8735c',yr:1.88},
+{n:'Balthasar',r:0.60,sz:11,c:'#d8b47c',yr:11.9,ring:true}
+];
+var t=0,selected=-1,gA=0;
+function fit(){D=Math.min(devicePixelRatio||1,2);
+ S=Math.min(innerWidth-10,innerHeight-120,560);S=Math.max(260,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0)}
+function gear(x,y,rr,teeth,ang,c){
+ ctx.save();
+ ctx.translate(x,y);ctx.rotate(ang);
+ ctx.fillStyle=c;
+ ctx.beginPath();
+ for(var i=0;i<teeth*2;i++){
+  var a=i/(teeth*2)*Math.PI*2;
+  var r=rr+(i%2?rr*0.14:0);
+  var px=Math.cos(a)*r,py=Math.sin(a)*r;
+  i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+ }
+ ctx.closePath();ctx.fill();
+ ctx.fillStyle='#0c0a08';
+ ctx.beginPath();ctx.arc(0,0,rr*0.22,0,7);ctx.fill();
+ ctx.strokeStyle=c;ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(0,0,rr*0.45,0,7);ctx.stroke();
+ ctx.restore();
+}
+function loop(){
+ var warp=+document.getElementById('warp').value/100;
+ t+=warp*0.02;
+ gA=t*4;
+ ctx.setTransform(D,0,0,D,0,0);
+ ctx.clearRect(0,0,S,S);
+ var cx=S/2,cy=S*0.46,maxR=S*0.44;
+ gear(S*0.28,S*0.88,S*0.075,14,gA,'#8a6f3e');
+ gear(S*0.44,S*0.90,S*0.05,10,-gA*1.4+0.15,'#a4864c');
+ gear(S*0.56,S*0.86,S*0.062,12,gA*1.12,'#8a6f3e');
+ ctx.strokeStyle='rgba(201,164,92,0.7)';
+ ctx.lineWidth=1.5;
+ ctx.beginPath();
+ ctx.moveTo(S*0.28,S*0.88);ctx.lineTo(S*0.28,S*0.72);ctx.stroke();
+ P.forEach(function(pl,i){
+  ctx.strokeStyle=selected===i?'rgba(232,221,196,0.4)':'rgba(201,164,92,0.16)';
+  ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(cx,cy,pl.r*maxR*1.6,0,7);ctx.stroke();
+ });
+ var sg=ctx.createRadialGradient(cx,cy,0,cx,cy,S*0.06);
+ sg.addColorStop(0,'#fff2c8');sg.addColorStop(0.4,'#c9a45c');sg.addColorStop(1,'rgba(201,164,92,0)');
+ ctx.fillStyle=sg;
+ ctx.beginPath();ctx.arc(cx,cy,S*0.06,0,7);ctx.fill();
+ P.forEach(function(pl,i){
+  var a=t/(pl.yr)*Math.PI*2/6+i*1.7;
+  var rr=pl.r*maxR*1.6;
+  var x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+  ctx.strokeStyle='rgba(201,164,92,0.35)';
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(x,y);
+  ctx.stroke();
+  if(pl.ring){
+   ctx.strokeStyle='rgba(232,221,196,0.6)';
+   ctx.lineWidth=2;
+   ctx.save();
+   ctx.translate(x,y);ctx.rotate(-0.5);ctx.scale(1,0.32);
+   ctx.beginPath();ctx.arc(0,0,pl.sz*1.9,0,7);ctx.stroke();
+   ctx.restore();
+  }
+  var g2=ctx.createRadialGradient(x-pl.sz*0.4,y-pl.sz*0.4,0,x,y,pl.sz);
+  g2.addColorStop(0,pl.c);g2.addColorStop(1,'#0c0a08');
+  ctx.fillStyle=g2;
+  ctx.beginPath();ctx.arc(x,y,pl.sz,0,7);ctx.fill();
+  if(selected===i){
+   ctx.strokeStyle='#e8ddc4';ctx.lineWidth=1.5;
+   ctx.setLineDash([3,3]);
+   ctx.beginPath();ctx.arc(x,y,pl.sz+6,0,7);ctx.stroke();
+   ctx.setLineDash([]);
+  }
+  pl._x=x;pl._y=y;
+ });
+ requestAnimationFrame(loop);
+}
+cv.addEventListener('pointerdown',function(e){
+ var r=cv.getBoundingClientRect();
+ var x=e.clientX-r.left,y=e.clientY-r.top;
+ var bi=-1,bd=24;
+ P.forEach(function(pl,i){
+  var d=Math.hypot(pl._x-x,pl._y-y);
+  if(d<bd){bd=d;bi=i}
+ });
+ selected=bi;
+ var info=document.getElementById('info');
+ if(bi>=0)info.textContent=P[bi].n+' — '+P[bi].yr+' local years per revolution · brass, hand-lathed';
+ else info.textContent='click a planet for its almanac entry';
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

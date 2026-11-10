@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Megacity Race · Nº 067</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#f3ede2;color:#22242c;font-family:"Arial Black","Helvetica Neue",Arial,sans-serif}
+body{display:flex;flex-direction:column;gap:10px;padding:14px}
+header{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:6px}
+h1{font-size:15px;font-weight:900;letter-spacing:.02em;text-transform:uppercase}
+h1 b{color:#e2574c}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.26em;text-transform:uppercase;color:#8b8474}
+#year{font-size:min(64px,12vw);font-weight:900;letter-spacing:-.03em;color:#22242c;line-height:.9}
+#chart{flex:1;min-height:0;position:relative}
+.brow{display:flex;align-items:center;gap:10px;position:absolute;left:0;right:0;height:36px;
+transition:bottom .6s cubic-bezier(.4,0,.2,1)}
+.bname{width:min(150px,30vw);font-size:11px;font-weight:900;text-align:right;text-transform:uppercase;letter-spacing:.02em;
+white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:100%;min-height:22px;border-radius:3px;position:relative;transition:width .25s}
+.bar span{position:absolute;right:8px;top:50%;transform:translateY(-50%);
+font:700 12px ui-monospace,Menlo,monospace;color:#fff;mix-blend-mode:normal}
+#ticker{height:18px;font:italic 12px Georgia,serif;color:#5d5647;text-align:center}
+.dock{display:flex;gap:10px;align-items:center}
+button{font:700 8px Arial,sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 14px;background:transparent;border:1.5px solid #22242c;cursor:pointer}
+button:hover{background:#22242c;color:#f3ede2}
+input[type=range]{flex:1;accent-color:#e2574c}
+@media(max-width:560px){.bname{font-size:8px;width:34vw}}
+</style>
+</head>
+<body>
+<header>
+<div><h1>Megacity <b>Race</b> · 2000→2077</h1><p class="tag">Nº 067 · population of six cities that do not exist</p></div>
+<div id="year">2000</div>
+</header>
+<div id="chart"></div>
+<p id="ticker"></p>
+<div class="dock">
+<button id="play">pause</button>
+<input id="scrub" type="range" min="2000" max="2077" value="2000" step="0.25">
+<button id="rst">↺ 2000</button>
+</div>
+<script>
+(function(){
+"use strict";
+var CITIES=[
+{n:'Neo-Kyoto',c:'#e2574c',start:34,curve:[2020,55]},
+{n:'New Lagos',c:'#3f8f7a',start:22,curve:[2035,70]},
+{n:'Batavia Prime',c:'#e8b84b',start:18,curve:[2028,48]},
+{n:'San Panamericana',c:'#5a7fb8',start:30,curve:[2015,40]},
+{n:'Uralgrad',c:'#9b6bb8',start:26,curve:[2008,22]},
+{n:'Caspia Nova',c:'#d9886a',start:8,curve:[2050,62]}
+];
+var EVENTS=[
+[2008,'Uralgrad’s fusion exodus begins — growth stalls'],
+[2020,'Neo-Kyoto opens the Pacific Orbital Gate'],
+[2028,'Batavia Prime floods the Sunda Delta'],
+[2035,'New Lagos becomes the solar capital'],
+[2050,'Caspia Nova damns the sea and is born'],
+[2061,'San Panamericana annexes three provinces'],
+[2070,'Uralgrad quietly reboots']
+];
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var seeds=CITIES.map(function(c,i){return rng(1234+i*777)});
+function pop(ci,y){
+  var c=CITIES[ci],r=seeds[ci];
+  var t=(y-2000)/77;
+  var s=1/(1+Math.exp(-(y-c.curve[0])/8));
+  var base=c.start+(c.curve[1]-c.start)*s;
+  var jitter=0.9+0.1*r();
+  var trend=1+t*t*0.25;
+  var ev=1;
+  if(c.n==='Uralgrad'){
+    if(y>2008&&y<2070)ev=1-Math.min(0.3,(y-2008)*0.006);
+    if(y>=2070)ev=0.7+ (y-2070)*0.004;
+  }
+  if(c.n==='Batavia Prime'&&y>2028)ev=1-(Math.min(4,y-2028))*0.02;
+  return base*trend*ev*jitter;
+}
+var year=2000,playing=true,vals=CITIES.map(function(c){return pop(0,2000)});
+vals=CITIES.map(function(c,i){return pop(i,2000)});
+var shown=vals.slice();
+var chart=document.getElementById('chart');
+var rows=CITIES.map(function(c,i){
+  var d=document.createElement('div');d.className='brow';
+  d.innerHTML='<div class="bname">'+c.n+'</div><div class="bar" style="background:'+c.c+'"><span></span></div>';
+  chart.appendChild(d);
+  return d;
+});
+function frame(){
+  if(playing){
+    year+=0.06;
+    if(year>2077)year=2077;
+    document.getElementById('scrub').value=year;
+  }
+  document.getElementById('year').textContent=Math.floor(year);
+  var maxP=0;
+  CITIES.forEach(function(c,i){
+    shown[i]=pop(i,year);
+    maxP=Math.max(maxP,shown[i]);
+  });
+  var order=CITIES.map(function(c,i){return i}).sort(function(a,b){return shown[a]-shown[b]});
+  rows.forEach(function(d,i){
+    var ci=order.indexOf(i);
+    d.style.bottom=(ci*44)+'px';
+  });
+  rows.forEach(function(d,i){
+    var bar=d.querySelector('.bar');
+    bar.style.width=(shown[i]/maxP*62)+'%';
+    bar.querySelector('span').textContent=Math.round(shown[i])+'M';
+  });
+  var ev='';
+  EVENTS.forEach(function(e){
+    if(Math.abs(year-e[0])<0.5)ev=e[1];
+  });
+  document.getElementById('ticker').textContent=ev;
+  requestAnimationFrame(frame);
+}
+document.getElementById('play').addEventListener('click',function(){
+  playing=!playing;this.textContent=playing?'pause':'play';
+});
+document.getElementById('scrub').addEventListener('input',function(e){year=+e.target.value});
+document.getElementById('rst').addEventListener('click',function(){year=2000});
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

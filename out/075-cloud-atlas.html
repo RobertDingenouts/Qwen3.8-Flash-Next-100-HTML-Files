@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cloud Atlas · Nº 075</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#bcd8ea;color:#26404f;font-family:Georgia,"Iowan Old Style",serif}
+body{overflow-x:hidden}
+header{padding:24px 6vw 6px}
+h1{font-size:min(40px,8vw);font-weight:400;letter-spacing:-.01em}
+h1 i{color:#e2793c;font-style:italic}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#6a8898;margin-top:6px}
+#cards{display:flex;gap:18px;padding:16px 6vw 40px;flex-wrap:wrap}
+.card{flex:1 1 250px;background:#f6f2e8;border-radius:8px;padding:18px;
+box-shadow:0 16px 30px -18px rgba(38,64,79,0.5);cursor:pointer;transition:transform .2s}
+.card:hover{transform:translateY(-4px)}
+.card h2{font-size:17px;margin:10px 0 2px}
+.card .alt{font:9px ui-monospace,Menlo,monospace;letter-spacing:.2em;color:#8a9aa4;text-transform:uppercase}
+.card p{font-size:12px;line-height:1.75;margin-top:8px}
+.card .rows{margin-top:10px;font:9px ui-monospace,Menlo,monospace;letter-spacing:.08em;color:#55707e}
+.card .rows div{display:flex;justify-content:space-between;border-bottom:1px dashed #d5cbb8;padding:3px 0}
+.sky{height:120px;position:relative;overflow:hidden;border-radius:6px;background:linear-gradient(#a9cde4,#d8e9f2)}
+.cloud{position:absolute;background:#fff;border-radius:50%;filter:blur(1px)}
+.cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:50%}
+.card.sel{outline:2px solid #e2793c}
+#detail{margin:0 6vw 40px;background:#f6f2e8;border-left:4px solid #e2793c;border-radius:4px;padding:16px 20px;font-size:13px;line-height:1.85;display:none}
+#detail b{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#e2793c}
+@media(max-width:640px){#cards{gap:12px}}
+</style>
+</head>
+<body>
+<header>
+<h1>A Cloud <i>Atlas</i></h1>
+<p class="tag">Nº 075 · ten species of the sky, drawn without a single image file</p>
+</header>
+<div id="cards"></div>
+<div id="detail"></div>
+<script>
+(function(){
+"use strict";
+var CLOUDS=[
+{n:'Cumulus humilis',alt:'500–2000 m',t:'fair-weather heap',
+d:'Small cauliflower stacks with flat bases, the polite default of a sunny afternoon. They promise nothing and usually deliver nothing, which is honest weather.',
+rows:[['Base','~900 m'],['Precip','none'],['Mood','market day']],
+puffs:[[30,60,42],[52,54,54],[74,62,38],[58,70,60]]},
+{n:'Cumulonimbus',alt:'500–12000 m',t:'storm tower',
+d:'A cumulus that stopped being polite: it punches through every cloud deck and anvil-spreads into the stratosphere. Hail, lightning and sudden wind live under this one.',
+rows:[['Base','~700 m'],['Precip','violent'],['Mood','apologetic later']],
+puffs:[[26,80,36],[46,48,52],[60,20,46],[80,30,34],[55,72,64],[72,76,40]]},
+{n:'Cirrus fibratus',alt:'6000–12000 m',t:'mare’s tails',
+d:'Ice-crystal filaments combed by high winds into swept horseshoes. If more of these arrive with a lowering sun, rain is approximately one day behind you.',
+rows:[['Base','~7000 m'],['Precip','indirect'],['Mood','forewarning']],
+puffs:[[15,34,30],[42,26,22],[66,36,26],[88,28,18]]},
+{n:'Stratus nebulosus',alt:'0–1000 m',t:'the lid',
+d:'A grey sheet with no manners and no features: it simply arrives, replaces the sky, and drizzles. Runners call it “the mood”. Pilots call it by other names.',
+rows:[['Base','~200 m'],['Precip','drizzle'],['Mood','melancholy']],
+puffs:[[20,55,40],[45,52,46],[70,56,42]]},
+{n:'Altocumulus lenticularis',alt:'2000–7000 m',t:'flying saucer',
+d:'Stationary lens clouds that form over mountains in standing waves. They do not move while the wind screams through them at ninety kilometres per hour.',
+rows:[['Base','~3000 m'],['Precip','none'],['Mood','UFO sighting']],
+puffs:[[40,50,60,64],[62,52,40,50]]},
+{n:'Mammatus',alt:'2000–8000 m',t:'the udders',
+d:'Pouches hanging under a storm anvil like the ceiling of a surreal cathedral. Formed by sinking rather than rising air, they precede nothing and terrify everyone.',
+rows:[['Base','~4000 m'],['Precip','already done'],['Mood','ominous luxury']],
+puffs:[[30,30,50,70],[50,40,38,84],[68,32,42,76],[42,34,30,92]]},
+{n:'Lenticular stacked',alt:'2000–8000 m',t:'the wedding cake',
+d:'Three or four saucers piled over one peak. Pilots avoid the turbulence beneath; photographers risk it for the shot; the mountain never comments.',
+rows:[['Base','~2800 m'],['Precip','none'],['Mood','patron saint of pilots']],
+puffs:[[38,64,52,70],[44,48,40,68],[50,34,30,66]]},
+{n:'Contrail cirrus',alt:'8000–11000 m',t:'the human cloud',
+d:'Ice crystals nucleating on soot at cruising altitude. Thin ones fade in minutes; persistent ones spread into cirrus that may cool the planet. Yours probably did neither.',
+rows:[['Base','~9000 m'],['Precip','no'],['Mood','bureaucratic']],
+puffs:[[8,40,90,10],[60,30,70,8]]}
+];
+var cards=document.getElementById('cards');
+CLOUDS.forEach(function(cl,i){
+  var d=document.createElement('div');d.className='card';
+  var sky='<div class="sky">'+cl.puffs.map(function(p){
+    var l=p[0],t=p[1],w=p[2],h=p[3]||p[2];
+    var st='left:'+l+'%;top:'+t+'%;width:'+w+'px;height:'+h+'px;';
+    st+= h<p[2]*0.6?'border-radius:50%/30%;':'';
+    return'<div class="cloud" style="'+st+'"></div>';
+  }).join('')+'</div>';
+  d.innerHTML=sky+'<div class="alt">'+cl.alt+' · '+cl.t+'</div><h2>'+cl.n+'</h2>'+
+   '<div class="rows">'+cl.rows.map(function(r){return'<div><span>'+r[0]+'</span><span>'+r[1]+'</span></div>'}).join('')+'</div>';
+  d.addEventListener('click',function(){
+    document.querySelectorAll('.card').forEach(function(x){x.classList.toggle('sel',x===d)});
+    var det=document.getElementById('detail');
+    det.style.display='block';
+    det.innerHTML='<b>'+cl.n+' — field notes</b><br>'+cl.d;
+    det.scrollIntoView({behavior:'smooth',block:'nearest'});
+  });
+  cards.appendChild(d);
+});
+})();
+</script>
+</body>
+</html>

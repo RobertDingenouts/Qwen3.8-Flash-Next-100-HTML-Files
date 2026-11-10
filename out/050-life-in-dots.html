@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Life in Dots · Nº 050</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0d1210;color:#cfe3d8;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:11px;font-weight:400;letter-spacing:.4em;text-transform:uppercase}
+h1 b{color:#7be0b0;font-weight:700}
+.tag{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#4c6659;margin-top:5px}
+#c{cursor:crosshair;touch-action:none}
+.dock{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+button{font:9px ui-monospace,monospace;letter-spacing:.16em;text-transform:uppercase;padding:9px 11px;background:transparent;border:1px solid #35544a;color:#cfe3d8;cursor:pointer}
+button:hover{background:#7be0b0;color:#0d1210}
+button.on{background:#35544a}
+#stats{font-size:9px;letter-spacing:.14em;color:#7be0b0;min-width:150px;text-align:center}
+#graph{border:1px solid #35544a;border-radius:3px}
+@media(max-width:560px){#graph{display:none}}
+</style>
+</head>
+<body>
+<header><h1>Life in <b>Dots</b></h1><p class="tag">Nº 050 · Conway's cellularity, four rules, no mercy</p></header>
+<canvas id="c"></canvas>
+<div class="dock">
+<button id="play" class="on">pause</button>
+<label style="font-size:9px;letter-spacing:.16em;text-transform:uppercase">speed <input id="spd" type="range" min="2" max="30" value="12" style="width:70px;accent-color:#7be0b0"></label>
+<button data-p="gun">glider gun</button>
+<button data-p="pulsar">pulsar</button>
+<button data-p="r-pent">r-pentomino</button>
+<button id="rand">seed chaos</button>
+<button id="clr">void</button>
+<span id="stats"></span>
+<canvas id="graph" width="150" height="34"></canvas>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,W=0,H=0;
+var CELL=7,cols=0,rows=0,g,gen=0,pop=0,hist=[],playing=true,fps=12,acc=0,last=0,drawMode=-1,lastCell=-1;
+var hctx=document.getElementById('graph').getContext('2d');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=Math.min(innerWidth-10,980);
+  H=Math.min(innerHeight-170,620);
+  H=Math.max(280,H);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  cols=Math.floor(W/CELL);rows=Math.floor(H/CELL);
+  var ng=new Uint8Array(cols*rows);
+  if(g)for(var r=Math.min(rows,g?Math.floor(H/CELL):0),i=0;i<g.length&&i<ng.length;i++)ng[i]=g[i];
+  g=ng;
+}
+function idx(r,c){return((r%rows)+rows)%rows*cols+((c%cols)+cols)%cols}
+function step(){
+  var ng=new Uint8Array(cols*rows);
+  var p=0;
+  for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+    var n=g[idx(r-1,c-1)]+g[idx(r,c-1)]+g[idx(r+1,c-1)]
+         +g[idx(r-1,c)]             +g[idx(r+1,c)]
+         +g[idx(r-1,c+1)]+g[idx(r,c+1)]+g[idx(r+1,c+1)];
+    var alive=g[idx(r,c)];
+    var nv=alive?(n===2||n===3?1:0):(n===3?1:0);
+    ng[idx(r,c)]=nv;
+    p+=nv;
+  }
+  g=ng;gen++;pop=p;
+  hist.push(p);if(hist.length>150)hist.shift();
+}
+function draw(){
+  ctx.fillStyle='#0d1210';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(123,224,176,0.04)';
+  for(var c=0;c<cols;c++){ctx.beginPath();ctx.moveTo(c*CELL,0);ctx.lineTo(c*CELL,H);ctx.stroke()}
+  for(var r=0;r<rows;r++){ctx.beginPath();ctx.moveTo(0,r*CELL);ctx.lineTo(W,r*CELL);ctx.stroke()}
+  for(r=0;r<rows;r++)for(c=0;c<cols;c++){
+    if(g[idx(r,c)]){
+      var x=c*CELL+CELL/2,y=r*CELL+CELL/2;
+      ctx.fillStyle='rgba(123,224,176,0.15)';
+      ctx.beginPath();ctx.arc(x,y,CELL*0.72,0,7);ctx.fill();
+      ctx.fillStyle='#c8ffe4';
+      ctx.beginPath();ctx.arc(x,y,CELL*0.30,0,7);ctx.fill();
+    }
+  }
+  document.getElementById('stats').textContent='GEN '+gen+' · POP '+pop;
+  var mc=Math.max(20,Math.max.apply(null,hist));
+  hctx.clearRect(0,0,150,34);
+  hctx.strokeStyle='#7be0b0';
+  hctx.beginPath();
+  for(var i=0;i<hist.length;i++){
+    var x=i/149*150,y=33-hist[i]/mc*30;
+    i?hctx.lineTo(x,y):hctx.moveTo(x,y);
+  }
+  hctx.stroke();
+}
+function loop(ts){
+  var dt=ts-(last||ts);last=ts;
+  acc+=dt;
+  var frame=1000/fps;
+  while(playing&&acc>=frame){acc-=frame;step()}
+  draw();
+  requestAnimationFrame(loop);
+}
+function paintAt(e){
+  var rect=cv.getBoundingClientRect();
+  var c=Math.floor((e.clientX-rect.left)/CELL),r=Math.floor((e.clientY-rect.top)/CELL);
+  var i=idx(r,c);
+  if(i!==lastCell){
+    drawMode=g[i]?0:1;
+    lastCell=i;
+  }
+  g[idx(r,c)]=drawMode;
+}
+cv.addEventListener('pointerdown',function(e){
+  paintAt(e);playingNow();
+});
+cv.addEventListener('pointermove',function(e){
+  if(e.buttons)paintAt(e);
+},{passive:true});
+window.addEventListener('pointerup',function(){drawMode=-1;lastCell=-1});
+function playingNow(){
+  gen=0;
+}
+var GUN=[[24,0],[25,0],[22,1],[26,1],[12,2],[17,2],[34,2],[35,2],[11,3],[17,3],[34,3],[35,3],
+[11,4],[15,4],[18,4],[17,4],[10,5],[16,5],[22,5],[26,5],[10,6],[16,6],[23,6],[25,6],
+[13,7],[15,7],[24,7],[14,8]];
+function stamp(pat,r0,c0){pat.forEach(function(p){g[idx(r0+p[1],c0+p[0])]=1})}
+var PULSAR=['..###..###...','............','#..#..#..#..#','#..#..#..#..#','#..#..#..#..#','..###..###...','............'];
+document.querySelectorAll('[data-p]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var r0=(rows/2-5)|0,c0=(cols/2-18)|0;
+    if(b.dataset.p==='gun')stamp(GUN,r0,c0);
+    else if(b.dataset.p==='pulsar'){
+      var full=PULSAR.concat(PULSAR.slice(0,6).reverse());
+      var rr=(rows-13)/2|0,cc=(cols-13)/2|0;
+      for(var r=0;r<13;r++)for(var c=0;c<13;c++)
+        if(full[r][c]==='#')g[idx(rr+r,cc+c)]=1;
+    }else stamp([[1,0],[2,0],[0,1],[1,1],[1,2]],r0,c0);
+    gen=0;
+  });
+});
+document.getElementById('rand').addEventListener('click',function(){
+  for(var i=0;i<g.length;i++)g[i]=Math.random()<0.22?1:0;
+  gen=0;
+});
+document.getElementById('clr').addEventListener('click',function(){g.fill(0);gen=0;hist=[]});
+var pb=document.getElementById('play');
+pb.addEventListener('click',function(){
+  playing=!playing;
+  pb.textContent=playing?'pause':'play';
+  pb.classList.toggle('on',playing);
+});
+document.getElementById('spd').addEventListener('input',function(e){fps=+e.target.value});
+window.addEventListener('resize',fit);
+fit();
+for(var i=0;i<g.length;i++)g[i]=Math.random()<0.16?1:0;
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

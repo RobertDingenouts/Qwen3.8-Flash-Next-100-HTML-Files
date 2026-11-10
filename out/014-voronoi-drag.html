@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cell Kingdom · Nº 014</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#111}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#c.grabbing{cursor:grabbing}
+.tl{position:fixed;top:16px;left:18px;color:#111;pointer-events:none;font-family:"Arial Black",Arial,sans-serif;mix-blend-mode:hard-light}
+h1{font-size:15px;letter-spacing:.14em;text-transform:uppercase;line-height:1.2}
+h1 em{font:italic 400 11px Georgia,serif;letter-spacing:.02em;text-transform:none;display:block;margin-top:4px;opacity:.8}
+.dock{position:fixed;right:14px;bottom:14px;display:flex;gap:6px}
+button{font:700 9px Arial,sans-serif;letter-spacing:.16em;text-transform:uppercase;padding:9px 12px;background:#111;color:#fff;border:none;cursor:pointer}
+button:hover{background:#fff;color:#111}
+@media(max-width:560px){h1{font-size:11px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Cell Kingdom<em>Nº 014 · drag the seeds, own the map · double-tap to spawn</em></h1></div>
+<div class="dock"><button id="add">+ seed</button><button id="drop">− seed</button><button id="pal">palette</button></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var off=document.createElement('canvas'),octx=off.getContext('2d');
+var W=0,H=0,D=1,SC=4,SW=0,SH=0;
+var PALS=[
+['#f94144','#f3722c','#f8961e','#f9c74f','#90be6d','#43aa8b','#577590','#f9f7f7'],
+['#ffd60a','#ff006e','#8338ec','#3a86ff','#06d6a0','#fbf8ef','#e63946','#457b9d'],
+['#d8d2c8','#a8a29a','#6d685f','#3f3b35','#171512','#b7c4bc','#8f1d20','#c8b273']
+];
+var pi=0,PAL=PALS[0],S=[],img=null,drag=-1,t=0;
+function sites(n){
+  S.length=0;
+  for(var i=0;i<n;i++)S.push({x:Math.random(),y:Math.random(),vx:(Math.random()-0.5)*0.0007,vy:(Math.random()-0.5)*0.0007,c:i%PAL.length,r:0});
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;cv.style.width=W+'px';cv.style.height=H+'px';
+  SC=W>1400?5:(W>700?4:3);
+  SW=Math.ceil(W/SC);SH=Math.ceil(H/SC);
+  off.width=SW;off.height=SH;img=octx.createImageData(SW,SH);
+}
+function hex(c){var n=parseInt(c.slice(1),16);return[n>>16&255,n>>8&255,n&255]}
+function loop(){
+  t++;
+  for(var i=0;i<S.length;i++){var s=S[i];
+    if(i!==drag){s.x+=s.vx+Math.sin(t/900+i)*0.00012;s.y+=s.vy+Math.cos(t/1100+i*2)*0.00012;
+      if(s.x<0.02||s.x>0.98)s.vx*=-1;if(s.y<0.02||s.y>0.98)s.vy*=-1;
+      s.x=Math.max(0.01,Math.min(0.99,s.x));s.y=Math.max(0.01,Math.min(0.99,s.y));}
+  }
+  var d=img.data,n=S.length,sx=[],sy=[],cr=[],cg=[],cb=[];
+  for(var k=0;k<n;k++){sx[k]=S[k].x*SW;sy[k]=S[k].y*SH;var h=hex(PAL[S[k].c]);cr[k]=h[0];cg[k]=h[1];cb[k]=h[2]}
+  var p=0;
+  for(var y=0;y<SH;y++){
+    for(var x=0;x<SW;x++){
+      var b1=-1,b2=-1,d1=1e12,d2=1e12;
+      for(var k2=0;k2<n;k2++){
+        var dx=x-sx[k2],dy=y-sy[k2],dd=dx*dx+dy*dy;
+        if(dd<d1){d2=d1;b2=b1;d1=dd;b1=k2}
+        else if(dd<d2){d2=dd;b2=k2}
+      }
+      var edge=Math.sqrt(d2)-Math.sqrt(d1);
+      var shade=Math.min(1,Math.sqrt(d1)/28);
+      var e=edge<1.6?0.18:(edge<3?0.55:1);
+      var f=(0.72+0.28*shade)*e;
+      d[p]=cr[b1]*f;d[p+1]=cg[b1]*f;d[p+2]=cb[b1]*f;d[p+3]=255;p+=4;
+    }
+  }
+  octx.putImageData(img,0,0);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+  ctx.setTransform(D,0,0,D,0,0);
+  for(var k3=0;k3<n;k3++){
+    var s2=S[k3],X=s2.x*W,Y=s2.y*H;
+    ctx.fillStyle='#111';ctx.beginPath();ctx.arc(X,Y,5,0,7);ctx.fill();
+    ctx.fillStyle=PAL[S[k3].c];ctx.beginPath();ctx.arc(X,Y,2.6,0,7);ctx.fill();
+  }
+  requestAnimationFrame(loop);
+}
+function near(e){
+  var bx=-1,bd=1e12;
+  for(var i=0;i<S.length;i++){
+    var dx=e.clientX-S[i].x*W,dy=e.clientY-S[i].y*H,d2=dx*dx+dy*dy;
+    if(d2<bd){bd=d2;bx=i}}
+  return bd<1600?bx:-1;
+}
+cv.addEventListener('pointerdown',function(e){
+  drag=near(e);if(drag>=0)cv.classList.add('grabbing')});
+window.addEventListener('pointermove',function(e){
+  if(drag>=0){S[drag].x=e.clientX/W;S[drag].y=e.clientY/H}},{passive:true});
+window.addEventListener('pointerup',function(){drag=-1;cv.classList.remove('grabbing')});
+var lastTap=0;
+cv.addEventListener('pointerdown',function(e){
+  var now=performance.now();
+  if(now-lastTap<280&&near(e)<0){S.push({x:e.clientX/W,y:e.clientY/H,vx:0,vy:0,c:(Math.random()*PAL.length)|0})}
+  lastTap=now;
+});
+document.getElementById('add').addEventListener('click',function(){
+  S.push({x:Math.random(),y:Math.random(),vx:0,vy:0,c:(Math.random()*PAL.length)|0})});
+document.getElementById('drop').addEventListener('click',function(){if(S.length>4)S.pop()});
+document.getElementById('pal').addEventListener('click',function(){
+  pi=(pi+1)%PALS.length;PAL=PALS[pi];
+  S.forEach(function(s,i){s.c=i%PAL.length})});
+window.addEventListener('resize',fit);
+fit();sites(18);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+TITLE: Sub·divide — a Bauhaus composition engine
+PROMPT: Build a machine that composes like a 1920s Bauhaus poster: recursive rectangle splitting where the visitor pokes any field to break it open, or lets the engine auto-compose, every new block popping in with weight and primary colour.
+DESCRIPTION: A Mondrian-meets-Bauhaus composition tool. The canvas starts as one sheet; every click (or the auto-composer) splits the deepest available rectangle along its long axis, filling some children with red, cobalt, yellow or black and letting the paper breathe between blocks. New blocks scale and fade in so compositions assemble like theatre.
+TECHNIQUES: Binary space subdivision with gap insets and depth limits, cubic ease-out pop-in animation per block driven by timestamps, hit-testing of a dynamic rect list, hard-shadow button hover choreography, bold uppercase Verdana typographic furniture.
+INTERACTION: Click or tap any field to split it, press COMPOSE (or space bar) to let the engine paint itself a poster, HOLD to freeze, RESET for a fresh sheet.

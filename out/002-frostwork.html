@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Frostwork · Nº 002</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#04070a;color:#bfe6f5;font-family:"Courier New",ui-monospace,monospace}
+#c{position:fixed;inset:0;display:block;cursor:crosshair}
+.tl{position:fixed;top:18px;left:20px;letter-spacing:.3em;font-size:11px;text-transform:uppercase;pointer-events:none;text-shadow:0 0 12px rgba(120,200,255,.4)}
+.tl b{display:block;font-weight:400;color:#6d93a8;font-size:9px;letter-spacing:.24em;margin-top:6px}
+.br{position:fixed;right:20px;bottom:18px;text-align:right;font-size:11px;color:#6d93a8;pointer-events:none}
+.br span{color:#bfe6f5}
+.bl{position:fixed;left:20px;bottom:18px;display:flex;align-items:center;gap:10px;font-size:10px;letter-spacing:.14em;color:#6d93a8}
+input[type=range]{width:110px;accent-color:#57b7e0}
+button{font:inherit;letter-spacing:.2em;padding:8px 12px;background:rgba(10,18,24,.7);color:#bfe6f5;border:1px solid rgba(120,200,255,.3);cursor:pointer}
+button:hover{border-color:#7fd4ff;color:#eaf8ff}
+@media(max-width:560px){.tl{font-size:9px}.bl{flex-wrap:wrap;gap:6px}input[type=range]{width:80px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl">Frostwork — Nº 002<b>diffusion-limited ice · click the glass to reseed</b></div>
+<div class="bl"><span>BRANCHING</span><input id="branch" type="range" min="1" max="9" value="4"><button id="grow">RECRYSTALLIZE</button></div>
+<div class="br"><span id="cnt">0</span> CELLS FROZEN · STEP <span id="st">1</span></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1,CELL=3;
+var cols=0,rows=0,occ=null,front=[],frozen=0,cx=0,cy=0,maxR=0,alive=true;
+var walkers=[],MAX=16000,stepNo=1;
+var brEl=document.getElementById('branch'),cntEl=document.getElementById('cnt'),stEl=document.getElementById('st');
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(D,0,0,D,0,0);
+  CELL=Math.max(2,Math.round(1.5*D));
+  cols=Math.ceil(cv.width/CELL);rows=Math.ceil(cv.height/CELL);
+  restart(W/2,H/2);
+}
+function idx(x,y){return y*cols+x}
+function frozenAt(x,y){return x>=0&&y>=0&&x<cols&&y<rows&&occ[idx(x,y)]===1}
+function put(x,y){
+  occ[idx(x,y)]=1;frozen++;front.push([x,y]);
+  var d=Math.hypot(x-cx,y-cy),dn=Math.min(1,d/(Math.min(cols,rows)*0.46));
+  var h=186+dn*36,l=88-dn*38,a=0.85-dn*0.45;
+  ctx.fillStyle='hsla('+h+','+(60+dn*30)+'%,'+l+'%,'+a+')';
+  ctx.fillRect(x*CELL,y*CELL,CELL,CELL);
+  if(d>maxR)maxR=d;
+  cntEl.textContent=frozen;
+}
+function seedAt(px,py){
+  cx=Math.round(px/CELL);cy=Math.round(py/CELL);
+  if(cx<1)cx=1;if(cy<1)cy=1;if(cx>cols-2)cx=cols-2;if(cy>rows-2)cy=rows-2;
+  put(cx,cy);
+}
+function restart(px,py){
+  occ=new Uint8Array(cols*rows);front=[];frozen=0;maxR=1;stepNo=1;alive=true;
+  ctx.fillStyle='#04070a';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(140,200,235,0.05)';
+  for(var i=0;i<140;i++){ctx.fillRect(Math.random()*W,Math.random()*H,1,1)}
+  seedAt(px,py);
+  walkers=[];for(var k=0;k<160;k++)walkers.push(spawn());
+  stEl.textContent='1';
+}
+function spawn(){
+  var a=Math.random()*Math.PI*2,r=maxR+8+Math.random()*30;
+  var x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;
+  if(x<1||y<1||x>cols-2||y>rows-2){a=Math.random()*Math.PI*2;r=2;
+    x=cx+Math.cos(a)*r;y=cy+Math.sin(a)*r}
+  return{x:x,y:y};
+}
+function adjFrozen(x,y){
+  x=Math.round(x);y=Math.round(y);
+  return frozenAt(x+1,y)||frozenAt(x-1,y)||frozenAt(x,y+1)||frozenAt(x,y-1);
+}
+function step(){
+  if(!alive||frozen>=MAX)return;
+  var b=+brEl.value,per=1400/b*4;
+  for(var w=0;w<walkers.length;w++){
+    var p=walkers[w],tries=0;
+    while(tries<per){
+      tries++;
+      var len=1+(Math.random()<0.5?Math.floor(Math.random()*b):0);
+      var a=Math.random()*Math.PI*2;
+      p.x+=Math.cos(a)*len;p.y+=Math.sin(a)*len;
+      var d=Math.hypot(p.x-cx,p.y-cy);
+      if(d>maxR+60||p.x<1||p.y<1||p.x>cols-2||p.y>rows-2){p=walkers[w]=spawn();break}
+      if(adjFrozen(p.x,p.y)){
+        if(Math.random()<0.42){
+          var rx=Math.round(p.x),ry=Math.round(p.y);
+          if(!frozenAt(rx,ry))put(rx,ry);
+          walkers[w]=spawn();break;
+        }else{p=walkers[w]=spawn();break}
+      }
+    }
+  }
+  if(frozen>=MAX){alive=false}
+  if(frozen>0&&frozen%1200<4){stepNo++;stEl.textContent=stepNo}
+}
+function twinkle(t){
+  for(var i=0;i<2;i++){
+    var f=front[(Math.random()*front.length)|0];if(!f)break;
+    var a=0.25+0.2*Math.sin(t/200+i);
+    ctx.fillStyle='rgba(230,248,255,'+a.toFixed(2)+')';
+    ctx.fillRect(f[0]*CELL,f[1]*CELL,CELL,CELL);
+  }
+}
+function loop(t){step();twinkle(t);requestAnimationFrame(loop)}
+cv.addEventListener('pointerdown',function(e){restart(e.clientX,e.clientY)});
+document.getElementById('grow').addEventListener('click',function(){restart(W/2,H/2)});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixelbox · Nº 058</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#23262e;color:#e6e8ef;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;flex-wrap:wrap}
+#stage{display:flex;flex-direction:column;gap:10px;align-items:center}
+canvas{cursor:crosshair;touch-action:none;image-rendering:pixelated;border-radius:6px}
+#tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+button{font:9px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;padding:9px 11px;background:transparent;border:1px solid #4a4f5e;color:#e6e8ef;cursor:pointer;border-radius:3px}
+button:hover{background:#e6e8ef;color:#23262e}
+button.on{background:#7bffd4;color:#23262e;border-color:#7bffd4}
+#side{width:120px;display:flex;flex-direction:column;gap:10px}
+h1{font-size:12px;font-weight:400;letter-spacing:.34em;text-transform:uppercase}
+h1 b{color:#7bffd4}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#6a7080;margin-top:5px}
+#pal{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.p{aspect-ratio:1;border-radius:4px;cursor:pointer;border:2px solid transparent}
+.p.sel{border-color:#fff;transform:scale(1.1)}
+.hint{font-size:8px;letter-spacing:.14em;color:#6a7080;line-height:1.9;text-transform:uppercase}
+@media(max-width:640px){#side{width:100%;flex-direction:row;flex-wrap:wrap;align-items:center}#pal{flex:1;grid-template-columns:repeat(8,1fr)}}
+</style>
+</head>
+<body>
+<div id="side">
+<div><h1>pixel<b>box</b><p class="tag">Nº 058 · 32×32 pocket studio</p></h1></div>
+<div id="pal"></div>
+<p class="hint">drag to paint · right-drag erases · autosaves itself</p>
+</div>
+<div id="stage">
+<canvas id="c"></canvas>
+<div id="tools">
+<button data-t="pencil" class="on">pencil</button>
+<button data-t="fill">bucket</button>
+<button data-t="pick">pick</button>
+<button id="undo">undo</button>
+<button id="clr">clear</button>
+<button id="save">save png</button>
+</div>
+</div>
+<script>
+(function(){
+"use strict";
+var N=32,pix=new Array(N*N).fill(null),tool='pencil',cur='#7bffd4',hist=[],drawing=false,lastX=-1,lastY=-1;
+var PAL=['#000000','#1b2430','#3f5d75','#7ba2c9','#b8d7e8','#ffffff','#c2452f','#e07a3f',
+'#f2c14e','#f7e7a0','#41804d','#7bffd4','#2d4a22','#8f5fb8','#e58fc9','#7a5d3a'];
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  S=Math.min(innerWidth-160,innerHeight-120,460);
+  S=Math.max(240,S);
+  if(innerWidth<=640)S=Math.min(innerWidth-20,innerHeight-220,460);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  redraw();
+}
+function redraw(){
+  var cs=S/N;
+  ctx.fillStyle='#111319';ctx.fillRect(0,0,S,S);
+  for(var i=0;i<N*N;i++){
+    if(pix[i]){
+      var x=(i%N)*cs,y=((i/N)|0)*cs;
+      ctx.fillStyle=pix[i];
+      ctx.fillRect(x,y,cs+0.5,cs+0.5);
+    }
+  }
+  ctx.strokeStyle='rgba(255,255,255,0.05)';
+  for(i=0;i<=N;i++){
+    ctx.beginPath();ctx.moveTo(i*cs,0);ctx.lineTo(i*cs,S);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*cs);ctx.lineTo(S,i*cs);ctx.stroke();
+  }
+}
+function cellAt(e){
+  var r=cv.getBoundingClientRect();
+  var cs=S/N;
+  var c=Math.floor((e.clientX-r.left)/cs),rw=Math.floor((e.clientY-r.top)/cs);
+  if(c<0||c>=N||rw<0||rw>=N)return null;
+  return rw*N+c;
+}
+function pushHist(){
+  hist.push(pix.slice());
+  if(hist.length>24)hist.shift();
+}
+function paint(i){
+  if(i===null)return;
+  if(tool==='pencil'){if(pix[i]!==cur){pix[i]=cur;redraw()}}
+  else if(tool==='pick'){if(pix[i]){cur=pix[i];markPal()}}
+}
+function flood(start){
+  var target=pix[start];
+  if(target===cur)return;
+  var q=[start];
+  while(q.length){
+    var i=q.pop();
+    if(i<0||i>=N*N)continue;
+    if(pix[i]!==target)continue;
+    pix[i]=cur;
+    var r=(i/N)|0,c=i%N;
+    if(c>0)q.push(i-1);
+    if(c<N-1)q.push(i+1);
+    if(r>0)q.push(i-N);
+    if(r<N-1)q.push(i+N);
+  }
+  redraw();
+}
+function lineCells(x0,y0,x1,y1,fn){
+  var dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1,err=dx-dy;
+  while(true){
+    fn(y0*N+x0);
+    if(x0===x1&&y0===y1)break;
+    var e2=2*err;
+    if(e2>-dy){err-=dy;x0+=sx}
+    if(e2<dx){err+=dx;y0+=sy}
+  }
+}
+cv.addEventListener('pointerdown',function(e){
+  var i=cellAt(e);
+  if(i===null)return;
+  pushHist();
+  if(e.button===2){tool='pencil';var old=cur;cur=null;paintErase(i);cur=old;
+    var up=function(){tool=document.querySelector('button.on').dataset.t;window.removeEventListener('pointerup',up)};
+    window.addEventListener('pointerup',up);
+    return;
+  }
+  if(tool==='fill'){flood(i);return}
+  drawing=true;
+  var r=cv.getBoundingClientRect(),cs=S/N;
+  lastX=Math.floor((e.clientX-r.left)/cs);lastY=Math.floor((e.clientY-r.top)/cs);
+  paint(i);
+});
+function paintErase(i){if(i!==null){pix[i]=null;redraw()}}
+cv.addEventListener('pointermove',function(e){
+  if(!drawing)return;
+  var r=cv.getBoundingClientRect(),cs=S/N;
+  var x=Math.floor((e.clientX-r.left)/cs),y=Math.floor((e.clientY-r.top)/cs);
+  if(x<0)x=0;if(x>=N)x=N-1;
+  if(y<0)y=0;if(y>=N)y=N-1;
+  lineCells(lastX,lastY,x,y,function(i){paint(i)});
+  lastX=x;lastY=y;
+},{passive:true});
+window.addEventListener('pointerup',function(){drawing=false;save()});
+cv.addEventListener('contextmenu',function(e){e.preventDefault()});
+document.querySelectorAll('[data-t]').forEach(function(b){
+  b.addEventListener('click',function(){
+    tool=b.dataset.t;
+    document.querySelectorAll('[data-t]').forEach(function(x){x.classList.toggle('on',x===b)});
+  });
+});
+document.getElementById('undo').addEventListener('click',function(){
+  if(hist.length){pix=hist.pop();redraw();save()}
+});
+document.getElementById('clr').addEventListener('click',function(){pushHist();pix.fill(null);redraw();save()});
+document.getElementById('save').addEventListener('click',function(){
+  var out=document.createElement('canvas');
+  out.width=N*8;out.height=N*8;
+  var o=out.getContext('2d');
+  o.imageSmoothingEnabled=false;
+  for(var i=0;i<N*N;i++){
+    if(!pix[i])continue;
+    o.fillStyle=pix[i];
+    o.fillRect((i%N)*8,((i/N)|0)*8,8,8);
+  }
+  var a=document.createElement('a');
+  a.download='pixelbox.png';
+  a.href=out.toDataURL('image/png');
+  a.click();
+});
+var palEl=document.getElementById('pal');
+PAL.forEach(function(c){
+  var d=document.createElement('div');
+  d.className='p';d.style.background=c;d.dataset.c=c;
+  d.addEventListener('click',function(){cur=c;markPal()});
+  palEl.appendChild(d);
+});
+function markPal(){
+  document.querySelectorAll('.p').forEach(function(x){x.classList.toggle('sel',x.dataset.c===cur)});
+}
+function save(){try{localStorage.setItem('pbox',JSON.stringify(pix))}catch(e){}}
+function load(){
+  try{
+    var s=localStorage.getItem('pbox');
+    if(s)pix=JSON.parse(s);
+  }catch(e){}
+}
+window.addEventListener('resize',fit);
+load();fit();markPal();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Forge · Nº 056</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;background:#15161c;color:#e8e9f0;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px}
+header{text-align:center}
+h1{font-size:14px;font-weight:400;letter-spacing:.3em;text-transform:uppercase}
+h1 b{color:#7be0ff}
+.tag{font-size:8px;letter-spacing:.3em;text-transform:uppercase;color:#5a5e70;margin-top:5px}
+#prev{width:min(92vw,640px);height:min(52vh,420px);border-radius:10px;cursor:crosshair;
+box-shadow:0 30px 60px -20px rgba(0,0,0,0.7);transition:background .15s}
+#code{width:min(92vw,640px);font-size:10px;letter-spacing:.02em;background:#0c0d12;border:1px solid #2a2d3a;
+border-radius:6px;padding:12px;white-space:pre-wrap;word-break:break-all;color:#9fe8b0;line-height:1.7;cursor:pointer}
+#code:hover{border-color:#7be0ff}
+.dock{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;align-items:center}
+label{font-size:8px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+select,input[type=range]{accent-color:#7be0ff}
+select{background:#1c1e28;color:#e8e9f0;border:1px solid #2a2d3a;padding:7px;font:10px ui-monospace,monospace}
+input[type=range]{width:90px}
+input[type=color]{width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0}
+button{font:700 8px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;padding:10px 13px;
+background:transparent;border:1px solid #2a2d3a;color:#e8e9f0;cursor:pointer;border-radius:3px}
+button:hover{background:#7be0ff;color:#15161c}
+#stops{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;align-items:center}
+.stop{display:flex;gap:5px;align-items:center;background:#1c1e28;padding:6px 9px;border-radius:5px;border:1px solid #2a2d3a}
+.stop input[type=range]{width:70px}
+.stop .x{cursor:pointer;opacity:.5;font-size:11px}
+.stop .x:hover{opacity:1;color:#ff7a7a}
+@media(max-width:560px){#prev{height:40vh}}
+</style>
+</head>
+<body>
+<header><h1>Gradient <b>Forge</b></h1><p class="tag">Nº 056 · hammer light into CSS, copy it while hot</p></header>
+<div id="prev"></div>
+<div id="code"></div>
+<div class="dock">
+<label>type <select id="kind"><option>linear</option><option>radial</option><option>conic</option></select></label>
+<label>angle <input id="ang" type="range" min="0" max="360" value="115"></label>
+<button id="rand">random alloy</button>
+<button id="add">+ stop</button>
+<button id="copy">copy css</button>
+</div>
+<div id="stops"></div>
+<script>
+(function(){
+"use strict";
+var kind='linear',angle=115;
+var stops=[{p:0,c:'#12c2e9'},{p:50,c:'#c471ed'},{p:100,c:'#f64f59'}];
+var prev=document.getElementById('prev'),code=document.getElementById('code'),
+stopsEl=document.getElementById('stops');
+function hslHex(h,s,l){
+  s/=100;l/=100;
+  var q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;
+  function t2c(t){t=(t+1)%1;
+    if(t<1/6)return p+(q-p)*6*t;
+    if(t<1/2)return q;
+    if(t<2/3)return p+(q-p)*(2/3-t)*6;
+    return p;}
+  var r=t2c(h/360+1/3),g=t2c(h/360),b=t2c(h/360-1/3);
+  return[r,g,b].map(function(v){
+    return('0'+Math.round(v*255).toString(16)).slice(-2)}).join('');
+}
+function randomStops(){
+  var h=Math.random()*360,n=2+((Math.random()*3)|0);
+  stops=[];
+  for(var i=0;i<n;i++){
+    stops.push({p:Math.round(i/(n-1)*100),c:'#'+hslHex((h+i*(40+Math.random()*80))%360,
+      60+Math.random()*35,45+Math.random()*25)});
+  }
+  buildStops();render();
+}
+function css(){
+  var sorted=stops.slice().sort(function(a,b){return a.p-b.p});
+  var list=sorted.map(function(s){return s.c+' '+s.p+'%'}).join(', ');
+  if(kind==='linear')return'background: linear-gradient('+angle+'deg, '+list+');';
+  if(kind==='radial')return'background: radial-gradient(circle at '+(30+angle%40)+'% '+(30+(360-angle)%40)+'%, '+list+');';
+  return'background: conic-gradient(from '+angle+'deg, '+list+');';
+}
+function render(){
+  prev.style.background=css().replace('background: ','');
+  code.textContent=css();
+}
+function buildStops(){
+  stopsEl.innerHTML='';
+  stops.forEach(function(s,i){
+    var d=document.createElement('div');d.className='stop';
+    var ci=document.createElement('input');ci.type='color';ci.value=s.c;
+    ci.addEventListener('input',function(e){s.c=e.target.value;render()});
+    var ri=document.createElement('input');ri.type='range';ri.min=0;ri.max=100;ri.value=s.p;
+    ri.addEventListener('input',function(e){s.p=+e.target.value;render()});
+    d.appendChild(ci);d.appendChild(ri);
+    if(stops.length>2){
+      var x=document.createElement('span');x.className='x';x.textContent='✕';
+      x.addEventListener('click',function(){stops.splice(i,1);buildStops();render()});
+      d.appendChild(x);
+    }
+    stopsEl.appendChild(d);
+  });
+}
+document.getElementById('kind').addEventListener('change',function(e){kind=e.target.value;render()});
+document.getElementById('ang').addEventListener('input',function(e){angle=+e.target.value;render()});
+document.getElementById('rand').addEventListener('click',randomStops);
+document.getElementById('add').addEventListener('click',function(){
+  if(stops.length>=6)return;
+  stops.push({p:Math.round(Math.random()*100),c:'#'+hslHex(Math.random()*360,70,55)});
+  buildStops();render();
+});
+code.addEventListener('click',copy);
+document.getElementById('copy').addEventListener('click',copy);
+function copy(){
+  var t=code.textContent;
+  function done(){var b=document.getElementById('copy');b.textContent='copied ✓';setTimeout(function(){b.textContent='copy css'},1000)}
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(done);
+  }catch(e){done()}
+}
+prev.addEventListener('click',function(e){
+  var r=prev.getBoundingClientRect();
+  stops.push({p:Math.round((e.clientX-r.left)/r.width*100),c:'#'+hslHex(Math.random()*360,75,55)});
+  if(stops.length>6)stops.shift();
+  buildStops();render();
+});
+randomStops();render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Simon Halo · Nº 036</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#141316;color:#f0eef2;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+h1{font-size:11px;letter-spacing:.4em;text-transform:uppercase;font-weight:400;opacity:.85}
+#ringwrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+canvas{display:block;cursor:pointer}
+#core{position:absolute;text-align:center;pointer-events:none}
+#core b{font:700 40px ui-monospace,Menlo,monospace;color:#f0eef2;display:block;line-height:1}
+#core span{font-size:9px;letter-spacing:.3em;text-transform:uppercase;opacity:.55}
+.dock{display:flex;gap:8px;align-items:center}
+button{font:700 9px "Century Gothic",sans-serif;letter-spacing:.24em;text-transform:uppercase;padding:11px 18px;background:transparent;border:1.5px solid rgba(240,238,242,.4);color:#f0eef2;cursor:pointer;border-radius:3px}
+button:hover{background:#f0eef2;color:#141316}
+#status{font-size:10px;letter-spacing:.3em;text-transform:uppercase;opacity:.6;height:14px}
+@media(max-width:500px){#core b{font-size:28px}}
+</style>
+</head>
+<body>
+<h1>Simon Halo — Nº 036</h1>
+<div id="ringwrap">
+<canvas id="c"></canvas>
+<div id="core"><b id="lvl">0</b><span id="sub">press start</span></div>
+</div>
+<p id="status">watch the halo · repeat the light</p>
+<div class="dock"><button id="start">start</button></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var COLS=[['#ff5b7f',261.63],['#ffb347',293.66],['#f5e663',329.63],['#7ad3a1',392.0],
+          ['#5aa9e6',440.0],['#b28ff5',523.25],['#f58ac9',587.33],['#8affc0',659.25]];
+var seq=[],idx=0,playing=false,flash=-1,flashT=0,mode='idle',best=0,AC=null;
+var N=8,animT=0,deads=0;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();return AC}
+function tone(f,when,dur,vol){
+  var a=ac(),o=a.createOscillator(),g=a.createGain();
+  o.type='sine';o.frequency.value=f;
+  g.gain.setValueAtTime(0,when);
+  g.gain.linearRampToValueAtTime(vol,when+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,when+dur);
+  o.connect(g);g.connect(a.destination);
+  o.start(when);o.stop(when+dur+0.05);
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var availW=Math.min(innerWidth-20,520);
+  var availH=innerHeight-190;
+  S=Math.max(240,Math.min(availW,availH));
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+}
+function segPath(i,r0,r1){
+  var a0=i*Math.PI*2/N+0.03,a1=(i+1)*Math.PI*2/N-0.03;
+  ctx.beginPath();
+  ctx.arc(S/2,S/2,r1,a0,a1);
+  ctx.arc(S/2,S/2,r0,a1,a0,true);
+  ctx.closePath();
+}
+function draw(){
+  animT++;
+  ctx.clearRect(0,0,S,S);
+  var r1=S*0.46,r0=S*0.28;
+  for(var i=0;i<N;i++){
+    var on=flash===i&&flashT>0;
+    var glow=mode==='show'&&flash===i;
+    segPath(i,r0,r1);
+    ctx.fillStyle=on?COLS[i][0]:'rgba(255,255,255,0.05)';
+    ctx.shadowColor=COLS[i][0];
+    ctx.shadowBlur=on?40:0;
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle=on?COLS[i][0]:'rgba(255,255,255,0.14)';
+    ctx.lineWidth=1.5;
+    ctx.stroke();
+    var a=(i+0.5)*Math.PI*2/N;
+    if(on){
+      ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.beginPath();ctx.arc(S/2+Math.cos(a)*(r0+r1)/2,S/2+Math.sin(a)*(r0+r1)/2,S*0.018,0,7);ctx.fill();
+    }
+  }
+  var a2=animT/40;
+  ctx.strokeStyle='rgba(255,255,255,0.05)';
+  ctx.lineWidth=S*0.012;
+  ctx.beginPath();
+  ctx.arc(S/2,S/2,S*0.255,a2,a2+2.6);
+  ctx.stroke();
+  if(flash>=0&&flashT>0)flashT--;else if(flash>=0&&flashT<=0){flash=-1}
+  requestAnimationFrame(draw);
+}
+function flashSeg(i,dur){
+  flash=i;flashT=dur||320;
+  tone(COLS[i][1],ac().currentTime,0.32,0.14);
+}
+var showT=0,showIdx=0,showGap=520;
+function nextSeq(){
+  seq.push((Math.random()*N)|0);
+  idx=0;
+  document.getElementById('lvl').textContent=seq.length;
+  mode='show';
+  document.getElementById('sub').textContent='watch…';
+  speed=Math.max(240,560-seq.length*22);
+  showIdx=0;
+  showSeg();
+}
+var speed=520;
+function showSeg(){
+  if(mode!=='show')return;
+  if(showIdx>=seq.length){
+    mode='input';
+    document.getElementById('sub').textContent='your turn';
+    return;
+  }
+  var i=seq[showIdx];
+  flashSeg(i,Math.round(speed*0.6));
+  showIdx++;
+  setTimeout(showSeg,speed);
+}
+function hit(i){
+  if(mode!=='input')return;
+  flashSeg(i,220);
+  if(i===seq[idx]){
+    idx++;
+    if(idx===seq.length){
+      mode='wait';
+      best=Math.max(best,seq.length);
+      document.getElementById('status').textContent='lovely · round '+seq.length;
+      setTimeout(nextSeq,700);
+    }
+  }else{
+    mode='fail';
+    document.getElementById('status').textContent='the spell broke — best '+best+' · press start';
+    document.getElementById('sub').textContent='again?';
+    tone(110,ac().currentTime,0.6,0.12);
+    var f=0;
+    var iv=setInterval(function(){
+      flash=(Math.random()*N)|0;flashT=120;f++;
+      if(f>7)clearInterval(iv);
+    },90);
+  }
+}
+function whichSeg(e){
+  var r=cv.getBoundingClientRect();
+  var x=e.clientX-r.left-S/2,y=e.clientY-r.top-S/2;
+  var d=Math.hypot(x,y);
+  if(d<S*0.28||d>S*0.46)return -1;
+  var a=Math.atan2(y,x);
+  if(a<0)a+=Math.PI*2;
+  return Math.floor(a/(Math.PI*2/N))%N;
+}
+cv.addEventListener('pointerdown',function(e){
+  var i=whichSeg(e);
+  if(i>=0)hit(i);
+});
+document.getElementById('start').addEventListener('click',function(){
+  ac().resume&&ac().resume();
+  ac().resume();
+  seq=[];mode='show';
+  document.getElementById('status').textContent='watch the halo · repeat the light';
+  nextSeq();
+});
+fit();
+requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

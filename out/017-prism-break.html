@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prism Break · Nº 017</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#07070b;color:#e8e8f2;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;top:12px;left:0;right:0;display:flex;justify-content:center;gap:34px;pointer-events:none;text-align:center}
+.stat{font-size:9px;letter-spacing:.34em;text-transform:uppercase}
+.stat b{display:block;font:700 20px ui-monospace,Menlo,monospace;letter-spacing:0}
+h1{position:fixed;left:16px;top:12px;font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-weight:400;pointer-events:none}
+h1 span{color:#ff5b7f}
+.hint{position:fixed;bottom:12px;left:16px;font-size:9px;letter-spacing:.24em;text-transform:uppercase;opacity:.5;pointer-events:none}
+#msg{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;pointer-events:none;text-align:center;transition:opacity .5s}
+#msg h2{font:700 40px "Century Gothic",sans-serif;letter-spacing:.06em}
+#msg p{font-size:10px;letter-spacing:.3em;text-transform:uppercase;opacity:.7}
+@media(max-width:560px){h1{font-size:9px}.hud{gap:20px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<h1>Prism <span>Break</span></h1>
+<div class="hud"><div class="stat">score<b id="sc">0</b></div><div class="stat">rays<b id="lb">3</b></div><div class="stat">band<b id="lv">1</b></div></div>
+<p class="hint">the paddle is a prism · hit it to split white light</p>
+<div id="msg"><h2 id="mt">PRISM BREAK</h2><p id="mp">click to cast the first ray</p></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var bricks=[],balls=[],pad={x:0,w:110,h:14,y:0},sc=0,lives=3,band=1,state='ready',parts=[];
+var scEl=document.getElementById('sc'),lbEl=document.getElementById('lb'),lvEl=document.getElementById('lv');
+var msgEl=document.getElementById('msg'),mtEl=document.getElementById('mt'),mpEl=document.getElementById('mp');
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+ pad.y=H-46;buildBricks(true)}
+function buildBricks(reset){
+  bricks=[];
+  var cols=Math.max(6,Math.min(12,Math.floor(W/78)));
+  var rows=Math.min(6,3+band);
+  var bw=W/cols,bh=26;
+  for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+    bricks.push({x:c*bw+3,y:70+r*(bh+6),w:bw-6,h:bh,hue:r/(rows)*300+5,alive:reset?true:(bricks[r*cols+c]?bricks[r*cols+c].alive:true),fade:1});
+  }
+}
+function serve(){balls=[{x:pad.x,y:pad.y-12,vx:2.4*(Math.random()<0.5?-1:1),vy:-4.4,c:'white',r:6}]}
+function splitBall(b){
+  if(balls.length>=5)return;
+  var hues=[['#ff5b7f',-0.6],['#7eff9e',0],['#6f9dff',0.6]];
+  var base=Math.random()<0.5;
+  for(var i=0;i<3;i++){var a=Math.atan2(b.vy,b.vx)+hues[i][1];
+    var sp=Math.hypot(b.vx,b.vy)*1.02;
+    balls.push({x:b.x,y:b.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,c:hues[i][0],r:5.5});
+  }
+  flash(b.x,b.y,'#ffffff');
+}
+function flash(x,y,col){
+  for(var i=0;i<14;i++){var a=Math.random()*6.28,s=1+Math.random()*3;
+    parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,l:1,c:col})}
+}
+function loop(){
+  ctx.fillStyle='#07070b';ctx.fillRect(0,0,W,H);
+  for(var b=0;b<bricks.length;b++){var br=bricks[b];
+    if(!br.alive){if(br.fade>0){br.fade-=0.03;drawBrick(br,br.fade)}continue}
+    drawBrick(br,1)}
+  pad.x=Math.max(pad.w/2,Math.min(W-pad.w/2,pad.x));
+  var g=ctx.createLinearGradient(pad.x-pad.w/2,0,pad.x+pad.w/2,0);
+  g.addColorStop(0,'#ff5b7f');g.addColorStop(0.5,'#ffffff');g.addColorStop(1,'#6f9dff');
+  ctx.fillStyle=g;
+  ctx.fillRect(pad.x-pad.w/2,pad.y,pad.w,pad.h);
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.beginPath();ctx.moveTo(pad.x-pad.w/2,pad.y);ctx.lineTo(pad.x,pad.y-30);ctx.lineTo(pad.x+pad.w/2,pad.y);ctx.closePath();ctx.fill();
+  if(state==='play'){
+    for(var i=balls.length-1;i>=0;i--){var ball=balls[i];
+      ball.x+=ball.vx;ball.y+=ball.vy;
+      if(ball.x<ball.r){ball.x=ball.r;ball.vx*=-1}
+      if(ball.x>W-ball.r){ball.x=W-ball.r;ball.vx*=-1}
+      if(ball.y<ball.r+40){ball.y=ball.r+40;ball.vy*=-1}
+      if(ball.y>pad.y-ball.r&&ball.y<pad.y+pad.h&&Math.abs(ball.x-pad.x)<pad.w/2+ball.r&&ball.vy>0){
+        var off=(ball.x-pad.x)/(pad.w/2);
+        var sp=Math.hypot(ball.vx,ball.vy);
+        var a=-Math.PI/2+off*1.1;
+        ball.vx=Math.cos(a)*sp;ball.vy=Math.sin(a)*sp;
+        if(ball.c==='white')splitBall(ball);
+        ball.y=pad.y-ball.r-1;
+      }
+      if(ball.y>H+20){balls.splice(i,1);continue}
+      for(var k=0;k<bricks.length;k++){var bk=bricks[k];
+        if(!bk.alive)continue;
+        if(ball.x>bk.x&&ball.x<bk.x+bk.w&&ball.y-ball.r<bk.y+bk.h&&ball.y+ball.r>bk.y){
+          if(Math.abs(ball.x-(bk.x+bk.w/2))/(bk.w/2)>Math.abs(ball.y-(bk.y+bk.h/2))/(bk.h/2)){ball.vx*=-1}
+          else{ball.vy*=-1}
+          bk.alive=false;sc+=10;scEl.textContent=sc;
+          flash(ball.x,ball.y,'hsl('+bk.hue+',90%,65%)');
+          if(ball.c==='white'){ball.c='hsl('+bk.hue+',90%,70%)'}
+          break;
+        }
+      }
+    }
+    if(balls.length===0){lives--;lbEl.textContent=lives;
+      if(lives<=0){state='over';mtEl.textContent='DARKNESS';mpEl.textContent='click to re-light the spectrum';}
+      else state='ready',mtEl.textContent='RAY LOST',mpEl.textContent='click to serve again',showMsg()}
+    var any=false;
+    for(var q=0;q<bricks.length;q++)if(bricks[q].alive){any=true;break}
+    if(!any&&state==='play'){band++;lvEl.textContent=band;state='ready';
+      mtEl.textContent='SPECTRUM CLEARED';mpEl.textContent='band '+band+' is waiting — click';buildBricks(true);showMsg()}
+  }
+  for(var p=parts.length-1;p>=0;p--){var pt=parts[p];
+    pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=0.06;pt.l-=0.03;
+    if(pt.l<=0){parts.splice(p,1);continue}
+    ctx.globalAlpha=pt.l;ctx.fillStyle=pt.c;
+    ctx.fillRect(pt.x,pt.y,2.4,2.4);ctx.globalAlpha=1}
+  for(var bl=0;bl<balls.length;bl++){var bo=balls[bl];
+    var gr=ctx.createRadialGradient(bo.x,bo.y,0,bo.x,bo.y,14);
+    gr.addColorStop(0,bo.c);gr.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(bo.x,bo.y,14,0,7);ctx.fill();
+    ctx.fillStyle=bo.c;ctx.beginPath();ctx.arc(bo.x,bo.y,bo.r,0,7);ctx.fill();}
+  requestAnimationFrame(loop);
+}
+function drawBrick(br,a){
+  ctx.fillStyle='hsla('+br.hue+',85%,'+(58*(0.7+0.3*a))+'%,'+a+')';
+  ctx.fillRect(br.x,br.y,br.w,br.h);
+  ctx.fillStyle='rgba(255,255,255,'+(0.25*a)+')';
+  ctx.fillRect(br.x,br.y,br.w,4);
+}
+function showMsg(){msgEl.style.opacity=1;msgEl.style.pointerEvents='none'}
+function hideMsg(){msgEl.style.opacity=0}
+cv.addEventListener('pointermove',function(e){pad.x=e.clientX},{passive:true});
+cv.addEventListener('pointerdown',function(e){
+  pad.x=e.clientX;
+  if(state==='ready'){state='play';serve();hideMsg()}
+  else if(state==='over'){sc=0;lives=3;band=1;scEl.textContent=0;lbEl.textContent=3;lvEl.textContent=1;
+    buildBricks(true);state='ready';mtEl.textContent='PRISM BREAK';mpEl.textContent='click to cast the first ray';showMsg()}
+});
+window.addEventListener('resize',fit);
+pad.x=W/2||300;fit();showMsg();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

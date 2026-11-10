@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fractal Seasons · Nº 012</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#dfe9e3;font-family:Verdana,Geneva,sans-serif;color:#2c3a32}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;display:flex;gap:14px;align-items:center;
+background:rgba(255,255,254,.82);border:1px solid rgba(44,58,50,.25);padding:10px 16px;border-radius:3px}
+h1{font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-weight:700}
+h1 em{display:block;font:italic 11px Georgia,serif;letter-spacing:.02em;text-transform:none;font-weight:400;opacity:.75;margin-top:3px}
+label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:flex;flex-direction:column;gap:5px;align-items:center}
+input[type=range]{width:140px;accent-color:#4a7a5c}
+button{font:700 9px Verdana;letter-spacing:.18em;text-transform:uppercase;padding:8px 12px;border:1px solid #2c3a32;background:transparent;cursor:pointer}
+button:hover{background:#2c3a32;color:#fff}
+#season{font:italic 13px Georgia,serif;min-width:70px;text-align:center}
+@media(max-width:640px){.bar{flex-wrap:wrap;width:94%;justify-content:center}input[type=range]{width:100%}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="bar">
+<h1>Fractal Seasons<em>Nº 012 · one tree, four selves</em></h1>
+<label>the year<input id="seas" type="range" min="0" max="1000" value="400"></label>
+<span id="season">summer</span>
+<button id="grow">grow a new seed</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1,t=0;
+var seedV=Math.floor(Math.random()*1e9),RS=null,leafCols=[],parts=[];
+var seasEl=document.getElementById('seas'),seasonEl=document.getElementById('season');
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t2=Math.imul(s^s>>>15,1|s);t2=t2+Math.imul(t2^t2>>>7,61|t2)^t2;return((t2^t2>>>14)>>>0)/4294967296}}
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function precompute(){
+  RS=[];var r=rng(seedV);
+  var n=0;while(n<4000){RS.push(r());n++}
+  leafCols=[[244,180,200],[255,220,235],[104,166,100],[58,124,70],[232,140,60],[196,80,44],[240,240,250]];
+}
+function mix(c1,c2,f){return[c1[0]+(c2[0]-c1[0])*f,c1[1]+(c2[1]-c1[1])*f,c1[2]+(c2[2]-c1[2])*f]}
+var ri=0;
+function rr(){return RS[ri++%RS.length]}
+function branch(x,y,ang,len,d,ph){
+  var wind=Math.sin(t/900+ph+d*0.9)*(0.02+d*0.006)*windAmp;
+  var a2=ang+wind;
+  var x2=x+Math.cos(a2)*len,y2=y+Math.sin(a2)*len;
+  var w=Math.max(0.5,len*0.09*Math.pow(0.9,d*0.3));
+  ctx.strokeStyle='rgba(58,44,36,'+(0.85-d*0.04)+')';
+  ctx.lineWidth=w;
+  ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x2,y2);ctx.stroke();
+  if(d>=10||len<3.4){
+    drawLeaf(x2,y2,d);
+    return;
+  }
+  var spread=0.34+rr()*0.42;
+  var n=rr()<0.22?3:2;
+  for(var i=0;i<n;i++){
+    var f=n===1?0:(i/(n-1)-0.5)*2*spread;
+    var l2=len*(0.66+rr()*0.2);
+    branch(x2,y2,a2+f,l2,d+1,ph+i*2.1);
+  }
+}
+var leafCol=[104,166,100],leafAlpha=1,windAmp=1,fallMode=0,snowMode=0;
+function drawLeaf(x,y,d){
+  if(leafAlpha<0.03){
+    if(snowMode>0.4&&rr()<0.5){ctx.fillStyle='rgba(235,240,250,'+snowMode+')';
+      ctx.beginPath();ctx.arc(x,y,1.1,0,7);ctx.fill()}
+    return;
+  }
+  var j=(rr()-0.5)*26;
+  ctx.fillStyle='rgb('+(leafCol[0]+j|0)+','+(leafCol[1]+j|0)+','+(leafCol[2]+j|0)+')';
+  ctx.globalAlpha=leafAlpha;
+  var s=1.4+rr()*2.4;
+  ctx.beginPath();ctx.ellipse?ctx.ellipse(x,y,s,s*0.7,rr()*3,0,7):ctx.arc(x,y,s,0,7);
+  ctx.fill();ctx.globalAlpha=1;
+  if(fallMode>0.25&&rr()<fallMode*0.004){
+    parts.push({x:x,y:y,vx:(rr()-0.5)*0.4,vy:0.3+rr()*0.6,r:rr()*6.28,c:leafCol.slice(),snow:false});
+  }
+}
+function partsStep(){
+  for(var i=parts.length-1;i>=0;i--){var p=parts[i];
+    p.x+=p.vx+Math.sin(t/300+p.r)*0.3;p.y+=p.vy;
+    ctx.fillStyle=p.snow?'rgba(240,244,252,0.9)':'rgba('+p.c[0]+','+p.c[1]+','+p.c[2]+',0.85)';
+    ctx.beginPath();ctx.arc(p.x,p.y,p.snow?1.2:2,0,7);ctx.fill();
+    if(p.y>H+10)parts.splice(i,1);
+  }
+  if(snowMode>0.3&&Math.random()<snowMode*0.5)parts.push({x:Math.random()*W,y:-4,vx:0,vy:0.7+Math.random(),r:Math.random()*6,c:null,snow:true});
+}
+function seasonSky(s){
+  var tops=[[196,224,236],[178,222,196],[246,214,178],[210,218,232]],
+      bots=[[236,222,228],[224,234,208],[240,196,168],[228,232,240]];
+  var i0=Math.floor(s)%4,i1=(i0+1)%4,f=s-Math.floor(s);
+  var top=mix(tops[i0],tops[i1],f),bot=mix(bots[i0],bots[i1],f);
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'rgb('+top.map(Math.round)+')');g.addColorStop(1,'rgb('+bot.map(Math.round)+')');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+function draw(){
+  t++;ri=0;
+  var s=(+seasEl.value)/1000*4;
+  var names=['spring','summer','autumn','winter'];
+  var i0=Math.floor(s)%4,leaf=i0===3?[236,236,244]:null;
+  var nexti=(i0+1)%4,f=s-Math.floor(s);
+  var springCol=[248,190,212],summerCol=[74,150,88],autumnCol=[216,120,54];
+  var cols=[springCol,summerCol,autumnCol,summerCol];
+  var base=mix(cols[i0],cols[nexti],f*0.5);
+  leafCol=base;
+  leafAlpha=i0===3?(1-f)*0.9:(nexti===3?f*0.9:1);
+  if(i0===0)leafAlpha=Math.min(1,0.4+f*1.2);
+  fallMode=(i0===2)?f:(nexti===3?(1):0);
+  if(i0!==2&&nexti!==3)fallMode=0;
+  snowMode=i0===3?(0.3+f):(nexti===3?f:0);
+  windAmp=1+ (i0===3?1.2:(i0===2?0.8:0));
+  seasonSky(s);
+  ctx.fillStyle='rgba(255,255,254,0)';
+  var gcol=mix([[214,176,150],[224,204,168],[206,160,120],[236,238,244]][i0],[[224,204,168],[206,160,120],[236,238,244],[214,176,150]][nexti],f*0.5);
+  ctx.fillStyle='rgb('+gcol.map(Math.round)+')';
+  var gy=H*0.92;ctx.fillRect(0,gy,W,H-gy);
+  var trunk=Math.min(W,H);
+  branch(W/2,H*0.93,-Math.PI/2,trunk*0.24,0,Math.random());
+  partsStep();
+  seasonEl.textContent=names[Math.round(s)%4];
+  requestAnimationFrame(draw);
+}
+document.getElementById('grow').addEventListener('click',function(){
+  seedV=Math.floor(Math.random()*1e9);precompute();parts.length=0;
+});
+window.addEventListener('resize',fit);
+fit();precompute();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

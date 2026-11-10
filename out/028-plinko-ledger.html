@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plinko Ledger · Nº 028</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#101b14;color:#f3ecd8;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:8px}
+header{display:flex;gap:26px;align-items:flex-end}
+h1{font:italic 400 22px Georgia,serif}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;color:#8fbf9f;margin-bottom:4px}
+.stat{font:9px ui-monospace,Menlo,monospace;letter-spacing:.22em;text-transform:uppercase;text-align:right}
+.stat b{display:block;font-size:15px;color:#f0c85a}
+#c{border-radius:8px;cursor:pointer;touch-action:none}
+.dock{display:flex;gap:8px}
+button{font:italic 13px Georgia,serif;padding:8px 16px;background:transparent;border:1px solid #f3ecd8;color:#f3ecd8;cursor:pointer}
+button:hover{background:#f0c85a;color:#101b14;border-color:#f0c85a}
+.hint{font:9px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;opacity:.5}
+@media(max-width:560px){h1{font-size:17px}.stat{font-size:7px}}
+</style>
+</head>
+<body>
+<header>
+<h1><span>Nº 028 · audited by the house</span>Plinko Ledger</h1>
+<div class="stat">drops<b id="dn">0</b></div>
+<div class="stat">payout<b id="po">0.00×</b></div>
+</header>
+<canvas id="c"></canvas>
+<div class="dock"><button id="drop">drop a coin</button><button id="rain">release 24</button><button id="clear">close the books</button></div>
+<p class="hint">tap the top rail to place a coin exactly where destiny falls</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var COLS=13,pegs=[],chips=[],bins,hist,bump=[],drops=0,payout=0,sum=0;
+var MULTS=[12,3,1.5,1,0.6,0.4,0.3,0.4,0.6,1,1.5,3,12];
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=Math.min(innerWidth-16,560);H=Math.min(innerHeight-160,640);
+  cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  build();
+}
+function build(){
+  pegs=[];
+  var rows=9,mx=W*0.09;
+  for(var r=0;r<rows;r++){
+    var n=8+r;
+    var y=H*0.16+r*((H*0.66)/(rows-1));
+    for(var i=0;i<n;i++){
+      var x=W/2+(i-(n-1)/2)*((W-2*mx)/(n-1));
+      pegs.push({x:x,y:y});
+    }
+  }
+  bins=MULTS.length;
+  hist=new Array(bins).fill(0);
+}
+function binX(b){return W*0.04+b*(W*0.92/bins)}
+function drop(x){
+  chips.push({x:x,y:14,vx:0,vy:0,r:Math.max(3.5,W*0.007),trail:[]});
+}
+function step(){
+  for(var i=chips.length-1;i>=0;i--){var c=chips[i];
+    c.vy+=0.24;
+    c.x+=c.vx;c.y+=c.vy;
+    c.vx*=0.999;
+    var sp=Math.hypot(c.vx,c.vy);
+    if(sp>9){c.vx*=9/sp;c.vy*=9/sp}
+    c.trail.push([c.x,c.y]);if(c.trail.length>14)c.trail.shift();
+    if(c.x<W*0.045+c.r){c.x=W*0.045+c.r;c.vx=Math.abs(c.vx)*0.5}
+    if(c.x>W*0.955-c.r){c.x=W*0.955-c.r;c.vx=-Math.abs(c.vx)*0.5}
+    for(var p=0;p<pegs.length;p++){var pg=pegs[p];
+      var dx=c.x-pg.x,dy=c.y-pg.y,d=Math.hypot(dx,dy),min=c.r+4;
+      if(d<min&&d>0.001){
+        var nx=dx/d,ny=dy/d;
+        c.x=pg.x+nx*min;c.y=pg.y+ny*min;
+        var vn=c.vx*nx+c.vy*ny;
+        if(vn<0){c.vx-=1.55*vn*nx;c.vy-=1.55*vn*ny}
+        c.vx+=(Math.random()-0.5)*0.9;
+      }
+    }
+    if(c.y>H-46){
+      var b=Math.floor((c.x-W*0.04)/(W*0.92/bins));
+      b=Math.max(0,Math.min(bins-1,b));
+      hist[b]++;drops++;sum+=1;payout+=MULTS[b];
+      document.getElementById('dn').textContent=drops;
+      document.getElementById('po').textContent=(payout/drops).toFixed(2)+'×';
+      bump[b]=1;
+      chips.splice(i,1);
+    }
+  }
+  for(var k=0;k<bins;k++)if(bump[k])bump[k]-=0.05;
+}
+function draw(){
+  ctx.fillStyle='#12251a';ctx.fillRect(0,0,W,H);
+  var fg=ctx.createLinearGradient(0,0,0,H);
+  fg.addColorStop(0,'#152a1d');fg.addColorStop(1,'#0d1c13');
+  ctx.fillStyle=fg;ctx.fillRect(W*0.04,H*0.1,W*0.92,H*0.76);
+  ctx.strokeStyle='rgba(240,200,90,0.25)';
+  ctx.strokeRect(W*0.04+4,H*0.1+4,W*0.92-8,H*0.76-8);
+  ctx.fillStyle='#f0c85a';
+  ctx.beginPath();ctx.moveTo(W/2,10);ctx.lineTo(W/2-7,2);ctx.lineTo(W/2+7,2);ctx.closePath();ctx.fill();
+  pegs.forEach(function(p){
+    ctx.fillStyle='#f0c85a';
+    ctx.shadowColor='rgba(240,200,90,0.6)';ctx.shadowBlur=6;
+    ctx.beginPath();ctx.arc(p.x,p.y,4,0,7);ctx.fill();ctx.shadowBlur=0;
+  });
+  var bw=W*0.92/bins;
+  var maxH=60,mc=Math.max(8,Math.max.apply(null,hist));
+  for(var b=0;b<bins;b++){
+    var x=W*0.04+b*bw;
+    var heat=MULTS[b]>=3?'#f0c85a':(MULTS[b]>=1?'#e8dcc8':'#5f7d68');
+    var hgt=hist[b]/mc*maxH;
+    ctx.fillStyle='rgba(240,200,90,0.18)';
+    ctx.fillRect(x+2,H-46-hgt,bw-4,hgt);
+    ctx.fillStyle=bump[b]>0?'#fff':heat;
+    ctx.fillRect(x+2,H-44,bw-4,30);
+    ctx.fillStyle='#101b14';
+    ctx.font='700 '+Math.min(12,bw*0.32)+'px ui-monospace,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(MULTS[b]+'×',x+bw/2,H-24);
+  }
+  ctx.textAlign='left';
+  chips.forEach(function(c){
+    for(var t=0;t<c.trail.length;t++){
+      var q=c.trail[t];
+      ctx.fillStyle='rgba(240,200,90,'+(t/c.trail.length*0.25)+')';
+      ctx.beginPath();ctx.arc(q[0],q[1],c.r*0.7,0,7);ctx.fill();
+    }
+    var g=ctx.createRadialGradient(c.x-1,c.y-1,0.5,c.x,c.y,c.r+2);
+    g.addColorStop(0,'#fff8dd');g.addColorStop(1,'#c99a2e');
+    ctx.fillStyle=g;
+    ctx.beginPath();ctx.arc(c.x,c.y,c.r,0,7);ctx.fill();
+  });
+}
+function loop(){step();draw();requestAnimationFrame(loop)}
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  var x=Math.max(W*0.06,Math.min(W*0.94,e.clientX-r.left));
+  drop(x);
+});
+document.getElementById('drop').addEventListener('click',function(){drop(W/2+(Math.random()-0.5)*10)});
+document.getElementById('rain').addEventListener('click',function(){
+  for(var i=0;i<24;i++)(function(k){setTimeout(function(){drop(W/2+(Math.random()-0.5)*16)},k*60)})(i);
+});
+document.getElementById('clear').addEventListener('click',function(){
+  hist.fill(0);chips.length=0;drops=0;payout=0;
+  document.getElementById('dn').textContent=0;
+  document.getElementById('po').textContent='0.00×';
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

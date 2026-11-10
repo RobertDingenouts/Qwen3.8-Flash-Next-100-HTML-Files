@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daily Paradox · Nº 083</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#e9e6df;color:#1a1a1a;font-family:"Times New Roman",Times,serif}
+body{overflow-x:hidden}
+.paper{max-width:980px;margin:0 auto;padding:18px 16px 60px;
+background-image:repeating-linear-gradient(0deg,rgba(0,0,0,0.014) 0 2px,transparent 2px 4px)}
+header{text-align:center;border-bottom:4px double #1a1a1a;padding-bottom:12px}
+.hdr{display:flex;justify-content:space-between;font:9px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#555}
+h1{font-size:min(64px,12vw);font-weight:900;letter-spacing:.02em;text-transform:uppercase;margin:10px 0 6px}
+.tag{font:8px ui-monospace,monospace;letter-spacing:.36em;text-transform:uppercase;color:#555}
+#grid{columns:3;column-gap:28px;margin-top:22px}
+article{break-inside:avoid;margin-bottom:22px}
+article h2{font-size:19px;font-weight:700;line-height:1.15;cursor:pointer;margin-bottom:6px}
+article h2:hover{background:#1a1a1a;color:#e9e6df}
+article p{font-size:12px;line-height:1.75;color:#333}
+.by{font:8px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;color:#777;margin-bottom:5px}
+.hr{border-top:1px solid #999;margin:8px 0}
+.dish{font-size:10px;font-style:italic;color:#666}
+button{display:block;margin:22px auto 0;font:700 9px ui-monospace,monospace;letter-spacing:.3em;text-transform:uppercase;
+background:#1a1a1a;color:#e9e6df;border:none;padding:13px 26px;cursor:pointer}
+button:hover{background:#7a1f1f}
+@media(max-width:760px){#grid{columns:2}}
+@media(max-width:520px){#grid{columns:1}}
+</style>
+</head>
+<body>
+<div class="paper">
+<header>
+<div class="hdr"><span>Vol. XC · No. 99</span><span id="dt"></span><span>Price: one paradox</span></div>
+<h1>The Daily Paradox</h1>
+<p class="tag">all the news that’s debatable · printed daily since tomorrow</p>
+</header>
+<div id="grid"></div>
+<button id="reprint">reprint today’s edition</button>
+</div>
+<script>
+(function(){
+"use strict";
+var HEADS=[
+['Scientists Confirm Everything Is Related To Everything Else'],
+['Local Man Finally Correct At A Dinner Party; Guests Demand Retraction'],
+['Study Finds 94% Of Statistics Are Made Up On The Spot'],
+['City Council Bans The Concept Of Procrastination, Effective Next Quarter'],
+['Experts Urge Public To Remain Calm During The Emergency Of Reading This'],
+['Weather: Certain. Uncomfortably Certain.'],
+['Archaeologists Unearth Ancient To-Do List; Still Unfinished'],
+['Quantum Physicists Admit They Were Just Guessing, Respectfully'],
+['Breaking: Nothing Happens In Historic, Unprecedented Fashion'],
+['Poll Shows Everyone Agreeing With Someone They Dislike'],
+['This Headline Intentionally Left Blank; Readers Supply Own Dread'],
+['Committee Forms To Decide Whether Committees Are Necessary'],
+['Time Traveller Warns Against This Article, Arrives Yesterday'],
+['The Other Paper Says The Opposite And Is Equally Confident']
+];
+var BODIES=[
+['Staff Report — Sources close to the matter insist the matter is related, though nobody can yet name the third thing involved. “It’s systemic,” one source shrugged, which experts say is the shrug of a field in crisis.'],
+['Correspondent — Witnesses describe an eerie silence, followed by polite applause, then immediate legislative action to reverse the incident. “I had lunch prepared,” the man told this paper, visibly shaken by competence.'],
+['Science Desk — The study’s methodology has been described as “a mood board” by three separate reviewers, all of whom agreed only on that point.'],
+['Municipal Bureau — Enforcement will begin “soon-ish,” said the chair, announcing an exploratory committee to determine the meaning of soon-ish. Residents were urged to procrastinate responsibly.'],
+['Editorial — In times of uncertainty, calm is a civic duty. This paper remains committed to your calm, your attention, and your subscription renewal.'],
+['Bureau — A front is expected. Another front is also expected. Fronts are, at this stage, the primary story.'],
+['Culture — Researchers report the list’s first item, “start,” remains outstanding after an estimated four millennia. The second item has been redacted by the estate.'],
+['Investigations — Documents obtained by this paper show the guessing was “very good guessing,” with several guesses later confirmed and one famously not.'],
+['Live Coverage — Our reporters are on the scene, where nothing continues to happen with remarkable consistency. Updates will be posted as they fail to arrive.']
+];
+function scramble(el){
+  var txt=el.dataset.t;
+  var i=0,iv=setInterval(function(){
+    el.textContent=txt.split('').map(function(c,k){
+      if(c===' ')return' ';
+      if(k<i)return c;
+      return String.fromCharCode(33+Math.floor(Math.random()*90));
+    }).join('');
+    i+=1/3;
+    if(i>=txt.length){clearInterval(iv);el.textContent=txt}
+  },30);
+}
+var grid=document.getElementById('grid');
+function edition(){
+  grid.innerHTML='';
+  var pool=HEADS.map(function(h,i){return i}).sort(function(){return Math.random()-0.5});
+  pool.slice(0,9).forEach(function(hi,k){
+    var a=document.createElement('article');
+    var bi=k%BODIES.length;
+    a.innerHTML='<div class="by">'+['staff report','desk','investigations','bureau','opinion','the wire','correspondent','science desk','editorial'][k]+'</div>'+
+      '<h2 data-t="'+HEADS[hi][0].replace(/"/g,'')+'">'+HEADS[hi][0]+'</h2>'+
+      '<div class="hr"></div><p>'+BODIES[bi][1]+'</p>'+
+      '<p class="dish">'+['Continued on page nowhere.','Excerpted from tomorrow’s omnibus.','Paid for by people who agree.'][k%3]+'</p>';
+    var h=a.querySelector('h2');
+    h.addEventListener('mouseenter',function(){scramble(h)});
+    grid.appendChild(a);
+  });
+}
+var d=new Date();
+document.getElementById('dt').textContent=d.toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('reprint').addEventListener('click',edition);
+edition();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+TITLE: Crate & Cellar — a push puzzle in three vaults
+PROMPT: Hand the visitor a candlelit wine cellar and three increasingly smug floor plans: boxes must reach inlaid brass rings, one careful push at a time, with an undo line generous enough to let anyone learn from their smugness.
+DESCRIPTION: A three-vault sokoban set drawn as warm cellar geometry — bevelled brick walls, checkered flagstones, brass goal rings, cross-braced crates that glow when homed, and a lantern-bearer player who lights a soft radial pool around them. Every move is undoable (400-step stack), levels are BFS-verified solvable, and a fade banner announces each vault opening into the next.
+TECHNIQUES: character-map level parser with on-goal glyph merging, push/collision rules for the sokoban genre, JSON-snapshot undo stack, DPR-scaled responsive cell sizing, ambient lantern gradient composite, arrow-key + WASD + swipe + on-screen d-pad input parity, Georgia italic ledger typography.
+INTERACTION: Arrow keys / WASD / swipes / touch d-pad to walk and push, U or ↶ UNDO to step back through history, RESTART to reset the vault — solve vault i–iii to put every crate home.

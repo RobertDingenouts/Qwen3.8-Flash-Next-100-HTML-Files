@@ -1,0 +1,6 @@
+# Overlay voor html-lab runs: afwijken van HOME-default (kiebel/qwen3.8-27b)
+# naar het DAGELIJKSE flash-next model op Strata (8890).
+- id: agent-default-model
+  config:
+    provider: kiebel-strata
+    model: qwen3.8-flash-next-unsloth-ud-iq3_xxs

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pigment · Nº 060</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#efe9dc;color:#3a352b;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:14px}
+header{text-align:center}
+h1{font:italic 400 25px Georgia,serif}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.34em;text-transform:uppercase;color:#8f8672;margin-top:5px}
+#match{display:flex;gap:4px;align-items:center}
+#match div{width:min(150px,30vw);height:min(96px,20vw);border-radius:6px;box-shadow:0 10px 24px -10px rgba(58,53,43,0.5)}
+#arrow{font-size:22px;color:#8f8672}
+#score{font:700 15px ui-monospace,Menlo,monospace;min-height:20px;color:#75816a}
+#score b{font-size:24px}
+.jars{display:flex;gap:26px}
+.jar{display:flex;flex-direction:column;align-items:center;gap:8px;width:96px}
+.glass{width:70px;height:96px;border-radius:8px 8px 16px 16px;border:2.5px solid #3a352b;position:relative;overflow:hidden;background:rgba(255,255,255,0.4)}
+.fill{position:absolute;bottom:0;left:0;right:0;transition:height .12s}
+.jar input{width:100%;accent-color:#3a352b}
+.jar b{font-size:10px;letter-spacing:.3em;text-transform:uppercase}
+.dock{display:flex;gap:10px;align-items:center}
+button{font:italic 14px Georgia,serif;padding:11px 22px;background:transparent;border:1.5px solid #3a352b;color:#3a352b;cursor:pointer}
+button:hover{background:#3a352b;color:#efe9dc}
+#streak{font:9px ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;color:#8f8672}
+#recipe{font:italic 12px Georgia,serif;min-height:18px;color:#75816a}
+@media(max-width:520px){.jars{gap:12px}.glass{width:56px;height:80px}h1{font-size:19px}}
+</style>
+</head>
+<body>
+<header><h1>Pigment</h1><p class="tag">Nº 060 · three jars, subtractive truth, one target</p></header>
+<div id="match"><div id="tgt"></div><span id="arrow">←</span><div id="mix"></div></div>
+<p id="score">match this colour</p>
+<p id="recipe"></p>
+<div class="jars">
+<div class="jar"><div class="glass"><div class="fill" id="fC" style="background:hsl(192,70%,55%)"></div></div><input id="c" type="range" min="0" max="100" value="0"><b>cyan 0</b></div>
+<div class="jar"><div class="glass"><div class="fill" id="fM" style="background:hsl(320,70%,60%)"></div></div><input id="m" type="range" min="0" max="100" value="0"><b>magenta 0</b></div>
+<div class="jar"><div class="glass"><div class="fill" id="fY" style="background:hsl(52,90%,60%)"></div></div><input id="y" type="range" min="0" max="100" value="0"><b>yellow 0</b></div>
+</div>
+<div class="dock">
+<button id="mixit">mix it!</button>
+<button id="skip">new target</button>
+<span id="streak">streak 0</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cEl=document.getElementById('c'),mEl=document.getElementById('m'),yEl=document.getElementById('y');
+var tgt=[0,0,0],streak=0,tries=0;
+function pigment(c,m,y){
+  var fc=[1-0.95*c,1-0.05*c,1-0.10*c];
+  var fm=[1-0.10*m,1-0.95*m,1-0.08*m];
+  var fy=[1-0.05*y,1-0.15*y,1-0.95*y];
+  var rgb=[0,1,2].map(function(i){
+    return Math.round(255*fc[i]*fm[i]*fy[i]);
+  });
+  return rgb;
+}
+function css(rgb){return'rgb('+rgb.join(',')+')'}
+function amounts(){
+  return[cEl.value/100,mEl.value/100,yEl.value/100];
+}
+function update(){
+  var a=amounts();
+  document.getElementById('fC').style.height=(a[0]*100)+'%';
+  document.getElementById('fM').style.height=(a[1]*100)+'%';
+  document.getElementById('fY').style.height=(a[2]*100)+'%';
+  document.querySelector('.jar:nth-child(1) b').textContent='cyan '+cEl.value;
+  document.querySelector('.jar:nth-child(2) b').textContent='magenta '+mEl.value;
+  document.querySelector('.jar:nth-child(3) b').textContent='yellow '+yEl.value;
+  document.getElementById('mix').style.background=css(pigment(a[0],a[1],a[2]));
+}
+function newTarget(){
+  var c=Math.random()*Math.random();
+  var m=Math.random()*Math.random();
+  var y=Math.random()*Math.random();
+  tgt=pigment(c,m,y);
+  document.getElementById('tgt').style.background=css(tgt);
+  document.getElementById('recipe').textContent='';
+  document.getElementById('score').textContent='match this colour';
+}
+function mixit(){
+  tries++;
+  var a=amounts();
+  var mine=pigment(a[0],a[1],a[2]);
+  var diff=(Math.abs(mine[0]-tgt[0])+Math.abs(mine[1]-tgt[1])+Math.abs(mine[2]-tgt[2]))/3;
+  var score=Math.max(0,100-diff/255*100);
+  var el=document.getElementById('score');
+  el.innerHTML='<b>'+Math.round(score)+'%</b> '+(
+    score>=99?'PERFECT — the paint matches to the drop.'
+    :score>=97?'a colourist sees only sunshine through this'
+    :score>=90?'nearly — the jars are holding something back'
+    :score>=70?'a muddy cousin of the target'
+    :'the client has requested a different colour entirely');
+  if(score>=97){
+    streak++;
+    document.getElementById('streak').textContent='streak '+streak;
+    document.getElementById('recipe').textContent='the recipe was '+recipeOf();
+    setTimeout(newTarget,1800);
+  }
+}
+function recipeOf(){
+  for(var c=0;c<=100;c+=4)for(var m=0;m<=100;m+=4)for(var y=0;y<=100;y+=4){
+    var p=pigment(c/100,m/100,y/100);
+    var d=Math.abs(p[0]-tgt[0])+Math.abs(p[1]-tgt[1])+Math.abs(p[2]-tgt[2]);
+    if(d<12)return'cyan '+c+' · magenta '+m+' · yellow '+y;
+  }
+  return'secretly complicated';
+}
+[cEl,mEl,yEl].forEach(function(el){el.addEventListener('input',update)});
+document.getElementById('mixit').addEventListener('click',mixit);
+document.getElementById('skip').addEventListener('click',function(){streak=0;document.getElementById('streak').textContent='streak 0';newTarget()});
+newTarget();update();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ripple Pool · Nº 011</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#05192e}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none}
+.tl{position:fixed;top:18px;left:22px;pointer-events:none;color:#bfe0ff;text-shadow:0 1px 12px rgba(0,0,0,.7);font-family:Palatino,"Palatino Linotype","Book Antiqua",serif}
+h1{font:italic 400 24px/1.1 Palatino,serif}
+h1 span{display:block;font:600 9px ui-monospace,Menlo,monospace;letter-spacing:.52em;text-transform:uppercase;opacity:.65;margin-bottom:8px}
+.dock{position:fixed;right:18px;bottom:16px;display:flex;gap:8px}
+button{font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;padding:9px 13px;background:rgba(5,25,46,.6);color:#bfe0ff;border:1px solid rgba(191,224,255,.35);cursor:pointer}
+button:hover{background:#bfe0ff;color:#05192e}
+button.on{background:#bfe0ff;color:#05192e}
+.hint{position:fixed;left:22px;bottom:20px;color:#6f9cc8;font:10px ui-monospace,Menlo,monospace;letter-spacing:.24em;text-transform:uppercase;pointer-events:none}
+@media(max-width:560px){h1{font-size:18px}.hint{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1><span>Nº 011 · wave tank</span>Ripple Pool</h1></div>
+<div class="dock"><button id="rain">rain</button><button id="calm">still water</button></div>
+<p class="hint">tap the surface · hold to swim</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var off=document.createElement('canvas'),octx=off.getContext('2d');
+var GW=0,GH=0,a=null,b=null,img=null,D=1,W=0,H=0,rain=false,dropAcc=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;cv.style.width=W+'px';cv.style.height=H+'px';
+  GW=Math.max(80,Math.round(W/3.4));GH=Math.max(80,Math.round(H/3.4));
+  off.width=GW;off.height=GH;
+  a=new Float32Array(GW*GH);b=new Float32Array(GW*GH);
+  img=octx.createImageData(GW,GH);
+}
+function drop(gx,gy,r,pow){
+  for(var y=-r;y<=r;y++)for(var x=-r;x<=r;x++){
+    var i=(gy+y)*GW+(gx+x);
+    if(i>=0&&i<a.length&&x*x+y*y<=r*r)a[i]+=pow*(1-Math.sqrt(x*x+y*y)/r);
+  }
+}
+function sim(){
+  var w=GW;
+  for(var y=1;y<GH-1;y++){
+    var row=y*w;
+    for(var x=1;x<w-1;x++){
+      var i=row+x;
+      b[i]=(a[i-1]+a[i+1]+a[i-w]+a[i+w])*0.5-b[i];
+      b[i]*=0.986;
+    }
+  }
+  var t=a;a=b;b=t;
+}
+function render(){
+  var d=img.data,gw=GW,gh=GH;
+  for(var y=0;y<gh;y++){
+    for(var x=0;x<gw;x++){
+      var i=y*gw+x,h=a[i];
+      var sl=0;
+      if(x>0&&x<gw-1&&y>0&&y<gh-1){
+        sl=(a[i-1]-a[i+1]+a[i-gw]-a[i+gw])*1.4;
+      }
+      var v=Math.max(0,Math.min(255,140+h*90+sl*40));
+      var spec=Math.max(0,sl-24)*3;
+      var k=i*4;
+      d[k]=Math.min(255,8+v*0.16+spec);
+      d[k+1]=Math.min(255,34+v*0.42+spec);
+      d[k+2]=Math.min(255,66+v*0.85+spec*0.6);
+      d[k+3]=255;
+    }
+  }
+  octx.putImageData(img,0,0);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+  ctx.setTransform(D,0,0,D,0,0);
+}
+function toG(e){var r=cv.getBoundingClientRect();
+  return{x:Math.round((e.clientX-r.left)/r.width*GW),y:Math.round((e.clientY-r.top)/r.height*GH)}}
+var down=false,lx=0,ly=0;
+cv.addEventListener('pointerdown',function(e){down=true;var p=toG(e);drop(p.x,p.y,9,1.6);lx=p.x;ly=p.y});
+window.addEventListener('pointermove',function(e){if(!down)return;
+  var p=toG(e);var d=Math.hypot(p.x-lx,p.y-ly);
+  if(d>2){var n=Math.min(6,Math.ceil(d/3));
+    for(var i=0;i<n;i++){var t=i/n;drop(Math.round(lx+(p.x-lx)*t),Math.round(ly+(p.y-ly)*t),4,0.55)}
+    lx=p.x;ly=p.y}
+},{passive:true});
+window.addEventListener('pointerup',function(){down=false});
+function loop(){
+  if(rain){dropAcc++;if(dropAcc%7===0)drop((Math.random()*GW)|0,(Math.random()*GH)|0,3+((Math.random()*4)|0),0.6+Math.random()*1.4)}
+  sim();sim();render();
+  requestAnimationFrame(loop);
+}
+var rainBtn=document.getElementById('rain');
+rainBtn.addEventListener('click',function(){rain=!rain;rainBtn.classList.toggle('on',rain)});
+document.getElementById('calm').addEventListener('click',function(){a.fill(0);b.fill(0)});
+window.addEventListener('resize',fit);
+fit();drop(GW/2,GH/2,12,2);requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

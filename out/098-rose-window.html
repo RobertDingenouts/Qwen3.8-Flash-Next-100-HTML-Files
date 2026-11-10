@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rose Window · Nº 098</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#151019;color:#e8ddc4;font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font:italic 400 22px Georgia,serif;color:#d4af37}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#7a6a4e;margin-top:4px}
+canvas{touch-action:manipulation;cursor:pointer}
+.bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center}
+label{font-size:8px;letter-spacing:.22em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:100px;accent-color:#d4af37}
+button{font:italic 12px Georgia,serif;padding:9px 16px;background:transparent;border:1px solid #7a6a4e;color:#e8ddc4;cursor:pointer}
+button:hover{background:#d4af37;color:#151019;border-color:#d4af37}
+</style>
+</head>
+<body>
+<header><h1>Rose Window</h1><p class="tag">Nº 098 · consecrated geometry, random glazier</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<label>petals <input id="pet" type="range" min="6" max="16" value="12"></label>
+<label>daylight <input id="sun" type="range" min="0" max="100" value="70"></label>
+<button id="recut">recut the window</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var JEWELS=['#8a1f2f','#1f4a8a','#1f7a4a','#c98f1f','#5f2f7a','#8a5f1f','#1f6a7a','#7a1f5f'];
+var cells=[],seed=1;
+function rng(s){return function(){s|=0;s=(s+0x6D2B79F5)|0;var t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+function cut(){
+ var r=rng(seed);
+ cells=[];
+ var n=+document.getElementById('pet').value;
+ cells.push({type:'hub',col:JEWELS[(r()*JEWELS.length)|0]});
+ for(var ring=0;ring<3;ring++){
+  var count=n*(ring===0?1:ring===1?2:1);
+  for(var i=0;i<count;i++){
+   cells.push({type:'arc',ring:ring,i:i,n:count,
+    col:JEWELS[(r()*JEWELS.length)|0],
+    inner:ring===0?0:(ring===1?0.34:0.62),
+    outer:ring===0?0.32:(ring===1?0.58:0.86),
+    round:ring===2&&r()<0.7});
+  }
+ }
+ for(var i2=0;i2<16;i2++){
+  cells.push({type:'arc',ring:3,i:i2,n:16,col:'#2a2438',inner:0.88,outer:1});
+ }
+}
+function fit(){D=Math.min(devicePixelRatio||1,2);
+ S=Math.min(innerWidth-10,innerHeight-170,520);S=Math.max(250,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+function draw(){
+ var sun=+document.getElementById('sun').value/100;
+ var cx=S/2,cy=S/2,R=S*0.46;
+ ctx.clearRect(0,0,S,S);
+ var halo=ctx.createRadialGradient(cx,cy,R*0.2,cx,cy,R*1.6);
+ halo.addColorStop(0,'rgba(212,175,55,'+sun*0.12+')');
+ halo.addColorStop(1,'rgba(212,175,55,0)');
+ ctx.fillStyle=halo;
+ ctx.fillRect(0,0,S,S);
+ var r=rng(seed+999);
+ cells.forEach(function(c){
+  ctx.beginPath();
+  var col=c.col;
+  if(c.type==='hub'){
+   ctx.arc(cx,cy,R*0.14,0,7);
+  }else{
+   var a0=c.i/c.n*Math.PI*2-Math.PI/2,
+       a1=(c.i+1)/c.n*Math.PI*2-Math.PI/2;
+   var ri=R*c.inner,ro=R*c.outer;
+   ctx.arc(cx,cy,ro,a0,a1);
+   ctx.arc(cx,cy,ri,a1,a0,true);
+   ctx.closePath();
+  }
+  var g=ctx.createRadialGradient(cx,cy,0,cx,cy,R);
+  g.addColorStop(0,col);
+  g.addColorStop(1,'rgba(0,0,0,0.55)');
+  ctx.fillStyle=g;
+  ctx.globalAlpha=0.55+sun*0.45;
+  ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.strokeStyle='#0d0a12';
+  ctx.lineWidth=Math.max(2,S*0.006);
+  ctx.stroke();
+ });
+ ctx.fillStyle='rgba(212,175,55,'+sun*0.9+')';
+ ctx.beginPath();ctx.arc(cx,cy,R*0.05,0,7);ctx.fill();
+ var lg=ctx.createLinearGradient(cx-S*0.25,H(),cx+S*0.1,H()+S*0.2);
+ function H(){return cy}
+ lg.addColorStop(0,'rgba(212,175,55,0)');
+ lg.addColorStop(0.5,'rgba(212,175,55,'+sun*0.16+')');
+ lg.addColorStop(1,'rgba(212,175,55,0)');
+ ctx.fillStyle=lg;
+ ctx.beginPath();
+ ctx.moveTo(cx,cy);
+ ctx.lineTo(cx-S*0.42,S);
+ ctx.lineTo(cx+S*0.42,S);
+ ctx.closePath();
+ ctx.fill();
+}
+document.getElementById('recut').addEventListener('click',function(){
+ seed=(Math.random()*1e9)|0;cut();draw();
+});
+document.getElementById('pet').addEventListener('input',function(){cut();draw()});
+document.getElementById('sun').addEventListener('input',draw);
+cv.addEventListener('click',function(){seed=(Math.random()*1e9)|0;cut();draw()});
+window.addEventListener('resize',fit);
+cut();fit();
+})();
+</script>
+</body>
+</html>

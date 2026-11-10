@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Powder Room · Nº 087</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#241d15;color:#e8d9bc;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font-size:11px;letter-spacing:.4em;text-transform:uppercase;font-weight:400}
+h1 b{color:#e8a84b}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#7a6a50;margin-top:4px}
+canvas{cursor:crosshair;touch-action:none;border-radius:6px;
+box-shadow:0 0 0 4px rgba(232,217,188,0.12),0 26px 50px -18px rgba(0,0,0,0.8)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+button{font:700 8px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;
+padding:10px 12px;background:transparent;border:1px solid #6a5a40;color:#e8d9bc;cursor:pointer}
+button:hover{background:#3a2f1f}
+button.on{background:#e8a84b;color:#241d15;border-color:#e8a84b}
+label{font-size:8px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:80px;accent-color:#e8a84b}
+</style>
+</head>
+<body>
+<header><h1>Powder <b>Room</b></h1><p class="tag">Nº 087 · four elements, one cellular automaton</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<button data-t="1" class="on">sand</button>
+<button data-t="2">water</button>
+<button data-t="3">stone</button>
+<button data-t="0">erase</button>
+<label>brush <input id="br" type="range" min="1" max="14" value="5"></label>
+<button id="clr">empty room</button>
+<span style="font-size:8px;letter-spacing:.2em;color:#7a6a50" id="cnt"></span>
+</div>
+<script>
+(function(){
+"use strict";
+var CELL=3;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var COLS,ROWS,grid,img,tool=1,brush=5;
+function fit(){
+ var W=Math.min(innerWidth-20,900),H=Math.min(innerHeight-150,540);
+ cv.style.width=W+'px';cv.style.height=H+'px';
+ cv.width=W;cv.height=H;
+ COLS=(W/CELL)|0;ROWS=(H/CELL)|0;
+ var g=new Uint8Array(COLS*ROWS);
+ if(grid)g.set(grid.subarray(0,Math.min(grid.length,g.length)));
+ grid=g;
+ img=ctx.createImageData(W,H);
+}
+function idx(x,y){return y*COLS+x}
+function paint(cx,cy,r,t){
+ for(var j=-r;j<=r;j++)for(var i=-r;i<=r;i++){
+  if(i*i+j*j>r*r)continue;
+  var x=cx+i,y=cy+j;
+  if(x<0||y<0||x>=COLS||y>=ROWS)continue;
+  if(t||!grid[idx(x,y)]||t===3)grid[idx(x,y)]=t;
+ }
+}
+var down=false,px=0,py=0;
+cv.addEventListener('pointerdown',function(e){down=true;var p=pos(e);px=p[0];py=p[1];paint(p[0],p[1],brush,tool)});
+window.addEventListener('pointerup',function(){down=false});
+cv.addEventListener('pointermove',function(e){
+ if(!down)return;
+ var p=pos(e),dx=p[0]-px,dy=p[1]-py;
+ var n=Math.max(Math.abs(dx),Math.abs(dy),1);
+ for(var k=0;k<=n;k++)paint(px+dx*k/n|0,py+dy*k/n|0,brush,tool);
+ px=p[0];py=p[1];
+});
+function pos(e){
+ var r=cv.getBoundingClientRect();
+ return[((e.clientX-r.left)/CELL)|0,((e.clientY-r.top)/CELL)|0];
+}
+var rnd=function(){return Math.random()};
+function step(){
+ for(var y=ROWS-1;y>=0;y--){
+  var ltr=(y&1)===0;
+  var xs=ltr?0:COLS-1,xe=ltr?COLS:-1,xd=ltr?1:-1;
+  for(var x=xs;x!==xe;x+=xd){
+   var i=idx(x,y),c=grid[i];
+   if(!c)continue;
+   if(c===3)continue;
+   if(c===1){
+    var d=i+COLS;
+    if(y+1<ROWS&&!grid[d]){grid[d]=1;grid[i]=0;continue}
+    var dir=rnd()<0.5?-1:1;
+    if(y+1<ROWS&&x+dir>=0&&x+dir<COLS&&!grid[d+dir]){grid[d+dir]=1;grid[i]=0;continue}
+    if(y+1<ROWS&&x-dir>=0&&x-dir<COLS&&!grid[d-dir]){grid[d-dir]=1;grid[i]=0;continue}
+   }else if(c===2){
+    var d2=i+COLS;
+    if(y+1<ROWS&&!grid[d2]){grid[d2]=2;grid[i]=0;continue}
+    var dir2=rnd()<0.5?-1:1;
+    if(y+1<ROWS&&x+dir2>=0&&x+dir2<COLS&&!grid[d2+dir2]){grid[d2+dir2]=2;grid[i]=0;continue}
+    if(y+1<ROWS&&x-dir2>=0&&x-dir2<COLS&&!grid[d2-dir2]){grid[d2-dir2]=2;grid[i]=0;continue}
+    if(x+dir2>=0&&x+dir2<COLS&&!grid[i+dir2]){grid[i+dir2]=2;grid[i]=0;continue}
+   }
+  }
+ }
+}
+function render(){
+ var d=img.data,W=COLS*CELL;
+ var counts=[0,0,0,0];
+ for(var y=0;y<ROWS;y++)for(var x=0;x<COLS;x++){
+  var c=grid[idx(x,y)];
+  counts[c]++;
+  var r0,g0,b0,a0;
+  if(c===1){var v=(x+y)%7;r0=214-v*4;g0=160-v*3;b0=94-v*2;a0=255}
+  else if(c===2){var wv=(x*3+y*5)%9;r0=40+wv;g0=110+wv*2;b0=170+wv*3;a0=225}
+  else if(c===3){var sv=(x+y)%5;r0=90+sv*4;g0=92+sv*4;b0=96+sv*4;a0=255}
+  else {a0=0;r0=g0=b0=0}
+  for(var py2=0;py2<CELL;py2++)for(var px2=0;px2<CELL;px2++){
+   var p=((y*CELL+py2)*W+(x*CELL+px2))*4;
+   d[p]=r0;d[p+1]=g0;d[p+2]=b0;d[p+3]=a0;
+  }
+ }
+ ctx.putImageData(img,0,0);
+ document.getElementById('cnt').textContent=
+  'sand '+counts[1]+' · water '+counts[2]+' · stone '+counts[3];
+}
+document.querySelectorAll('[data-t]').forEach(function(b){
+ b.addEventListener('click',function(){
+  tool=+b.dataset.t;
+  document.querySelectorAll('[data-t]').forEach(function(x){x.classList.toggle('on',x===b)});
+ });
+});
+document.getElementById('br').addEventListener('input',function(e){brush=+e.target.value});
+document.getElementById('clr').addEventListener('click',function(){grid.fill(0)});
+window.addEventListener('resize',fit);
+fit();
+(function loop(){step();render();requestAnimationFrame(loop)})();
+})();
+</script>
+</body>
+</html>

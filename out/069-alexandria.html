@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alexandria · Nº 069</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#e7dcc2;color:#3d2f1e;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;gap:8px;padding:12px}
+header{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+h1{font:italic 400 22px Georgia,serif}
+h1 b{font-style:normal;color:#9a6a2c}
+#crumbs{display:flex;gap:6px;flex-wrap:wrap;font:10px ui-monospace,Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+#crumbs span{cursor:pointer;border-bottom:1px dotted #9a6a2c;padding-bottom:1px}
+#crumbs span:hover{color:#9a6a2c}
+#stage{flex:1;min-height:0;position:relative;border:2px solid #9a6a2c55;border-radius:6px;overflow:hidden}
+#tip{height:16px;text-align:center;font:italic 12px Georgia,serif;color:#7a5a34}
+.tcell{position:absolute;overflow:hidden;cursor:pointer;transition:none;border:1px solid #e7dcc2}
+.tcell h3{font:700 12px Georgia,serif;padding:6px 8px;line-height:1.2}
+.tcell p{font:9px ui-monospace,Menlo,monospace;letter-spacing:.1em;padding:0 8px;opacity:.8}
+@media(max-width:520px){h1{font-size:17px}.tcell h3{font-size:9px}.tcell p{font-size:7px;padding:0 4px}}
+</style>
+</head>
+<body>
+<header>
+<h1>The <b>Alexandria</b> Index</h1>
+<div id="crumbs"></div>
+</header>
+<div id="stage"></div>
+<p id="tip">every scroll counted before the fire — click a wing to enter its stacks</p>
+<script>
+(function(){
+"use strict";
+var DATA={n:'Great Library',ch:[
+ {n:'Astronomy',w:[['Star Tables of Aristarchus',320],['On the Sizes of Shadows',210],['Planisphere Fragments',140],['Comet Registers',95],['Eclipses of Babylon',180]]},
+ {n:'Poetry',w:[['Sappho, Complete',410],['Lost Odes of Pindar',260],['The Archilochus Marbles',150],['Menander Comedies',300],['Epigram Gatherings',90]]},
+ {n:'Medicine',w:[['Herophilus on the Nerves',240],['Anatomy of the Vein',170],['Poisons of the Pontus',110],['Midwifery of Cos',130]]},
+ {n:'Engineering',w:[['Ctesibius: Pumps',190],['On Flying Machines',80],['Harbour Mechanisms',120],['Theodosius: Mirrors',100],['Automata of Byzantium',60]]},
+ {n:'History',w:[['King Lists, Books 1-40',350],['The Gallic Wars Drafts',220],['Berossus on Babylon',180],['Archives of Syracuse',140]]},
+ {n:'Philosophy',w:[['Aristotle, Dialogues',390],['Chrysippus, Whole',280],['Epicurus: On Nature',230],['Sceptic Commentaries',110],['Lost Platonic Speeches',95]]},
+ {n:'Religion',w:[['Orphic Hymnal',160],['Septuagint Drafts',200],['Rites of Serapis',90],['Egyptian Dead, Variants',120]]}
+]};
+function tree(){
+  function mk(n,w){return{n:n,w:w,ch:[]}}
+  var root={n:DATA.n,ch:DATA.ch.map(function(c){
+    return{n:c.n,w:c.w.reduce(function(a,b){return a+b[1]},0),
+      ch:c.w.map(function(x){return mk(x[0],x[1])})};
+  })};
+  root.w=root.ch.reduce(function(a,b){return a+b.w},0);
+  return root;
+}
+var root=tree(),path=[root];
+var stage=document.getElementById('stage'),cells=[];
+var PAL2=['#c98a3e','#b0682f','#9a6a2c','#8a5a26','#7a4f22','#a3552f','#8f4a2a'];
+var PAL3=['#efe4c8','#ead9b6','#e2cba2','#d8bd8e','#cfb083','#e6d3ac','#dcc49c'];
+function layout(node,x,y,w,h,out,depth){
+  if(!node.ch.length){out.push({node:node,x:x,y:y,w:w,h:h,depth:depth});return}
+  var kids=node.ch.slice().sort(function(a,b){return b.w-a.w});
+  var total=node.ch.reduce(function(a,b){return a+b.w},0);
+  var hor=w>=h;
+  var cur=0;
+  kids.forEach(function(k){
+    var frac=k.w/total;
+    if(hor){
+      var kw=w*frac;
+      layout(k,x+cur,y,kw-1.5,h,out,depth+1);
+      cur+=kw;
+    }else{
+      var kh=h*frac;
+      layout(k,x,y+cur,w,kh-1.5,out,depth+1);
+      cur+=kh;
+    }
+  });
+}
+function render(animate){
+  var W=stage.clientWidth,H=stage.clientHeight;
+  var node=path[path.length-1];
+  var out=[];
+  layout(node,0,0,W,H,out,0);
+  cells.forEach(function(c){c.el.remove()});
+  cells=[];
+  out.forEach(function(o){
+    var el=document.createElement('div');
+    el.className='tcell';
+    var depth=o.depth;
+    var color=depth===1?PAL2[out.indexOf(o)%PAL2.length]:PAL3[(o.node.n.length+o.w)%PAL3.length];
+    if(depth===2)color=PAL3[(out.indexOf(o))%PAL3.length];
+    el.style.background=depth===1?color:shade(color,-4);
+    el.style.left=o.x+'px';el.style.top=o.y+'px';
+    el.style.width=Math.max(0,o.w)+'px';el.style.height=Math.max(0,o.h)+'px';
+    if(o.w>62&&o.h>34){
+      el.innerHTML='<h3>'+o.node.n+'</h3>'+(depth===1?'':'<p>'+o.node.w+' scrolls</p>');
+      if(depth===1)el.querySelector('h3').style.color='#f6ecd6';
+    }
+    el.title=o.node.n+' — '+o.node.w+' scrolls';
+    el.addEventListener('click',function(){
+      if(o.node.ch.length){path.push(o.node);render();}
+      crumbs();
+    });
+    stage.appendChild(el);
+    cells.push({el:el,o:o});
+  });
+  crumbs();
+}
+function shade(hex,amt){
+  var c=hex.replace('#','');
+  var r=Math.max(0,Math.min(255,parseInt(c.substr(0,2),16)+amt));
+  var g=Math.max(0,Math.min(255,parseInt(c.substr(2,2),16)+amt));
+  var b=Math.max(0,Math.min(255,parseInt(c.substr(4,2),16)+amt));
+  return'rgb('+r+','+g+','+b+')';
+}
+function crumbs(){
+  var el=document.getElementById('crumbs');
+  el.innerHTML='';
+  path.forEach(function(n,i){
+    var s=document.createElement('span');
+    s.textContent=n.n;
+    s.addEventListener('click',function(){
+      path=path.slice(0,i+1);render();
+    });
+    el.appendChild(s);
+    if(i<path.length-1){
+      var sep=document.createElement('span');
+      sep.textContent='›';sep.style.cursor='default';sep.style.border='none';
+      el.appendChild(sep);
+    }
+  });
+}
+window.addEventListener('resize',function(){render()});
+render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hex Atlas · Nº 095</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#d9c8a0;color:#4a3a22;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font:italic 400 24px Georgia,serif}
+h1 b{font-style:normal;color:#7a4f22}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#8a6f46;margin-top:4px}
+canvas{cursor:pointer;touch-action:manipulation;border-radius:4px;
+box-shadow:0 20px 44px -18px rgba(74,58,34,0.6)}
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center}
+button{font:italic 12px Georgia,serif;padding:9px 16px;background:transparent;border:1px solid #7a4f22;color:#4a3a22;cursor:pointer}
+button:hover{background:#7a4f22;color:#f2e8cc}
+#seed{font:9px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#8a6f46}
+#sel{font-size:11px;font-style:italic;min-height:15px}
+</style>
+</head>
+<body>
+<header><h1>Hex <b>Atlas</b> of Nowhere Specific</h1><p class="tag">Nº 095 · cartography by committee of one, per realm</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<button id="new">new realm ▸</button>
+<span id="seed"></span>
+<span id="sel">click a hex to christen it</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1;
+var seed=0,names={};
+function rng(s){return function(){s|=0;s=(s+0x6D2B79F5)|0;var t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296}}
+var COLS=15,ROWS=11,hex=26;
+function gen(){
+ seed=(Math.random()*1e9)|0;
+ document.getElementById('seed').textContent='realm seed '+seed.toString(36);
+ names={};
+ var r=rng(seed);
+ var G=6;
+ var g=[];
+ for(var i=0;i<=G;i++){g[i]=[];for(var j=0;j<=G;j++)g[i][j]=r()}
+ function smooth(t){return t*t*(3-2*t)}
+ function noise(x,y){
+  var x0=Math.floor(x),y0=Math.floor(y);
+  var tx=smooth(x-x0),ty=smooth(y-y0);
+  var a=g[x0%7][y0%7],b=g[(x0+1)%7][y0%7],c=g[x0%7][(y0+1)%7],d=g[(x0+1)%7][(y0+1)%7];
+  return a+(b-a)*tx+(c-a)*ty+(a-b-c+d)*tx*ty;
+ }
+ var m=[];
+ for(var cX=0;cX<COLS;cX++)for(var row=0;row<ROWS;row++){
+  var u=cX/COLS*3.4+seed%100*0.01,v=row/ROWS*3.4;
+  var e=noise(u,v)*0.6+noise(u*2.3,v*2.3)*0.3+noise(u*5,v*5)*0.1;
+  var dx=(cX-COLS/2)/(COLS/2),dy=(row-ROWS/2)/(ROWS/2);
+  var fall=1-Math.min(1,dx*dx*1.15+dy*dy*0.85);
+  e=e*0.82+fall*0.38;
+  m.push(e);
+ }
+ map=m;
+}
+var map=[];
+function biome(e){
+ if(e<0.42)return'#a8c4d4';
+ if(e<0.47)return'#e0cf9a';
+ if(e<0.58)return'#c4cf9f';
+ if(e<0.70)return'#9db88a';
+ if(e<0.80)return'#b8a88a';
+ return'#e8e2d4';
+}
+function fit(){D=Math.min(devicePixelRatio||1,2);
+ var w=Math.min(innerWidth-16,hex*1.75*COLS),h=Math.min(innerHeight-140,hex*1.7*ROWS);
+ hex=Math.min((innerWidth-16)/(1.75*COLS),(innerHeight-140)/(1.7*ROWS),30);
+ var W=hex*1.75*COLS,H=hex*1.7*ROWS;
+ cv.style.width=W+'px';cv.style.height=H+'px';
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+ draw();
+}
+function hexPath(x,y,r){
+ ctx.beginPath();
+ for(var i=0;i<6;i++){
+  var a=Math.PI/3*i;
+  var px=x+r*Math.cos(a),py=y+r*Math.sin(a);
+  i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+ }
+ ctx.closePath();
+}
+function draw(){
+ var W=cv.width/D,H=cv.height/D;
+ ctx.clearRect(0,0,W,H);
+ for(var c=0;c<COLS;c++)for(var r=0;r<ROWS;r++){
+  var e=map[r*COLS+c];
+  var x=hex+c*hex*1.5;
+  var y=hex*1.2+r*hex*1.7+(c%2?hex*0.85:0);
+  hexPath(x,y,hex*1.02);
+  ctx.fillStyle=biome(e);
+  ctx.fill();
+  ctx.strokeStyle='rgba(74,58,34,0.45)';
+  ctx.lineWidth=1;
+  ctx.stroke();
+  var key=c+','+r;
+  if(names[key]){
+   ctx.fillStyle='#4a3a22';
+   ctx.font='italic '+Math.max(7,hex*0.34)+'px Georgia,serif';
+   ctx.textAlign='center';
+   ctx.fillText(names[key],x,y+3);
+   ctx.textAlign='left';
+  }else if(e>=0.42&&e>=0.8){
+   ctx.fillStyle='rgba(74,58,34,0.5)';
+   ctx.beginPath();
+   ctx.moveTo(x,y-3);ctx.lineTo(x-3,y+2);ctx.lineTo(x+3,y+2);
+   ctx.closePath();ctx.fill();
+  }
+ }
+ ctx.strokeStyle='#4a3a22';
+ ctx.lineWidth=1.5;
+ var sx=W-hex*2.2,sy=H-hex*1.6;
+ ctx.beginPath();ctx.arc(sx,sy,hex*0.8,0,7);ctx.stroke();
+ ctx.beginPath();
+ ctx.moveTo(sx,sy-hex*0.7);ctx.lineTo(sx-hex*0.14,sy);ctx.lineTo(sx,sy-hex*0.2);ctx.lineTo(sx+hex*0.14,sy);
+ ctx.closePath();ctx.fillStyle='#7a2a24';ctx.fill();
+ ctx.fillStyle='#4a3a22';
+ ctx.font='italic 9px Georgia,serif';
+ ctx.textAlign='center';
+ ctx.fillText('N',sx,sy-hex*0.9);
+ ctx.textAlign='left';
+}
+cv.addEventListener('pointerdown',function(e){
+ var r=cv.getBoundingClientRect();
+ var x=e.clientX-r.left,y=e.clientY-r.top;
+ var bc=Math.round((x-hex)/(hex*1.5));
+ var br=Math.round((y-hex-(bc%2?hex*0.85:0))/(hex*1.7));
+ if(bc<0||bc>=COLS||br<0||br>=ROWS)return;
+ var key=bc+','+br;
+ var e2=map[br*COLS+bc];
+ if(names[key]){delete names[key];draw();return}
+ var A=rng(seed+(br+7)*(bc+13))();
+ function mk(){
+  var P=['Mor','Ash','Bel','Thorn','Dun','Grey','Fen','Cald','Eris','Vayle','Orrin','Sable'];
+  var Q=['wick','mere','hollow','reach','fell','burg','moor','haven','gate','shaw','reach','crest'];
+  var T=['','',' ','the Second ','the Old ','Upper '];
+  var i=Math.floor(A*12),j=Math.floor(((A*77)%1)*12),k=Math.floor(((A*31)%1)*6);
+  if(e2<0.42)Q=['Bay','Deep','Sound','Gulf','Trench','Shoal','Eddy','Hollow','Tide','Vast','Grey','Abyss'];
+  return P[i]+Q[j]+T[k];
+ }
+ names[key]=mk();
+ document.getElementById('sel').textContent=key+' now known as ‘'+names[key]+'’ — click again to rename the void';
+ draw();
+});
+document.getElementById('new').addEventListener('click',function(){gen();fit()});
+window.addEventListener('resize',fit);
+gen();fit();
+})();
+</script>
+</body>
+</html>

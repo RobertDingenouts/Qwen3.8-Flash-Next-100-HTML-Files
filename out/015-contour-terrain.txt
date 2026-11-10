@@ -1,0 +1,5 @@
+TITLE: Contour Country — parallax topographic ranges
+PROMPT: Print a mountain country as a vintage survey poster: five ranges of procedurally grown ridgelines, each terraced with contour rules like an elevation map, drifting at different speeds when the visitor moves — a landscape you can lean into.
+DESCRIPTION: A layered ridgeline landscape built from periodic multi-octave sine noise (perfect for seamless parallax scrolling). Each layer is a filled silhouette clipped and ruled with evenly stepped contour strokes so it reads as a topographic map, front ranges darker, sun disc and sky gradient behind, three seasonal palettes (dusk, sepia, jade). Ranges scroll forever; cursor tilt parallaxes them.
+TECHNIQUES: periodic fbm via integer-frequency sines (wrap-safe scrolling), Path2D silhouette construction + clip() for in-mask contour ruling, per-layer parallax coefficients, gradient sky and glow ring, monospace lab signage over Palatino title.
+INTERACTION: Move the cursor (or tilt on touch-drag) to lean the ranges into parallax and swing the sun, press NEW LAND for a fresh orogeny, and cycle SEASON between dusk, sepia survey, and jade.

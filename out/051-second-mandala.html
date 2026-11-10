@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Second Mandala · Nº 051</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0e0c14;color:#efe6da;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10px}
+header{text-align:center}
+h1{font:italic 400 23px Georgia,serif}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.44em;text-transform:uppercase;color:#8f7fb8;margin-bottom:6px}
+canvas{display:block}
+#info{font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:#a898d8}
+.dock{display:flex;gap:8px}
+button{font:italic 12px Georgia,serif;padding:9px 16px;background:transparent;border:1px solid #4c3f6e;color:#efe6da;cursor:pointer}
+button:hover{background:#efe6da;color:#0e0c14}
+@media(max-width:520px){h1{font-size:18px}}
+</style>
+</head>
+<body>
+<header><h1><span>Nº 051 · the day flowers at its own pace</span>Second Mandala</h1></header>
+<canvas id="c"></canvas>
+<p id="info">—</p>
+<div class="dock"><button id="fast">bloom a whole minute</button><button id="new">fresh dawn</button></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var ink=document.createElement('canvas'),ictx=ink.getContext('2d');
+var lastSec=-1,fastQueue=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  S=Math.min(innerWidth-16,innerHeight-160,540);
+  S=Math.max(260,S);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  ink.width=S*2;ink.height=S*2;
+}
+function petal(sec,min,hour,g){
+  var hue=(sec*6+min*0.5+hour*12)%360;
+  var a=sec/60*Math.PI*2-Math.PI/2;
+  var r0=S*0.24+Math.sin(sec/60*Math.PI*6)*S*0.02;
+  var len=S*(0.05+0.13*Math.pow(Math.sin((sec+min)/60*Math.PI),2));
+  g.save();
+  g.translate(S,S);
+  g.rotate(a);
+  g.strokeStyle='hsla('+hue+',60%,65%,0.5)';
+  g.lineWidth=2;
+  g.beginPath();
+  g.moveTo(r0,0);
+  g.quadraticCurveTo(r0+len*0.6,len*0.34,r0+len,0);
+  g.quadraticCurveTo(r0+len*0.6,-len*0.34,r0,0);
+  g.stroke();
+  g.fillStyle='hsla('+(hue+30)%360+',70%,70%,0.75)';
+  g.beginPath();g.arc(r0+len*0.82,0,2.4,0,7);g.fill();
+  g.restore();
+}
+function addPetal(sec,min,hour){
+  ictx.save();ictx.scale(2,2);
+  petal(sec,min,hour,ictx);
+  ictx.restore();
+}
+function drawHand(now){
+  var sec=now.getSeconds(),min=now.getMinutes(),hour=now.getHours()+min/60;
+  ctx.save();ctx.translate(S,S);
+  [[0.98,60],[0.7,12],[0.52,60]].forEach(function(r,ri){
+    ctx.strokeStyle='rgba(168,152,216,'+(ri===0?0.25:0.12)+')';
+    ctx.beginPath();ctx.arc(0,0,S*r[0],0,7);ctx.stroke();
+    if(ri===2)return;
+    for(var i=0;i<r[1];i++){
+      var a=i/r[1]*Math.PI*2-Math.PI/2;
+      var l=r[0]*S+(i%(r[1]/12)===0?10:5);
+      ctx.strokeStyle='rgba(239,230,218,'+(i%(r[1]/12)===0?0.5:0.16)+')';
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*r[0]*S,Math.sin(a)*r[0]*S);
+      ctx.lineTo(Math.cos(a)*l,Math.sin(a)*l);
+      ctx.stroke();
+    }
+  });
+  var hands=[
+    [sec/60,'#c9b26a',2,0.86,Math.max(2,Math.sin((Date.now()%1000)/1000*Math.PI)*3)],
+    [min/60,'#d8cfc0',3,0.66,5],
+    [(hour%12)/12,'#efe6da',4,0.48,8]
+  ];
+  hands.forEach(function(h){
+    var a=h[0]*Math.PI*2-Math.PI/2;
+    ctx.strokeStyle=h[1];
+    ctx.lineWidth=h[2];
+    ctx.lineCap='round';
+    ctx.beginPath();
+    ctx.moveTo(-Math.cos(a)*14,-Math.sin(a)*14);
+    ctx.lineTo(Math.cos(a)*S*h[3],Math.sin(a)*S*h[3]);
+    ctx.stroke();
+    if(h[4]>3){
+      ctx.fillStyle=h[1];
+      ctx.beginPath();ctx.arc(Math.cos(a)*S*h[3],Math.sin(a)*S*h[3],h[4]/2,0,7);ctx.fill();
+    }
+  });
+  ctx.fillStyle='#efe6da';
+  ctx.beginPath();ctx.arc(0,0,6,0,7);ctx.fill();
+  ctx.fillStyle='#0e0c14';
+  ctx.beginPath();ctx.arc(0,0,2.4,0,7);ctx.fill();
+  ctx.restore();
+}
+function loop(){
+  var now=new Date();
+  var sec=now.getSeconds(),min=now.getMinutes(),hour=now.getHours();
+  if(sec!==lastSec&&fastQueue<=0){
+    lastSec=sec;
+    addPetal(sec,min,hour);
+  }
+  if(fastQueue>0){
+    fastQueue--;
+    var f=(sec+59-fastQueue%60+60)%60;
+    addPetal(f,min,hour);
+  }
+  ctx.clearRect(0,0,S,S);
+  ctx.drawImage(ink,0,0,ink.width,ink.height,0,0,S,S);
+  var pct=(hour*3600+min*60+sec)/86400;
+  ctx.strokeStyle='rgba(201,178,106,0.5)';
+  ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(S,S,S*0.98,-Math.PI/2,-Math.PI/2+pct*Math.PI*2);ctx.stroke();
+  drawHand(now);
+  document.getElementById('info').textContent=
+    now.toLocaleTimeString()+' · day '+Math.round(pct*100)+'% bloomed';
+  requestAnimationFrame(loop);
+}
+document.getElementById('fast').addEventListener('click',function(){fastQueue=59});
+document.getElementById('new').addEventListener('click',function(){
+  ictx.clearRect(0,0,ink.width,ink.height);
+});
+window.addEventListener('resize',fit);
+fit();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

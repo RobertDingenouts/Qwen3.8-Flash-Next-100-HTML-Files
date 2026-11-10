@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Darkroom Grid · Nº 040</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#120b0b;color:#e8d8ce;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:11px;font-weight:300;letter-spacing:.5em;text-transform:uppercase}
+h1 b{color:#ff5544;font-weight:700}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#8a5f55;margin-top:6px}
+#c{cursor:pointer;border-radius:6px;touch-action:manipulation}
+.dock{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+button{font:700 8px "Helvetica Neue",sans-serif;letter-spacing:.2em;text-transform:uppercase;padding:10px 13px;background:transparent;color:#e8d8ce;border:1px solid #6e4138;cursor:pointer}
+button:hover{background:#ff5544;color:#120b0b;border-color:#ff5544}
+button.on{background:#6e4138;border-color:#ff5544}
+#msg{font:300 11px "Helvetica Neue",sans-serif;letter-spacing:.14em;height:15px;text-align:center;color:#c99d90}
+#mv{font:700 9px ui-monospace,monospace;letter-spacing:.2em;color:#ff8877}
+@media(max-width:480px){h1{font-size:9px;letter-spacing:.3em}}
+</style>
+</head>
+<body>
+<header><h1>Darkroom <b>Grid</b></h1><p class="tag">Nº 040 · quench the safelights · let the print finish</p></header>
+<canvas id="c"></canvas>
+<p id="msg">tapping a tile floods its cross — leave the whole print dark to develop it</p>
+<div class="dock">
+<button data-n="4">4×4</button>
+<button data-n="5" class="on">5×5</button>
+<button data-n="6">6×6</button>
+<button id="fresh">fresh negative</button>
+<span id="mv">MOVES 0</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var n=5,st=new Uint8Array(n*n),photo,moves=0,won=false,wonT=0,PX=560;
+var msg=document.getElementById('msg'),mvEl=document.getElementById('mv');
+function makePhoto(){
+  photo=document.createElement('canvas');
+  photo.width=PX;photo.height=PX;
+  var p=photo.getContext('2d');
+  var g=p.createLinearGradient(0,0,0,PX);
+  g.addColorStop(0,'#1b1a3a');g.addColorStop(0.42,'#7a3350');g.addColorStop(0.55,'#e06a3a');g.addColorStop(0.62,'#f2a45e');g.addColorStop(1,'#241726');
+  p.fillStyle=g;p.fillRect(0,0,PX,PX);
+  for(var i=0;i<120;i++){
+    p.fillStyle='rgba(255,240,220,'+Math.random()*0.7+')';
+    p.fillRect(Math.random()*PX,Math.random()*PX*0.4,1.4,1.4);
+  }
+  var sun=p.createRadialGradient(PX*0.5,PX*0.56,4,PX*0.5,PX*0.56,PX*0.2);
+  sun.addColorStop(0,'#fff2c8');sun.addColorStop(0.25,'#ffd98a');sun.addColorStop(1,'rgba(255,170,90,0)');
+  p.fillStyle=sun;p.beginPath();p.arc(PX*0.5,PX*0.56,PX*0.2,0,7);p.fill();
+  p.fillStyle='#fff0c0';p.beginPath();p.arc(PX*0.5,PX*0.56,PX*0.05,0,7);p.fill();
+  ridge(p,PX*0.68,'#3c2140');
+  ridge(p,PX*0.74,'#231428');
+  var lg=p.createLinearGradient(0,PX*0.76,0,PX);
+  lg.addColorStop(0,'#c95c34');lg.addColorStop(0.3,'#5c2a40');lg.addColorStop(1,'#120b18');
+  p.fillStyle=lg;p.fillRect(0,PX*0.76,PX,PX*0.24);
+  p.fillStyle='rgba(255,200,120,0.30)';
+  for(i=0;i<34;i++){
+    var y=PX*0.77+i*(PX*0.22/34);
+    p.fillRect(PX*0.5-PX*(0.045-i*0.0016),y,PX*(0.09+i*0.0032),1.6);
+  }
+  p.fillStyle='#0e0910';
+  p.beginPath();p.moveTo(0,PX);
+  p.lineTo(0,PX*0.9);p.lineTo(PX*0.1,PX*0.88);p.lineTo(PX*0.2,PX*0.93);
+  p.lineTo(PX*0.8,PX*0.92);p.lineTo(PX*0.9,PX*0.87);p.lineTo(PX,PX*0.91);
+  p.lineTo(PX,PX);p.closePath();p.fill();
+  for(i=0;i<2200;i++){
+    p.fillStyle='rgba(255,255,255,'+Math.random()*0.045+')';
+    p.fillRect(Math.random()*PX,Math.random()*PX,1,1);
+  }
+}
+function ridge(p,y0,c){
+  p.fillStyle=c;p.beginPath();p.moveTo(0,y0+40);
+  for(var x=0;x<=PX;x+=14){
+    var y=y0+Math.sin(x*0.018)*18+Math.sin(x*0.041+2)*10;
+    p.lineTo(x,y);
+  }
+  p.lineTo(PX,y0+60);p.lineTo(0,y0+60);p.closePath();p.fill();
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  S=Math.min(innerWidth-20,innerHeight-220,520);
+  S=Math.max(240,S);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  draw();
+}
+function fresh(){
+  st=new Uint8Array(n*n);
+  var k=n*2+4;
+  for(var i=0;i<k;i++)press((Math.random()*n*n)|0,true);
+  moves=0;won=false;wonT=0;
+  mvEl.textContent='MOVES 0';
+  if(allDark())fresh();
+  msg.textContent='tapping a tile floods its cross — leave the whole print dark to develop it';
+  draw();
+}
+function press(i,quiet){
+  var r=(i/n)|0,c=i%n;
+  [[0,0],[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+    var rr=r+d[0],cc=c+d[1];
+    if(rr>=0&&rr<n&&cc>=0&&cc<n)st[rr*n+cc]^=1;
+  });
+  if(!quiet&&!won){moves++;mvEl.textContent='MOVES '+moves}
+}
+function allDark(){for(var i=0;i<st.length;i++)if(st[i])return false;return true}
+function draw(){
+  ctx.fillStyle='#120b0b';ctx.fillRect(0,0,S,S);
+  var gap=4,cell=(S-gap*(n+1))/n;
+  for(var r=0;r<n;r++)for(var c=0;c<n;c++){
+    var x=gap+c*(cell+gap),y=gap+r*(cell+gap);
+    ctx.drawImage(photo,c*PX/n,r*PX/n,PX/n,PX/n,x,y,cell,cell);
+    if(st[r*n+c]){
+      ctx.fillStyle='rgba(56,6,10,0.82)';
+      ctx.fillRect(x,y,cell,cell);
+      ctx.fillStyle='rgba(255,60,40,'+(0.05+0.04*Math.sin(Date.now()/300+r*3+c*5))+')';
+      ctx.fillRect(x,y,cell,cell);
+      ctx.strokeStyle='rgba(255,80,60,0.5)';
+      ctx.strokeRect(x+1,y+1,cell-2,cell-2);
+    }
+  }
+  if(won){
+    wonT++;
+    var a=Math.min(0.5,wonT/120);
+    var g=ctx.createRadialGradient(S/2,S/2,0,S/2,S/2,S*0.7);
+    g.addColorStop(0,'rgba(255,214,140,'+a*0.5+')');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,S,S);
+    if(wonT>30){
+      ctx.fillStyle='rgba(255,240,220,'+Math.min(1,(wonT-30)/40)+')';
+      ctx.font='300 '+Math.round(S*0.05)+'px "Helvetica Neue",sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('P R I N T   C O M P L E T E',S/2,S*0.12);
+      ctx.textAlign='left';
+    }
+    requestAnimationFrame(draw);
+    return;
+  }
+  if(st.some(function(v){return v}))requestAnimationFrame(draw);
+}
+cv.addEventListener('pointerdown',function(e){
+  if(won)return;
+  var r=cv.getBoundingClientRect();
+  var gap=4,cell=(S-gap*(n+1))/n;
+  var x=e.clientX-r.left,y=e.clientY-r.top;
+  var c=Math.floor((x-gap)/(cell+gap)),rr=Math.floor((y-gap)/(cell+gap));
+  if(c<0||c>=n||rr<0||rr>=n)return;
+  var gx=x-gap-c*(cell+gap),gy=y-gap-rr*(cell+gap);
+  if(gx>cell||gy>cell)return;
+  press(rr*n+c);
+  draw();
+  if(allDark()){
+    won=true;wonT=0;
+    msg.textContent='the print is finished — beautiful restraint in the dark.';
+    requestAnimationFrame(draw);
+  }
+});
+document.querySelectorAll('[data-n]').forEach(function(b){
+  b.addEventListener('click',function(){
+    n=+b.dataset.n;
+    document.querySelectorAll('[data-n]').forEach(function(x){x.classList.toggle('on',x===b)});
+    fresh();
+  });
+});
+document.getElementById('fresh').addEventListener('click',fresh);
+window.addEventListener('resize',fit);
+makePhoto();fit();fresh();
+})();
+</script>
+</body>
+</html>

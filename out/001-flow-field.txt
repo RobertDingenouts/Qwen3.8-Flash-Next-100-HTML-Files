@@ -1,0 +1,5 @@
+TITLE: Ink Currents — a flow field of 900 drifting brushes
+PROMPT: Paint living calligraphy: hundreds of brush particles should follow an invisible noise-driven wind over warm washi paper, laying translucent indigo strokes that accumulate like sumi ink, and the visitor's cursor should act as a second current that stirs them.
+DESCRIPTION: A full-screen generative ink painting. A seeded, smoothly interpolated value-noise field defines the wind; 900 short-lived brushstrokes trace it in layered translucent indigo. Pointer motion injects momentum into nearby brushes; the "new field" button reseeds the wind mid-drawing, and "wash the paper" fades the sheet clean in a burst.
+TECHNIQUES: devicePixelRatio-aware full-screen canvas, seeded mulberry32 PRNG, bilinearly interpolated value-noise flow field, additive translucent stroke trails via low-alpha overpaint, pointer-velocity impulse fields, responsive bottom furniture in serif type.
+INTERACTION: Move or drag the cursor to stir the current; tap/click for a swirl burst; buttons to reseed the field or wash the paper clean.

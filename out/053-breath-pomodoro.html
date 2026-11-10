@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Breath Pomodoro · Nº 053</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#101425;color:#dfe6f5;font-family:"Century Gothic",Futura,Avenir,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:12px}
+header{text-align:center}
+h1{font-size:11px;letter-spacing:.42em;text-transform:uppercase;font-weight:400}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.3em;text-transform:uppercase;color:#5c6a96;margin-top:6px}
+#c{touch-action:manipulation;cursor:pointer}
+#mode{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:#8fb7ff}
+#left{font:700 30px ui-monospace,Menlo,monospace;letter-spacing:.05em}
+.dock{display:flex;gap:8px}
+button{font:700 9px "Century Gothic",sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:11px 16px;background:transparent;border:1px solid #3d4a75;color:#dfe6f5;cursor:pointer;border-radius:3px}
+button:hover{background:#8fb7ff;color:#101425}
+#tom{display:flex;gap:8px;height:16px}
+.dot{width:14px;height:14px;border-radius:50%;border:1.5px solid #ff7a6b;transition:background .5s}
+.dot.on{background:#ff7a6b}
+@media(max-width:500px){#left{font-size:22px}}
+</style>
+</head>
+<body>
+<header><h1>Breath Pomodoro</h1><p class="tag">Nº 053 · 25 minutes of attention, one breath at a time</p></header>
+<canvas id="c"></canvas>
+<div id="mode">focus</div>
+<div id="left">25:00</div>
+<div class="dock">
+<button id="toggle">begin</button>
+<button id="skip">skip ➡</button>
+<button id="ring">bell</button>
+</div>
+<div id="tom"></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var state='focus',running=false,remain=25*60,last=0,breaths=0,tom=document.getElementById('tom');
+var BREATH=16;
+for(var i=0;i<4;i++){var d=document.createElement('div');d.className='dot';tom.appendChild(d)}
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ S=Math.min(innerWidth-30,innerHeight-280,460);S=Math.max(240,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0)}
+function bell(){
+  var AC=new (window.AudioContext||window.webkitAudioContext)();
+  [523.25,784].forEach(function(f,k){
+    var o=AC.createOscillator(),g=AC.createGain();
+    o.type='sine';o.frequency.value=f;
+    var t0=AC.currentTime+k*0.28;
+    g.gain.setValueAtTime(0.0001,t0);
+    g.gain.exponentialRampToValueAtTime(0.18,t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t0+1.6);
+    o.connect(g);g.connect(AC.destination);
+    o.start(t0);o.stop(t0+1.7);
+  });
+}
+function switchState(){
+  bell();
+  state=state==='focus'?'break':'focus';
+  remain=state==='focus'?25*60:5*60;
+  document.getElementById('mode').textContent=state;
+  if(state==='focus'){breaths=0}
+}
+function breathPhase(){
+  var tsec=(Date.now()% (BREATH*1000))/1000;
+  var i=Math.floor(tsec/4),f=(tsec%4)/4;
+  var names=['breathe in','hold','breathe out','hold'];
+  var ease=Math.sin(f*Math.PI/2);
+  var scale=i===0?0.55+0.45*ease:i===1?1:i===2?1-0.45*ease:0.55;
+  var col=i===0?[120,190,255]:i===1?[160,200,255]:i===2?[255,150,120]:[255,190,140];
+  return{name:names[i],hold:i===1||i===3,scale:scale,col:col,f:f};
+}
+function loop(ts){
+  var dt=ts-(last||ts);last=ts;
+  if(running){
+    remain-=dt/1000;
+    if(remain<=0){
+      if(state==='focus'){
+        var dots=document.querySelectorAll('.dot');
+        var lit=Math.min(4,parseInt(localStorage.getItem('bp-tom')||'0',10)+1);
+        try{localStorage.setItem('bp-tom',lit)}catch(e){}
+        paintTom(lit);
+      }
+      switchState();
+    }
+  }
+  var m=Math.max(0,Math.floor(remain/60)),s=Math.max(0,Math.floor(remain%60));
+  document.getElementById('left').textContent=m+':'+('0'+s).slice(-2);
+  var total=state==='focus'?25*60:5*60;
+  var prog=1-remain/total;
+  var bp=breathPhase();
+  ctx.clearRect(0,0,S,S);
+  var cx=S/2,cy=S/2;
+  ctx.strokeStyle='rgba(143,183,255,0.15)';
+  ctx.lineWidth=6;
+  ctx.beginPath();ctx.arc(cx,cy,S*0.44,0,7);ctx.stroke();
+  ctx.strokeStyle=state==='focus'?'#8fb7ff':'#7be0b0';
+  ctx.lineCap='round';
+  ctx.beginPath();ctx.arc(cx,cy,S*0.44,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);ctx.stroke();
+  var r=S*0.22*bp.scale;
+  var g=ctx.createRadialGradient(cx,cy,r*0.1,cx,cy,r);
+  var c='rgba('+bp.col.join(',')+',';
+  g.addColorStop(0,c+'0.5)');
+  g.addColorStop(1,c+'0.05)');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.fill();
+  ctx.strokeStyle=c+'0.55)';
+  ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(223,230,245,0.85)';
+  ctx.font='italic 300 '+Math.round(S*0.045)+'px "Century Gothic",sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText(bp.name,cx,cy-S*0.31);
+  ctx.font='700 '+Math.round(S*0.07)+'px ui-monospace,Menlo,monospace';
+  ctx.fillText(Math.max(1,4-Math.floor(((Date.now()%(BREATH*1000))/1000)%4)),cx,cy+S*0.35);
+  ctx.textAlign='left';
+  requestAnimationFrame(loop);
+}
+function paintTom(n){
+  document.querySelectorAll('.dot').forEach(function(d,i){d.classList.toggle('on',i<n)});
+}
+var saved=0;try{saved=parseInt(localStorage.getItem('bp-tom')||'0',10)}catch(e){}
+paintTom(saved);
+document.getElementById('toggle').addEventListener('click',function(){
+  running=!running;
+  this.textContent=running?'pause':'begin';
+});
+document.getElementById('skip').addEventListener('click',switchState);
+document.getElementById('ring').addEventListener('click',bell);
+cv.addEventListener('click',function(){
+  running=!running;
+  document.getElementById('toggle').textContent=running?'pause':'begin';
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

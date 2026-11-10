@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Null Term · Nº 089</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0a0602;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+body{display:flex;align-items:center;justify-content:center;padding:10px}
+#crt{width:min(860px,96vw);height:min(560px,92vh);position:relative;
+background:radial-gradient(ellipse at 50% 45%,#1c1005 0%,#0a0602 90%);
+border-radius:18px;box-shadow:inset 0 0 80px rgba(0,0,0,0.9),0 30px 60px -20px #000;
+padding:22px}
+#crt:before{content:'';position:absolute;inset:0;border-radius:18px;pointer-events:none;
+background:repeating-linear-gradient(0deg,rgba(0,0,0,0.28) 0 2px,transparent 2px 4px);
+animation:flick 0.12s infinite}
+@keyframes flick{50%{opacity:0.92}}
+#screen{height:100%;overflow-y:auto;font-size:13px;line-height:1.7;color:#ffb347;text-shadow:0 0 8px rgba(255,150,40,0.55)}
+#screen::-webkit-scrollbar{width:8px}
+#screen::-webkit-scrollbar-thumb{background:#3a2408}
+.ln{white-space:pre-wrap;word-break:break-word}
+.in{color:#ffe0a8}
+.dim{color:#a06a24}
+.err{color:#ff6a4a}
+#prompt{color:#ffe0a8}
+#cursor{background:#ffb347;animation:blink 1s steps(1) infinite;color:#0a0602}
+@keyframes blink{50%{background:transparent}}
+</style>
+</head>
+<body>
+<div id="crt"><div id="screen" tabindex="0"><div id="out"></div><div class="ln"><span id="prompt">null@nowhere:~$ </span><span id="cursor">&nbsp;</span></div></div></div>
+<script>
+(function(){
+"use strict";
+var out=document.getElementById('out'),screen=document.getElementById('screen');
+var buf='',hist=[],hi=-1;
+function p(t,cls){
+ var d=document.createElement('div');
+ d.className='ln'+(cls?' '+cls:'');
+ d.textContent=t;
+ out.appendChild(d);
+ screen.scrollTop=screen.scrollHeight;
+ return d;
+}
+function sleep(ms){return new Promise(function(ok){setTimeout(ok,ms)})}
+var CMD={
+help:function(){p('AVAILABLE COMMANDS:','dim');
+  ['help      what you just did','ls        list the void','cat FILE  read nothing aloud','echo     shout into the void','date     the machine confesses the time','uptime   how long the nothing has persisted','fortune  a certified prediction','sudo     ask nicely','rm FILE  unmake a thing','ping     probe the abyss','tree     view the empty filesystem','clear    scrub this screen'].forEach(function(l){p('  '+l)})},
+ls:function(){p('.  ..  null  silence  (a file you refuse to name)','dim')},
+cat:function(a){
+  if(!a)return p('usage: cat [something that isn’t there]','dim');
+  p('reading '+a+' …','dim');
+  setTimeout(function(){p('the file reads itself back to you. it says your name.','err')},500);
+},
+echo:function(a){p(a||'')},
+date:function(){p(new Date().toString().toUpperCase(),'dim')},
+uptime:function(){var s=Math.floor((Date.now()-START)/1000);
+  p('up '+Math.floor(s/3600)+'h '+(s/60|0)%60+'m — the nothing has been nothing for that long.','dim')},
+fortune:function(){
+  var F=['A bug will be found in 3… 2…','The comment is a lie the code tells about itself.','sudo is a word borrowed from a parent.','You will reread this output in production.','The void compiles cleanly today.','Naming things is the hardest function call.','Your semicolon is fine. Something else is not.','There are two hard problems. You are counting one.'];
+  p('🔮 '+F[(Math.random()*F.length)|0]);
+},
+sudo:function(a){
+  if(a&&a.indexOf('make me a sandwich')>=0){p('okay. sandwich.','err');return}
+  p('[sudo] password for null: …incorrect. also: everyone is watching.','err')},
+ping:function(){
+  p('PING the void (127.0.0.1): 56 data bits of feeling');
+  for(var i=0;i<3;i++)setTimeout(function(){p('64 bytes from void: seq=0 ttl=64 time=∞ ms','dim')},300*i+100);
+  setTimeout(function(){p('5 packets transmitted, 5 received, 100% packet loss','err')},1400);
+},
+rm:function(a){
+  if(!a)return p('usage: rm [the thing you keep avoiding]','dim');
+  p('rm: refusing to remove '+a+'. you would have regretted it.','err');
+},
+tree:function(){
+  p('.\n├── null\n├── nothing (2 entries)\n│   ├── nothing\n│   └── nothing else\n└── TODO\n\n0 directories, 1 regret','dim');
+},
+clear:function(){out.innerHTML=''}
+};
+var START=Date.now();
+p('NULL-TERM v0.0.1 — terminal for things that do not exist','dim');
+p('type `help` when lost, `fortune` when bored, `sudo` when ambitious.','dim');
+p('');
+screen.addEventListener('keydown',function(e){
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ if(e.key==='Enter'){
+  var line=buf;
+  p('null@nowhere:~$ '+line,'in');
+  if(line.trim()){hist.push(line);hi=hist.length}
+  buf='';
+  run(line.trim());
+ }else if(e.key==='Backspace'){buf=buf.slice(0,-1);render()}
+ else if(e.key==='ArrowUp'||e.key==='ArrowDown'){
+  if(!hist.length)return;
+  hi=Math.max(0,Math.min(hist.length-1,hi+(e.key==='ArrowUp'?-1:1)));
+  buf=hist[hi];render();
+ }else if(e.key.length===1){buf+=e.key;render()}
+});
+function render(){
+ document.getElementById('prompt').textContent='null@nowhere:~$ '+buf;
+}
+async function run(cmd){
+ if(!cmd)return;
+ var parts=cmd.split(/\s+/),name=parts[0].toLowerCase(),arg=parts.slice(1).join(' ');
+ var f=CMD[name];
+ if(f){await sleep(120);f(arg);}
+ else if(name==='exit'){p('you cannot exit. there was no entrance.','err')}
+ else if(name==='vim'){p('you are now stuck in vim. good luck.','err')}
+ else if(name==='nano'){p('you are now free of vim. you chose nano anyway.','err')}
+ else{
+  p(name+': command not found — the void has no patience for typos','err');
+ }
+}
+})();
+</script>
+</body>
+</html>

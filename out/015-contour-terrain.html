@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contour Country · Nº 015</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#efe6d3}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.tl{position:fixed;top:18px;left:22px;pointer-events:none;font-family:Palatino,"Palatino Linotype",serif;color:#4c3a24}
+h1{font-size:22px;font-weight:400;letter-spacing:.06em}
+h1 span{display:block;font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.5em;text-transform:uppercase;opacity:.6;margin-bottom:8px}
+.dock{position:fixed;right:16px;bottom:16px;display:flex;gap:7px}
+button{font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;padding:9px 13px;background:rgba(239,230,211,.8);color:#4c3a24;border:1px solid #4c3a24;cursor:pointer}
+button:hover{background:#4c3a24;color:#efe6d3}
+.mv{position:fixed;left:22px;bottom:18px;font:10px ui-monospace,Menlo,monospace;letter-spacing:.24em;text-transform:uppercase;color:#4c3a24;opacity:.6;pointer-events:none}
+@media(max-width:560px){h1{font-size:16px}.mv{display:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1><span>Nº 015 · topographic parallax</span>Contour Country</h1></div>
+<div class="dock"><button id="new">new land</button><button id="pal">season</button></div>
+<p class="mv">move cursor — the ranges drift</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1,t=0;
+var PALS=[
+ {sky:['#f5ead2','#e9c896'],sun:'#e07a3f',layers:['#c98a4e','#a96a3e','#855236','#5f3d2b','#3f2a20'],line:'rgba(46,28,16,0.35)'},
+ {sky:['#efe6d3','#d9c8a6'],sun:'#c9b273',layers:['#b08d5f','#927350','#6f5740','#514033','#372c25'],line:'rgba(30,22,14,0.3)'},
+ {sky:['#e3ece4','#bcd6c4'],sun:'#7fa08a',layers:['#6f9a7c','#547d63','#3d604b','#294736','#182d22'],line:'rgba(10,30,20,0.32)'}
+];
+var pi=0,lay=[],mx=0.5,seed=1;
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t2=Math.imul(s^s>>>15,1|s);t2=t2+Math.imul(t2^t2>>>7,61|t2)^t2;return((t2^t2>>>14)>>>0)/4294967296}}
+var N=260;
+function genLand(){
+  var r=rng(seed);lay=[];
+  for(var l=0;l<5;l++){
+    var ph=[],amp=[];
+    for(var j=1;j<=9;j++){ph.push(r()*6.28);amp.push(1/Math.pow(j,1.15))}
+    lay.push({ph:ph,amp:amp,par:0.15+l*0.16,base:0.5+l*0.095,ampm:0.14-l*0.016,band:Math.round(5+l*2)});
+  }
+}
+function height(L,x){
+  var h=0;
+  for(var j=0;j<L.amp.length;j++)h+=L.amp[j]*Math.sin((j+1)*6.283*x+L.ph[j]+t*0.00004*(j+1)*L.par*10);
+  return h;
+}
+function fit(){D=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function draw(){
+  t++;
+  var P=PALS[pi];
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,P.sky[0]);g.addColorStop(1,P.sky[1]);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=P.sun;ctx.globalAlpha=0.9;
+  ctx.beginPath();ctx.arc(W*(0.24+(mx-0.5)*0.02),H*0.24,Math.min(W,H)*0.09,0,7);ctx.fill();
+  ctx.globalAlpha=0.18;ctx.beginPath();ctx.arc(W*(0.24+(mx-0.5)*0.02),H*0.24,Math.min(W,H)*0.15,0,7);ctx.fill();
+  ctx.globalAlpha=1;
+  var scroll=t*0.00002;
+  for(var l=0;l<lay.length;l++){
+    var L=lay[l],off=(mx-0.5)*40*L.par+scroll*W*L.par*300;
+    var pts=[],i,x;
+    for(i=0;i<=N;i++){
+      var gx=i/N;
+      var h=height(L,gx-off/W);
+      pts.push([gx*W,H*L.base-h*H*L.ampm]);
+    }
+    var shape=new Path2D();
+    shape.moveTo(0,H+2);
+    for(i=0;i<pts.length;i++)shape.lineTo(pts[i][0],pts[i][1]);
+    shape.lineTo(W,H+2);shape.closePath();
+    ctx.fillStyle=P.layers[l];ctx.fill(shape);
+    ctx.save();ctx.clip(shape);
+    ctx.strokeStyle=P.line;ctx.lineWidth=1;
+    for(var k=1;k<=L.band;k++){
+      ctx.beginPath();
+      for(i=0;i<pts.length;i++){var yy=pts[i][1]+k*9;
+        i?ctx.lineTo(pts[i][0],yy):ctx.moveTo(pts[i][0],yy)}
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle=P.layers[Math.min(l+1,4)];
+    ctx.lineWidth=1.6;
+    ctx.beginPath();
+    for(i=0;i<pts.length;i++)i?ctx.lineTo(pts[i][0],pts[i][1]):ctx.moveTo(pts[i][0],pts[i][1]);
+    ctx.stroke();
+  }
+  requestAnimationFrame(draw);
+}
+window.addEventListener('pointermove',function(e){mx=e.clientX/W},{passive:true});
+document.getElementById('new').addEventListener('click',function(){seed=Math.floor(Math.random()*1e9);genLand()});
+document.getElementById('pal').addEventListener('click',function(){pi=(pi+1)%PALS.length});
+window.addEventListener('resize',fit);
+fit();genLand();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

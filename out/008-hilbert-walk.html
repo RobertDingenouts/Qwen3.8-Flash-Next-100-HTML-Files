@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hilbert Walk · Nº 008</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#0a0a0c;color:#eae4d8;font-family:"Futura","Century Gothic",Avenir,sans-serif}
+.stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px}
+#c{display:block;background:#0e0e12;border:1px solid rgba(234,228,216,.25)}
+.hud{position:fixed;top:16px;left:20px;pointer-events:none}
+h1{font-size:13px;letter-spacing:.4em;text-transform:uppercase;font-weight:400}
+h1 b{color:#ff5f8a}
+.hud p{font:11px ui-monospace,Menlo,monospace;letter-spacing:.12em;opacity:.6;margin-top:8px}
+.dock{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center}
+button{font:11px Futura,"Century Gothic",sans-serif;letter-spacing:.22em;text-transform:uppercase;padding:8px 13px;background:transparent;border:1px solid rgba(234,228,216,.4);color:#eae4d8;cursor:pointer}
+button:hover{background:#eae4d8;color:#0a0a0c}
+button.hot{border-color:#ff5f8a;color:#ff5f8a}
+button.hot:hover{background:#ff5f8a;color:#0a0a0c}
+label{font-size:10px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:90px;accent-color:#ff5f8a}
+@media(max-width:560px){.hud{left:12px}h1{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="stage"><canvas id="c"></canvas></div>
+<div class="hud"><h1>Hilbert Walk — Nº <b>008</b></h1><p id="stat">depth 4 · segment 0 / 4096</p></div>
+<div class="dock">
+<button id="minus">− depth</button>
+<button id="plus" class="hot">+ depth</button>
+<label>gait <input id="gait" type="range" min="1" max="300" value="90"></label>
+<button id="restart">rewalk</button>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d');
+var W=0,H=0,D=1,S=0,order=4,N=1,head=0,speed=90,holdT=0;
+var statEl=document.getElementById('stat');
+function rot(n,x,y,rx,ry){if(ry===0){if(rx===1){x=n-1-x;y=n-1-y}
+  var t=x;x=y;y=t}return[x,y]}
+function d2xy(n,d){
+  var x=0,y=0,rx=0,ry=0,s,t=d;
+  for(s=1;s<n;s*=2){
+    rx=1&(t/2);ry=1&(t^rx);
+    var p=rot(s,x,y,rx,ry);x=p[0];y=p[1];
+    x+=s*rx;y+=s*ry;t=Math.floor(t/4);
+  }
+  return[x,y];
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var availW=Math.min(innerWidth-32,innerWidth),availH=innerHeight-140;
+  S=Math.max(200,Math.min(availW,availH));
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  redraw()
+}
+function cell(){return S/N}
+function pt(d){var c=d2xy(N,d),k=cell();return{x:c[0]*k+k/2,y:c[1]*k+k/2}}
+function seg(i){return'hsl('+((i/N*300+200)%360)+' 85% '+((i/N)%2?66:56)+'%)'}
+function redraw(){
+  ctx.clearRect(0,0,S,S);
+  ctx.lineWidth=Math.max(0.6,cell()*0.22);ctx.lineCap='round';
+  var lim=Math.min(head,N-1);
+  for(var i=1;i<=lim;i++){
+    var a=pt(i-1),b=pt(i);
+    ctx.strokeStyle=seg(i);
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  }
+  if(head>0){var h=pt(head);
+    ctx.fillStyle='#fff';ctx.shadowColor='#fff';ctx.shadowBlur=14;
+    ctx.beginPath();ctx.arc(h.x,h.y,Math.max(2,cell()*0.4),0,7);ctx.fill();ctx.shadowBlur=0}
+  statEl.textContent='depth '+order+' · segment '+lim+' / '+N;
+}
+function loop(){
+  if(head<N){
+    for(var k=0;k<speed/8;k++)if(head<N)head++;
+    redraw();
+  }else if(holdT++>60){/* hold finished frame */}
+  requestAnimationFrame(loop);
+}
+function setOrder(o){
+  order=Math.max(1,Math.min(7,o));N=1<<(2*order);head=0;holdT=0;redraw();
+}
+document.getElementById('plus').addEventListener('click',function(){setOrder(order+1)});
+document.getElementById('minus').addEventListener('click',function(){setOrder(order-1)});
+document.getElementById('restart').addEventListener('click',function(){head=0;redraw()});
+document.getElementById('gait').addEventListener('input',function(e){speed=+e.target.value});
+cv.addEventListener('pointerdown',function(e){
+  var r=cv.getBoundingClientRect();
+  var gx=Math.floor((e.clientX-r.left)/cell()),gy=Math.floor((e.clientY-r.top)/cell());
+  // invert: xy->d by brute-force scan of small N or use d2xy cache; scan acceptable for N<=4096, for 16384 do inverse
+  var found=0;
+  for(var d=0;d<N;d++){var c=d2xy(N,d);if(c[0]===gx&&c[1]===gy){found=d;break}}
+  head=found;redraw();
+});
+window.addEventListener('resize',fit);
+setOrder(4);fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

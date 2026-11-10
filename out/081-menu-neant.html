@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Menu Néant · Nº 081</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#0d0c0a;color:#e8dfc8;font-family:"Didot","Bodoni MT","Playfair Display",Didot,serif}
+body{overflow-x:hidden}
+header{padding:34px 7vw 10px;text-align:center}
+h1{font-size:min(44px,9vw);font-weight:400;letter-spacing:.14em}
+h1 span{color:#b8963e}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;color:#6e6450;margin-top:8px}
+.rule{width:60px;height:1px;background:#b8963e;margin:18px auto}
+#menu{display:grid;grid-template-columns:1fr 1fr;gap:0 5vw;padding:0 7vw;max-width:1100px;margin:0 auto}
+.sec{margin-bottom:28px}
+.sec h2{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:#b8963e;margin-bottom:14px;border-bottom:1px solid #2a261e;padding-bottom:8px}
+.dish{padding:11px 0;cursor:pointer;border-bottom:1px dotted #2a261e;display:flex;gap:12px;justify-content:space-between;align-items:baseline;transition:background .2s}
+.dish:hover{background:rgba(184,150,62,0.05)}
+.dish.added .nm:after{content:' ✦';color:#b8963e}
+.nm{font-size:15px}
+.dsc{font-size:9px;letter-spacing:.14em;color:#6e6450;display:block;margin-top:4px;font-family:ui-monospace,monospace;text-transform:uppercase}
+.pr{font:400 13px ui-monospace,Menlo,monospace;color:#b8963e;white-space:nowrap}
+#bill{position:fixed;bottom:0;left:0;right:0;background:#151310;border-top:1px solid #b8963e;
+padding:12px 7vw;display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:11px}
+#bill b{font:700 16px ui-monospace,monospace;color:#b8963e}
+#bill span{letter-spacing:.16em;text-transform:uppercase;font-size:9px;color:#8a7f66}
+#bill button{margin-left:auto;font:700 8px ui-monospace,monospace;letter-spacing:.24em;text-transform:uppercase;
+background:transparent;border:1px solid #b8963e;color:#b8963e;padding:10px 16px;cursor:pointer}
+#bill button:hover{background:#b8963e;color:#0d0c0a}
+#order{max-width:60%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+body{padding-bottom:70px}
+@media(max-width:640px){#menu{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>MENUE <span>NÉANT</span></h1>
+<p class="tag">Nº 081 · dinner for the beautifully undecided · est. never</p>
+<div class="rule"></div>
+</header>
+<div id="menu"></div>
+<div id="bill">
+<span>your table</span><b id="total">€0</b>
+<span id="order">nothing, so far — a bold start</span>
+<button id="clear">clear table</button>
+</div>
+<script>
+(function(){
+"use strict";
+var MENU={
+'Pour Commencer (against appetite)':[
+ ['Oyster of Regret','single · mignonette of consequences',14],
+ ['Consommé of Second Thoughts','clarified thrice · served cold',12],
+ ['Bread, Absent','you already knew',0]
+],
+'Poisson & Bête (mostly metaphorical)':[
+ ['Sea Bass in Fog','line-caught by rumour · fennel ash',34],
+ ['Duck, Unbothered','aged eleven days · cherry pit reduction',38],
+ ['The Mushroom Argument','morel, truffle, and a rebuttal',29]
+],
+'Garniture (apologies to the potato)':[
+ ['Gratin of Small Talk','gruyère · silence baked in',11],
+ ['Beet Tartare','cured in beet · served undecided',10]
+],
+'Douceur Finale (sweet, eventually)':[
+ ['Tarte Tatin, Reversed','caramelised at both ends',16],
+ ['Chocolate Nothingness','72% · minus 72%',18],
+ ['Cheese, Conceptual','aged in the mind only',22]
+],
+'Boisson (the wine list is also this)':[
+ ['Sommelier’s Confession','natural · unfiltered · unhinged',15],
+ ['Water, Filtered','charcoal · judgment included',6]
+]};
+var menu=document.getElementById('menu'),order=[],total=0;
+var added=new Set();
+Object.keys(MENU).forEach(function(sec){
+  var d=document.createElement('div');d.className='sec';
+  d.innerHTML='<h2>'+sec+'</h2>';
+  MENU[sec].forEach(function(item){
+    var el=document.createElement('div');el.className='dish';
+    el.innerHTML='<div><span class="nm">'+item[0]+'</span><span class="dsc">'+item[1]+'</span></div>'+
+      '<span class="pr">'+(item[2]?'€'+item[2]:'à volonté')+'</span>';
+    el.addEventListener('click',function(){
+      var k=sec+item[0];
+      if(added.has(k))return;
+      added.add(k);el.classList.add('added');
+      order.push([item[0],item[2]]);
+      total+=item[2];
+      render();
+    });
+    d.appendChild(el);
+  });
+  menu.appendChild(d);
+});
+function render(){
+  document.getElementById('total').textContent='€'+total;
+  document.getElementById('order').textContent=order.length?
+    order.map(function(o){return o[0]}).join(' · '):'nothing, so far — a bold start';
+}
+document.getElementById('clear').addEventListener('click',function(){
+  order=[];total=0;added.clear();
+  document.querySelectorAll('.dish').forEach(function(d){d.classList.remove('added')});
+  render();
+});
+})();
+</script>
+</body>
+</html>

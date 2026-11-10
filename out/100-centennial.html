@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Centennial · Nº 100</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%;background:#f4f1ea;color:#1c1a17;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+body{overflow-x:hidden}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
+header{padding:30px 6vw 10px;text-align:center;position:relative;z-index:2}
+h1{font-size:min(52px,13vw);font-weight:900;letter-spacing:-.03em;line-height:.95}
+h1 span{display:inline-block;animation:pop .5s backwards}
+@keyframes pop{from{transform:scale(0) rotate(20deg);opacity:0}}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.4em;text-transform:uppercase;color:#8a8478;margin-top:10px}
+button{font:700 9px ui-monospace,monospace;letter-spacing:.26em;text-transform:uppercase;
+padding:12px 18px;background:#1c1a17;color:#f4f1ea;border:none;cursor:pointer;margin-top:16px}
+button:hover{background:#e05a4e}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));
+gap:6px;padding:18px 5vw 8px;max-width:1200px;margin:0 auto}
+.tile{aspect-ratio:1;border-radius:6px;padding:7px;cursor:pointer;position:relative;
+display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;
+transition:transform .18s cubic-bezier(.3,1.4,.4,1),box-shadow .18s;transform-style:preserve-3d}
+.tile:hover{transform:translateY(-4px) rotate(var(--tilt)) scale(1.05);z-index:3;
+box-shadow:0 14px 26px -10px rgba(0,0,0,0.35)}
+.tile b{font:700 10px ui-monospace,monospace;opacity:.75}
+.tile span{font-size:9px;font-weight:700;line-height:1.25;letter-spacing:.01em}
+.tile.on{outline:3px solid #1c1a17;outline-offset:2px}
+#readout{text-align:center;font:italic 15px Georgia,serif;color:#55505f;padding:12px 20px 34px;min-height:44px}
+#readout b{font-style:normal}
+@media(max-width:420px){#grid{gap:4px}.tile{padding:4px}.tile span{font-size:6.5px}.tile b{font-size:7px}}
+</style>
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<header>
+<h1 id="big"></h1>
+<p class="tag">Nº 100 · one hundred pages, one file each, zero dependencies</p>
+<button id="again">confetti again ▸</button>
+</header>
+<div id="grid"></div>
+<p id="readout">a hundred little machines, all still running in this folder.</p>
+<script>
+(function(){
+"use strict";
+var T=['Flow Field','Frostwork','Subdivide','Epicycles','Murmuration','Rule Tape','Coral Growth','Hilbert Walk','Clifford Attractor','Vesica',
+'Ripple Pool','Fractal Seasons','Truchet Maze','Voronoi Drag','Contour Terrain','Silk Serpent','Prism Break','Gravity Shift','Crate Cellar','Asteroid Sweep',
+'Fusion Elements','Pair Frequencies','Dropfour','Shard Slide','Dot Munch','Vector Storm','Micro Pinball','Plinko Ledger','Felt Table','Pendulum Wave',
+'Thread Loom','Orbit Garden','Spiro Lab','Kaleido Dream','Nightfall FX','Simon Halo','Wordfall','Wilt or Bloom','Codebreaker Café','Darkroom Grid',
+'Hanoi Tower','Untangle Stars','Klotski Box','Grid Reveal','Nim Duel','Six Sudoku','Hex Clock','Word Ticker','Lunar Wheel','Life in Dots',
+'Second Mandala','Circadian Arc','Breath Pomodoro','Sundial Lab','Hue Lab','Gradient Forge','Key Synth','Pixelbox','Morse Key','Pigment',
+'Scale Type','Pass Vault','Keystroke','Poly Beat','World Strip','Year Garden','Megacity Race','Chord Metro','Alexandria','Kepler Weather',
+'Pollen Stream','Cryptid Radar','R Squared','People Count','Cloud Atlas','Slow Zine','Espresso Dos','Expo Poster','Pixel Timeline','Liner Notes',
+'Menu Néant','Specimen Cabinet','Daily Paradox','Star Namer','Glass Tank','Lighthouse Night','Powder Room','Newton Spin','Null Term','Haiku Breeze',
+'Maze Forge','Tarot Hour','Paper Wing','Reflex Lab','Hex Atlas','Brass Orrery','Mood Lamp','Rose Window','Dice Tray','Centennial'];
+var grid=document.getElementById('grid');
+function hsl(n){return'hsl('+((n*47)%360)+','+(38+(n*29)%42)+'%,'+(58+(n*17)%26)+'%)'}
+T.forEach(function(t,i){
+ var d=document.createElement('div');d.className='tile';
+ var dark=(i*7)%5===0||((i*13)%9===0);
+ d.style.background=dark?'hsl('+((i*47)%360)+',32%,22%)':hsl(i);
+ d.style.color=dark?'#f4f1ea':'#1c1a17';
+ d.style.setProperty('--tilt',(((i*37)%9)-4)+'deg');
+ d.style.transform='rotate('+(((i*37)%7)-3)*0.3+'deg)';
+ d.innerHTML='<b>'+('00'+(i+1)).slice(-3)+'</b><span>'+t+'</span>';
+ d.addEventListener('click',function(){
+  document.querySelectorAll('.tile').forEach(function(x){x.classList.remove('on')});
+  d.classList.add('on');
+  document.getElementById('readout').innerHTML=
+   '<b>'+('00'+(i+1)).slice(-3)+' — '+t+'.</b> '+(
+   ['It still works. It will still work tomorrow.','Carved by hand, one file, no dependencies.',
+   'Ask it a question and it answers in pixels.','Somewhere a pixel counts itself lucky.',
+   'The smallest possible museum wing.'][i%5]);
+ });
+ grid.appendChild(d);
+});
+var big=document.getElementById('big');
+'ONE HUNDRED'.split('').forEach(function(c,i){
+ var s=document.createElement('span');
+ s.textContent=c===' '?' ':c;
+ s.style.animationDelay=(i*0.07)+'s';
+ if(c!==' ')s.style.color='hsl('+((i*53)%360)+',65%,45%)';
+ big.appendChild(s);
+});
+var cv=document.getElementById('confetti'),ctx=cv.getContext('2d'),D=1,parts=[],burstT=0;
+function fit(){D=Math.min(devicePixelRatio||1,2);
+ cv.width=innerWidth*D;cv.height=innerHeight*D;ctx.setTransform(D,0,0,D,0,0)}
+function burst(){
+ parts=[];
+ for(var i=0;i<180;i++)parts.push({
+  x:innerWidth*0.5,y:innerHeight*0.28,
+  vx:(Math.random()-0.5)*11,vy:-Math.random()*11-2,
+  c:'hsl('+((Math.random()*360)|0)+',80%,60%)',
+  w:4+Math.random()*6,h:3+Math.random()*6,a:Math.random()*7,va:(Math.random()-0.5)*0.4,
+  life:1});
+ burstT=performance.now();
+}
+function loop(ts){
+ ctx.clearRect(0,0,innerWidth,innerHeight);
+ var gone=true;
+ parts.forEach(function(p){
+  p.vy+=0.12;p.x+=p.vx;p.y+=p.vy;p.vx*=0.995;p.a+=p.va;
+  if(ts-burstT>2200)p.life-=0.02;
+  if(p.life<=0||p.y>innerHeight+30)return;
+  gone=false;
+  ctx.save();
+  ctx.translate(p.x,p.y);ctx.rotate(p.a);
+  ctx.globalAlpha=Math.max(0,p.life);
+  ctx.fillStyle=p.c;
+  ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+  ctx.restore();
+ });
+ if(!gone)requestAnimationFrame(loop);
+}
+document.getElementById('again').addEventListener('click',function(){burst();requestAnimationFrame(loop)});
+window.addEventListener('resize',fit);
+fit();burst();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

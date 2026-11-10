@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Spiro Lab · Nº 033</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#efe6d2;color:#3c2f1e;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;align-items:center;justify-content:center;gap:18px;padding:14px}
+#stage{position:relative;flex:none}
+#main{display:block;background:#f7f0e0;border:2px solid #8a6d43;border-radius:6px;box-shadow:0 16px 40px -16px rgba(60,47,30,.5)}
+#panel{width:230px;max-width:44vw;display:flex;flex-direction:column;gap:10px;
+background:#e4d7bb;border:2px solid #8a6d43;border-radius:6px;padding:16px;box-shadow:0 16px 40px -18px rgba(60,47,30,.5)}
+h1{font:italic 400 21px Georgia,serif;line-height:1.15}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.36em;text-transform:uppercase;color:#8a6d43;margin-bottom:6px}
+label{font:9px ui-monospace,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;display:grid;grid-template-columns:20px 1fr 40px;gap:8px;align-items:center}
+input[type=range]{width:100%;accent-color:#8a6d43}
+b{font-weight:400;text-align:right;color:#6b5333}
+.prow{display:flex;flex-wrap:wrap;gap:5px}
+button{font:italic 11px Georgia,serif;padding:6px 10px;background:transparent;border:1px solid #8a6d43;color:#3c2f1e;cursor:pointer;border-radius:3px}
+button:hover{background:#8a6d43;color:#f7f0e0}
+#strip{display:flex;gap:6px;flex-wrap:wrap}
+#strip canvas{border:1px solid #b29a6e;border-radius:3px;background:#f7f0e0}
+#pnote{font:italic 11px Georgia,serif;opacity:.75;min-height:32px}
+@media(max-width:760px){
+ body{flex-direction:column;gap:8px;padding:8px}
+ #panel{width:100%;max-width:none;flex-direction:row;flex-wrap:wrap;align-items:center}
+ h1{width:100%}label{flex:1 1 40%;grid-template-columns:16px 1fr 34px}
+ #pnote,#strip{display:none}
+}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="main"></canvas></div>
+<div id="panel">
+<h1><span>Nº 033 · rolling circle atelier</span>Spiro Lab</h1>
+<label>R<input id="R" type="range" min="40" max="200" value="151"><b id="Rv">151</b></label>
+<label>r<input id="r" type="range" min="5" max="120" value="54"><b id="rv">54</b></label>
+<label>d<input id="d" type="range" min="0" max="120" value="88"><b id="dv">88</b></label>
+<label>hue<input id="hue" type="range" min="0" max="360" value="26"><b id="huev">26</b></label>
+<div class="prow">
+<button data-s="151,54,88">rose 54</button>
+<button data-s="147,45,100">galaxy</button>
+<button data-s="180,12,60">sunburst</button>
+<button data-s="90,67,90">woven</button>
+<button data-s="66,37,66">lace</button>
+</div>
+<div id="pnote">Every closed curve is stamped onto the strip below.</div>
+<div id="strip"></div>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('main'),ctx=cv.getContext('2d'),D=1,S=0;
+var P={R:151,r:54,d:88,hue:26};
+var t=0,steps=0,lastKey='',stampT=0;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  var panel=document.getElementById('panel');
+  var narrow=innerWidth<760;
+  S=narrow?Math.min(innerWidth-24,innerHeight- panel.offsetHeight- 60):Math.min(innerHeight-40,innerWidth-300);
+  S=Math.max(240,S);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  reset();
+}
+function gcd(a,b){return b?gcd(b,a%b):a}
+function reset(){
+  t=0;steps=0;
+  ctx.fillStyle='#f7f0e0';ctx.fillRect(0,0,S,S);
+  var g=gcd(P.R,P.r);
+  document.getElementById('pnote').textContent=
+    'closes after '+(P.r/g)+' turns of the pen · '+(P.R/g)+' spokes of the ring';
+}
+function pt(tt){
+  var R=P.R,r=P.r,d=P.d,k=(R-r)/r;
+  var x=(R-r)*Math.cos(tt)+d*Math.cos(k*tt);
+  var y=(R-r)*Math.sin(tt)-d*Math.sin(k*tt);
+  var sc=(S*0.44)/(R+r);
+  return[S/2+x*sc,S/2+y*sc];
+}
+function frame(){
+  var g=gcd(P.R,P.r);
+  var total=Math.ceil((P.r/g))*6.2831853*400;
+  var per=Math.max(30,Math.round(total/260));
+  ctx.lineWidth=1.1;
+  for(var i=0;i<per&&steps<total;i++){
+    var a=pt(t),b=pt(t+0.0157);
+    t+=0.0157;steps++;
+    var ph=steps/total;
+    ctx.strokeStyle='hsla('+P.hue+',70%,'+(34+20*Math.sin(ph*12))+'%,0.6)';
+    ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();
+  }
+  if(steps>=total){
+    stampT++;
+    if(stampT===26)stamp();
+    if(stampT>150){reset()}
+  }
+  requestAnimationFrame(frame);
+}
+function stamp(){
+  var key=P.R+','+P.r+','+P.d+','+P.hue;
+  if(key===lastKey)return;
+  lastKey=key;
+  var c=document.createElement('canvas');
+  var ts=56;
+  c.width=ts*2;c.height=ts*2;
+  var cc=c.getContext('2d');
+  cc.drawImage(cv,0,0,c.width,c.height);
+  c.style.width=ts+'px';c.style.height=ts+'px';
+  var strip=document.getElementById('strip');
+  strip.insertBefore(c,strip.firstChild);
+  while(strip.children.length>6)strip.removeChild(strip.lastChild);
+}
+function bind(id,key){
+  var el=document.getElementById(id),lab=document.getElementById(id==='hue'?'huev':id+'v');
+  el.addEventListener('input',function(){
+    P[key]=+el.value;lab.textContent=el.value;reset();
+  });
+}
+bind('R','R');bind('r','r');bind('d','d');bind('hue','hue');
+document.querySelectorAll('[data-s]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var v=b.dataset.s.split(',');
+    P.R=+v[0];P.r=+v[1];P.d=+v[2];
+    document.getElementById('R').value=P.R;document.getElementById('Rv').textContent=P.R;
+    document.getElementById('r').value=P.r;document.getElementById('rv').textContent=P.r;
+    document.getElementById('d').value=P.d;document.getElementById('dv').textContent=P.d;
+    reset();
+  });
+});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

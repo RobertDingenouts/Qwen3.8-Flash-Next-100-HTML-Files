@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Specimen Cabinet · Nº 082</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#fff;color:#0a0a0a;font-family:Helvetica,Arial,sans-serif}
+body{display:flex;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:baseline;padding:16px 4vw 8px;border-bottom:3px solid #0a0a0a;flex-wrap:wrap;gap:6px}
+h1{font-size:11px;font-weight:900;letter-spacing:.3em;text-transform:uppercase}
+.tag{font:8px ui-monospace,Menlo,monospace;letter-spacing:.26em;text-transform:uppercase;color:#888}
+#ctrl{display:flex;gap:24px;flex-wrap:wrap;padding:10px 4vw;border-bottom:1px solid #0a0a0a;align-items:center}
+label{font-size:8px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:120px;accent-color:#0a0a0a}
+select{font:10px ui-monospace,monospace;padding:5px;border:1px solid #0a0a0a;background:#fff}
+#spec{flex:1;min-height:0;overflow:auto;padding:14px 4vw 60px}
+.row{display:flex;align-items:baseline;gap:16px;border-bottom:1px solid #e4e4e4;padding:6px 0}
+.row .lbl{width:52px;flex:none;font:8px ui-monospace,Menlo,monospace;color:#888;letter-spacing:.1em}
+.row .samp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:letter-spacing .1s}
+#big{font-weight:900;letter-spacing:-.04em;line-height:.9;padding:18px 0 6px;font-size:clamp(40px,13vw,170px);
+white-space:nowrap;overflow:hidden}
+#big:hover{letter-spacing:0.02em;cursor:crosshair}
+footer{border-top:3px solid #0a0a0a;padding:8px 4vw;font:8px ui-monospace,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase;color:#888;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+</style>
+</head>
+<body>
+<header>
+<h1>Specimen Cabinet · System Grotesque</h1>
+<p class="tag">Nº 082 · the font you never chose, exhibited</p>
+</header>
+<div id="ctrl">
+<label>drag axis — size <input id="sz" type="range" min="10" max="120" value="40"></label>
+<label>tracking <input id="tr" type="range" min="-6" max="40" value="0"></label>
+<label>weight <select id="wt"><option>300</option><option selected>400</option><option>700</option><option>900</option></select></label>
+<label>stack <select id="ff">
+<option value="Helvetica,Arial,sans-serif">Helvetica Neue</option>
+<option value="Georgia,serif">Georgia</option>
+<option value="ui-monospace,Menlo,monospace">ui-monospace</option>
+<option value="Optima,Candara,Gill Sans,sans-serif">Humanist</option>
+<option value="'Times New Roman',Times,serif">Times</option>
+<option value="Verdana,Geneva,sans-serif">Verdana</option>
+</select></label>
+<label>pangram <select id="pg"><option value="0">handy fox</option><option value="1">anagram</option><option value="2">numerals</option></select></label>
+</div>
+<div id="spec"></div>
+<footer><span id="fs">40 px · 400</span><span>drag SIZE. the cabinet is open.</span></footer>
+<script>
+(function(){
+"use strict";
+var PG=[
+'Handgloves quiver as the waxy zephyr flubs its kiwi mix.',
+'Pack my box with five dozen liquor jugs. Wizard, quickly jinx!',
+'0123456789 &@#€§?!()“”–— •  2024 № 11:23'
+];
+var spec=document.getElementById('spec');
+var sz=document.getElementById('sz'),tr=document.getElementById('tr'),
+wt=document.getElementById('wt'),ff=document.getElementById('ff'),pg=document.getElementById('pg');
+function rows(){
+  spec.innerHTML='';
+  var base=+sz.value,lsp=+tr.value/100,fam=ff.value,w=wt.value;
+  var big=document.createElement('div');
+  big.id='big';big.textContent='AaBb';
+  big.style.fontFamily=fam;big.style.fontWeight=w;
+  big.style.letterSpacing=tr.value+'px';
+  spec.appendChild(big);
+  [1,0.62,0.46,0.34,0.26,0.2,0.15].forEach(function(k,i){
+    var px=Math.max(7,Math.round(base*k));
+    var r=document.createElement('div');r.className='row';
+    r.innerHTML='<span class="lbl">'+px+'px</span><span class="samp">'+PG[+pg.value]+'</span>';
+    var s=r.querySelector('.samp');
+    s.style.fontFamily=fam;s.style.fontWeight=w;
+    s.style.fontSize=px+'px';s.style.letterSpacing=lsp+'em';
+    spec.appendChild(r);
+  });
+  document.getElementById('fs').textContent=base+' px · '+w+' · '+ff.options[ff.selectedIndex].text;
+}
+[sz,tr].forEach(function(el){el.addEventListener('input',rows)});
+[wt,ff,pg].forEach(function(el){el.addEventListener('change',rows)});
+rows();
+})();
+</script>
+</body>
+</html>

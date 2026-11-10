@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maze Forge · Nº 091</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#eef2ea;color:#22312a;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:10px}
+header{text-align:center}
+h1{font-size:12px;font-weight:700;letter-spacing:.36em;text-transform:uppercase}
+h1 b{color:#2f7f5f}
+.tag{font-size:8px;letter-spacing:.26em;text-transform:uppercase;color:#7d9384;margin-top:5px}
+canvas{touch-action:none;box-shadow:0 16px 40px -20px rgba(34,49,42,0.5);border-radius:4px;
+background:
+ repeating-linear-gradient(0deg,rgba(47,127,95,0.1) 0 1px,transparent 1px 20px),
+ repeating-linear-gradient(90deg,rgba(47,127,95,0.1) 0 1px,transparent 1px 20px),
+ #f6f8f4}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+label{font-size:8px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:7px;align-items:center}
+input[type=range]{width:90px;accent-color:#2f7f5f}
+button{font:700 8px ui-monospace,monospace;letter-spacing:.2em;text-transform:uppercase;
+padding:10px 13px;background:transparent;border:1.5px solid #22312a;cursor:pointer;color:#22312a}
+button:hover{background:#22312a;color:#f6f8f4}
+#stat{font-size:9px;letter-spacing:.14em;color:#2f7f5f;min-width:120px;text-align:center}
+</style>
+</head>
+<body>
+<header><h1>Maze <b>Forge</b></h1><p class="tag">Nº 091 · inked with depth-first, solved with A*</p></header>
+<canvas id="c"></canvas>
+<div class="bar">
+<label>size <input id="sz" type="range" min="8" max="41" step="2" value="25"></label>
+<button id="new">forge maze</button>
+<button id="solve">solve it ▸</button>
+<span id="stat">idle</span>
+</div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0;
+var N=25,cells,wall;
+function idx(r,c){return r*N+c}
+function genMaze(){
+ wall=new Uint8Array(N*N*4);
+ var vis=new Uint8Array(N*N);
+ var stack=[idx(0,0)];vis[idx(0,0)]=1;
+ var dirs=[[0,1,0,2],[1,0,1,3],[0,-1,2,0],[-1,0,3,1]];
+ while(stack.length){
+  var cur=stack[stack.length-1];
+  var r=(cur/N)|0,c=cur%N;
+  var cand=dirs.filter(function(d){
+   var nr=r+d[0],nc=c+d[1];
+   return nr>=0&&nr<N&&nc>=0&&nc<N&&!vis[idx(nr,nc)];
+  });
+  if(!cand.length){stack.pop();continue}
+  var d=cand[(Math.random()*cand.length)|0];
+  var nxt=idx(r+d[0],c+d[1]);
+  wall[cur*4+d[2]]=0;wall[nxt*4+d[3]]=0;
+  vis[nxt]=1;stack.push(nxt);
+ }
+}
+function fit(){D=Math.min(devicePixelRatio||1,2);
+ S=Math.min(innerWidth-16,innerHeight-160,560);S=Math.max(250,S);
+ cv.style.width=S+'px';cv.style.height=S+'px';
+ cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);draw()}
+var sol=[],reveal=0,frontier=[],carveI=0;
+function draw(){
+ var cs=S/N;
+ ctx.setTransform(D,0,0,D,0,0);
+ ctx.clearRect(0,0,S,S);
+ ctx.strokeStyle='#22312a';
+ ctx.lineWidth=Math.max(1.4,cs*0.12);
+ ctx.lineCap='round';
+ for(var r=0;r<N;r++)for(var c=0;c<N;c++){
+  var i=idx(r,c),x=c*cs,y=r*cs;
+  ctx.beginPath();
+  if(wall[i*4+3]){ctx.moveTo(x,y);ctx.lineTo(x,y+cs)}
+  if(wall[i*4+0]){ctx.moveTo(x,y);ctx.lineTo(x+cs,y)}
+  if(r===N-1&&wall[i*4+1]){ctx.moveTo(x,y+cs);ctx.lineTo(x+cs,y+cs)}
+  if(c===N-1&&wall[i*4+2]){ctx.moveTo(x+cs,y);ctx.lineTo(x+cs,y+cs)}
+  ctx.stroke();
+ }
+ var bx=0,by=0,ex=(N-1)*cs+cs,ey=(N-1)*cs+cs;
+ ctx.fillStyle='#2f7f5f';
+ ctx.beginPath();ctx.arc(cs/2,cs/2,cs*0.28,0,7);ctx.fill();
+ ctx.fillStyle='#b5432f';
+ ctx.beginPath();ctx.arc(ex-cs/2,ey-cs/2,cs*0.28,0,7);ctx.fill();
+ if(frontier.length){
+  ctx.fillStyle='rgba(181,67,47,0.25)';
+  frontier.forEach(function(i){
+   ctx.fillRect((i%N)*cs+cs*0.2,((i/N)|0)*cs+cs*0.2,cs*0.6,cs*0.6);
+  });
+ }
+ ctx.strokeStyle='#b5432f';
+ ctx.lineWidth=Math.max(2,cs*0.22);
+ ctx.lineJoin='round';
+ if(reveal>1){
+  ctx.beginPath();
+  for(var k=0;k<Math.min(reveal,sol.length);k++){
+   var i=sol[k];
+   var x=(i%N)*cs+cs/2,y=((i/N)|0)*cs+cs/2;
+   k?ctx.lineTo(x,y):ctx.moveTo(x,y);
+  }
+  ctx.stroke();
+ }
+}
+function h(i){var r=(i/N)|0,c=i%N;return Math.abs(r-(N-1))+Math.abs(c-(N-1))}
+function solve(){
+ if(!sol.length){
+  document.getElementById('stat').textContent='searching…';
+  var start=idx(0,0),goal=idx(N-1,N-1);
+  var open=[start],came={},g={},f={};
+  g[start]=0;f[start]=h(start);
+  var dirs=[[0,1,0],[1,0,1],[0,-1,2],[-1,0,3]];
+  var iters=0,fsteps=[];
+  while(open.length&&iters<40000){
+   iters++;
+   open.sort(function(a,b){return f[a]-f[b]});
+   var cur=open.shift();
+   if(cur===goal){break}
+   var r=(cur/N)|0,c=cur%N;
+   dirs.forEach(function(d){
+    if(wall[cur*4+d[2]])return;
+    var nr=r+d[0],nc=c+d[1];
+    if(nr<0||nr>=N||nc<0||nc>=N)return;
+    var n=idx(nr,nc);
+    var tg=g[cur]+1;
+    if(g[n]===undefined||tg<g[n]){
+     g[n]=tg;f[n]=tg+h(n);came[n]=cur;open.push(n);
+     fsteps.push(n);
+    }
+   });
+   if(iters%2===0){frontier=fsteps.slice(-40);}
+  }
+  var path=[],at=goal;
+  while(at!==undefined&&at!==start){path.push(at);at=came[at]}
+  if(at===start)path.push(start);
+  path.reverse();
+  sol=path;reveal=0;
+ }
+ var iv=setInterval(function(){
+  reveal+=Math.max(1,(sol.length/120)|0);
+  draw();
+  if(reveal>=sol.length){
+   clearInterval(iv);
+   document.getElementById('stat').textContent='path: '+sol.length+' cells · '+sol.length+' steps';
+   frontier=[];draw();
+  }
+ },16);
+}
+document.getElementById('new').addEventListener('click',function(){
+ N=+document.getElementById('sz').value|1;
+ if(N%2===0)N++;
+ sol=[];reveal=0;frontier=[];
+ document.getElementById('stat').textContent='forged '+N+'×'+N;
+ genMaze();fit();
+});
+document.getElementById('solve').addEventListener('click',function(){
+ if(sol.length&&reveal>=sol.length){
+  sol=[];reveal=0;frontier=[];draw();return;
+ }
+ if(!sol.length)solve();
+});
+window.addEventListener('resize',fit);
+genMaze();fit();
+})();
+</script>
+</body>
+</html>

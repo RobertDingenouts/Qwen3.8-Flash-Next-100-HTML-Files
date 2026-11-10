@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pendulum Wave · Nº 030</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#101418;color:#e8ecef;font-family:Optima,Candara,"Gill Sans",sans-serif}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:pointer;touch-action:none}
+.tl{position:fixed;top:16px;left:22px;pointer-events:none}
+h1{font-size:13px;letter-spacing:.34em;text-transform:uppercase;font-weight:400}
+h1 em{display:block;font:italic 11px Georgia,serif;letter-spacing:.02em;text-transform:none;opacity:.65;margin-top:5px}
+.dock{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;
+background:rgba(16,20,24,.82);border:1px solid rgba(232,236,239,.2);padding:10px 16px;border-radius:4px}
+label{font-size:9px;letter-spacing:.2em;text-transform:uppercase;display:flex;gap:8px;align-items:center}
+input[type=range]{width:90px;accent-color:#ffb84d}
+button{font:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:9px 14px;background:transparent;border:1px solid rgba(232,236,239,.4);color:#e8ecef;cursor:pointer;border-radius:2px}
+button:hover{background:#e8ecef;color:#101418}
+#phase{font:10px ui-monospace,Menlo,monospace;color:#ffb84d;min-width:44px;text-align:center}
+.hint{position:fixed;right:20px;bottom:20px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.45;pointer-events:none}
+@media(max-width:620px){.hint{display:none}input[type=range]{width:64px}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="tl"><h1>Pendulum Wave<em>Nº 030 — harmonics of a chalkboard swing</em></h1></div>
+<div class="dock">
+<button id="release">release</button>
+<label>bobs <input id="nb" type="range" min="12" max="36" value="24"></label>
+<label>cycle <input id="cy" type="range" min="8" max="40" value="20" step="2"></label>
+<span id="phase">0%</span>
+<button id="trails">trails: on</button>
+</div>
+<p class="hint">drag a bob to bend the snake</p>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+var N=24,CYCLE=20,startT=performance.now(),t0=startT,playing=true,trails=true;
+var bobs=[],drag=-1,trailCv=document.createElement('canvas'),tctx=trailCv.getContext('2d'),TD=1;
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  W=innerWidth;H=innerHeight;
+  cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0);
+  TD=1;trailCv.width=W;trailCv.height=H;
+  build();
+}
+function build(){
+  N=+document.getElementById('nb').value;
+  CYCLE=+document.getElementById('cy').value;
+  bobs=[];
+  for(var i=0;i<N;i++)bobs.push({off:0,vo:0});
+  tctx.clearRect(0,0,W,H);
+}
+function pend(i,tsec){
+  var f=(8+i)/(CYCLE/2);
+  var th=0.62*Math.cos(2*Math.PI*f*tsec)*Math.exp(-tsec*0.004)+bobs[i].off;
+  return th;
+}
+function geom(){
+  var top=H*0.16,maxLen=H*0.62,minLen=H*0.18;
+  return{top:top,x0:W*0.08,x1:W*0.92,minLen:minLen,maxLen:maxLen};
+}
+function pos(i,tsec){
+  var g=geom();
+  var x=g.x0+(g.x1-g.x0)*i/(N-1);
+  var frac=Math.pow(i/(N-1),0.75);
+  var len=g.minLen+(g.maxLen-g.minLen)*frac;
+  var th=pend(i,tsec);
+  return{x:x+Math.sin(th)*len,y:g.top+Math.cos(th)*len};
+}
+function loop(ts){
+  var tsec=(ts-t0)/1000;
+  ctx.fillStyle='#101418';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(232,236,239,0.25)';
+  ctx.beginPath();ctx.moveTo(geom().x0-30,geom().top);ctx.lineTo(geom().x1+30,geom().top);ctx.stroke();
+  var cycleSec=CYCLE/2;
+  var ph=((tsec%cycleSec)/cycleSec);
+  document.getElementById('phase').textContent=Math.round(ph*100)+'%';
+  if(trails){
+    tctx.fillStyle='rgba(16,20,24,0.025)';tctx.fillRect(0,0,W,H);
+  }
+  for(var i=0;i<N;i++){
+    var p=pos(i,tsec);
+    if(trails){
+      tctx.fillStyle='hsla('+((i/N*300+190)%360)+',85%,65%,0.35)';
+      tctx.beginPath();tctx.arc(p.x,p.y,2.4,0,7);tctx.fill();
+    }
+  }
+  if(trails)ctx.drawImage(trailCv,0,0,W,H);
+  var prev=null;
+  for(i=0;i<N;i++){
+    var q=pos(i,tsec);
+    var g=geom();
+    ctx.strokeStyle='rgba(232,236,239,0.18)';
+    ctx.beginPath();ctx.moveTo(g.x0+(g.x1-g.x0)*i/(N-1),g.top);ctx.lineTo(q.x,q.y);ctx.stroke();
+    if(prev){
+      ctx.strokeStyle='rgba(255,184,77,0.5)';ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(prev.x,prev.y);ctx.lineTo(q.x,q.y);ctx.stroke();ctx.lineWidth=1;
+    }
+    prev=q;
+    ctx.fillStyle='hsl('+((i/N*300+190)%360)+',85%,62%)';
+    ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.arc(q.x,q.y,Math.max(5,Math.min(9,W/110)),0,7);ctx.fill();
+    ctx.shadowBlur=0;
+  }
+  requestAnimationFrame(loop);
+}
+cv.addEventListener('pointerdown',function(e){
+  var tsec=(performance.now()-t0)/1000,be=-1,bd=1e12;
+  for(var i=0;i<N;i++){
+    var p=pos(i,tsec);
+    var d=Math.hypot(e.clientX-p.x,e.clientY-p.y);
+    if(d<bd){bd=d;be=i}
+  }
+  if(bd<40)drag=be;
+},{passive:true});
+window.addEventListener('pointermove',function(e){
+  if(drag<0)return;
+  var g=geom(),b=bobs[drag];
+  var frac=Math.pow(drag/(N-1),0.75);
+  var len=g.minLen+(g.maxLen-g.minLen)*frac;
+  var baseX=g.x0+(g.x1-g.x0)*drag/(N-1);
+  var dx=e.clientX-baseX;
+  b.off=Math.max(-1.1,Math.min(1.1,Math.max(-1.1,Math.min(1.1,dx/len))-pend(drag,(performance.now()-t0)/1000)));
+},{passive:true});
+window.addEventListener('pointerup',function(){drag=-1});
+document.getElementById('release').addEventListener('click',function(){
+  t0=performance.now();build();
+});
+document.getElementById('nb').addEventListener('input',function(){build()});
+document.getElementById('cy').addEventListener('input',function(){t0=performance.now();build()});
+var tb=document.getElementById('trails');
+tb.addEventListener('click',function(){trails=!trails;tb.textContent='trails: '+(trails?'on':'off');
+  if(!trails)tctx.clearRect(0,0,W,H)});
+window.addEventListener('resize',fit);
+fit();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

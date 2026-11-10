@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shard Slide · Nº 024</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;background:#d9d2c4;color:#2b2620;font-family:Georgia,"Iowan Old Style",serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:12px}
+body:before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 50% 30%,rgba(255,250,235,.5),rgba(90,75,55,.35));pointer-events:none}
+h1{font:italic 400 26px Georgia,serif;position:relative}
+h1 span{display:block;font:700 8px ui-monospace,Menlo,monospace;letter-spacing:.44em;text-transform:uppercase;color:#8a7a5f;margin-bottom:8px;text-align:center}
+#frame{padding:14px;background:linear-gradient(135deg,#3b2f1e,#6b5436 30%,#3b2f1e);box-shadow:0 26px 50px -18px rgba(30,20,8,.6),inset 0 0 0 3px #caa75e}
+#glow{transition:box-shadow 1s}
+#glow.restored{box-shadow:0 26px 70px -10px rgba(202,167,94,.8),inset 0 0 0 3px #ffe9a8}
+#c{display:block;cursor:pointer;touch-action:none;background:#fff}
+.placard{background:#f7f2e6;border:1px solid #b9ad92;padding:10px 16px;max-width:420px;text-align:center;position:relative}
+#pt{font:italic 15px Georgia,serif}
+#pm{font:9px ui-monospace,Menlo,monospace;letter-spacing:.18em;text-transform:uppercase;color:#8a7a5f;margin-top:5px}
+.dock{display:flex;gap:8px;position:relative}
+button{font:italic 13px Georgia,serif;padding:9px 16px;background:transparent;border:1px solid #2b2620;color:#2b2620;cursor:pointer}
+button:hover{background:#2b2620;color:#f7f2e6}
+@media(max-width:500px){h1{font-size:20px}}
+</style>
+</head>
+<body>
+<h1><span>Nº 024 · collection of restless art</span>Shard Slide</h1>
+<div id="glow"><div id="frame"><canvas id="c"></canvas></div></div>
+<div class="placard"><div id="pt">Study in Cadmium and Indigo</div><div id="pm">sliding panel · 0 moves · scrambled</div></div>
+<div class="dock"><button id="rehang">re-hang</button><button id="shuffle">re-scramble</button></div>
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),D=1,S=0,cell=0;
+var art=document.createElement('canvas'),actx=art.getContext('2d');
+var boardPos=[],moves=0,solved=false,seed=17,offs={};
+var PALS=[
+ {bg:'#f2e8d5',c:['#c8402f','#27407a','#e0a91c','#1c1b18']},
+ {bg:'#0f1626',c:['#e8dcc8','#d95f43','#7ea9c9','#e0b64f']},
+ {bg:'#e9e4da',c:['#3f6858','#d9a03f','#b5493a','#33302b']},
+ {bg:'#f6efe2',c:['#5b3f8f','#e6693f','#173a5e','#c9a06b']},
+ {bg:'#1d2b2a',c:['#f0e6c8','#c96f2a','#7fb3a5','#d9b23f']}
+];
+var TITLES=['Study in Cadmium and Indigo','Composition Nº 7, The Swarm','Late Rapture with Circle','Interval for Four Drums','The Glass Orchard','Vesper, with Red Interval','Blue Chord Interrupted','Machine Pastoral'];
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function paint(){
+  var r=rng(seed),P=PALS[seed%PALS.length],N=600;
+  art.width=N;art.height=N;
+  actx.fillStyle=P.bg;actx.fillRect(0,0,N,N);
+  actx.lineCap='round';
+  for(var i=0;i<7;i++){
+    var x=r()*N,y=r()*N,rad=40+r()*220;
+    actx.fillStyle=P.c[(r()*4)|0];
+    actx.globalAlpha=0.55+r()*0.45;
+    actx.beginPath();
+    if(r()<0.45){actx.arc(x,y,rad,r()*6.28,r()*6.28+1.5+Math.random()*4.7)}
+    else actx.arc(x,y,rad,0,7);
+    if(r()<0.5)actx.fill();else{actx.lineWidth=6+r()*14;actx.stroke()}
+  }
+  actx.globalAlpha=0.8;
+  for(i=0;i<5;i++){
+    actx.strokeStyle=P.c[(r()*4)|0];actx.lineWidth=2+r()*5;
+    actx.beginPath();
+    var ax=r()*N,ay=r()*N;
+    actx.moveTo(ax,ay);
+    actx.bezierCurveTo(r()*N,r()*N,r()*N,r()*N,r()*N,r()*N);
+    actx.stroke();
+  }
+  actx.globalAlpha=1;
+  actx.fillStyle=P.c[3];
+  for(i=0;i<40;i++){actx.globalAlpha=0.05+r()*0.08;
+    actx.beginPath();actx.arc(r()*N,r()*N,r()*3,0,7);actx.fill()}
+  actx.globalAlpha=1;
+}
+function fit(){
+  D=Math.min(window.devicePixelRatio||1,2);
+  S=Math.min(innerWidth-60,innerHeight-300,440);S=Math.max(240,S);
+  cv.style.width=S+'px';cv.style.height=S+'px';
+  cv.width=S*D;cv.height=S*D;ctx.setTransform(D,0,0,D,0,0);
+  cell=S/4;draw();
+}
+function newArt(){
+  seed=(Math.random()*9997)|0;
+  paint();
+  document.getElementById('pt').textContent=TITLES[seed%TITLES.length];
+  resetBoard();shuffle();
+}
+function resetBoard(){
+  boardPos=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+  offs={};moves=0;solved=false;
+  document.getElementById('glow').classList.remove('restored');
+  status();
+}
+function emptyPos(){for(var i=0;i<16;i++)if(boardPos[i]===15)return i;return -1}
+function swap(pos){
+  var e=emptyPos();
+  if(pos===e)return;
+  var pr=e%4,pc=e/4|0,qr=pos%4,qc=pos/4|0;
+  if(Math.abs(pr-qr)+Math.abs(pc-qc)!==1)return;
+  var id=boardPos[pos];
+  boardPos[e]=id;boardPos[pos]=15;
+  offs[id]={x:(pos%4-e%4)*cell,y:((pos/4|0)-(e/4|0))*cell,t:performance.now()};
+  moves++;status();
+  if(!solved&&isSolved()){solved=true;
+    document.getElementById('glow').classList.add('restored');
+    status('RESTORED — hung straight at last');}
+}
+function isSolved(){for(var i=0;i<16;i++)if(boardPos[i]!==i)return false;return true}
+function status(extra){
+  document.getElementById('pm').textContent=(extra||('sliding panel · '+moves+' moves · '+(isSolved()?'aligned':'scrambled')));
+}
+function shuffle(){
+  resetBoard();
+  for(var i=0;i<80;i++){
+    var e=emptyPos(),cands=[];
+    var er=e%4,ec=e/4|0;
+    [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){
+      var nr=er+d[0],nc=ec+d[1];
+      if(nr>=0&&nr<4&&nc>=0&&nc<4)cands.push(nc*4+nr)});
+    var pick=cands[(Math.random()*cands.length)|0];
+    boardPos[e]=boardPos[pick];boardPos[pick]=15;
+  }
+  if(isSolved())shuffle();
+  moves=0;status();
+}
+function draw(){
+  var now=performance.now();
+  ctx.clearRect(0,0,S,S);
+  for(var pos=0;pos<16;pos++){
+    var id=boardPos[pos];
+    var x=(pos%4)*cell,y=(pos/4|0)*cell;
+    if(id===15)continue;
+    var o=offs[id];
+    if(o){
+      var k=Math.min(1,(now-o.t)/220),e=1-Math.pow(1-k,3);
+      x+=o.x*(1-e);y+=o.y*(1-e);
+      if(k>=1)delete offs[id];
+    }
+    var sx=(id%4)*(art.width/4),sy=(id/4|0)*(art.width/4);
+    ctx.save();
+    ctx.shadowColor='rgba(20,12,4,0.4)';ctx.shadowBlur=6;
+    ctx.fillStyle='#fff';ctx.fillRect(x+1,y+1,cell-2,cell-2);
+    ctx.restore();
+    ctx.drawImage(art,sx,sy,art.width/4,art.width/4,x+2.5,y+2.5,cell-5,cell-5);
+  }
+  requestAnimationFrame(draw);
+}
+function posAt(e){
+  var r=cv.getBoundingClientRect();
+  return{c:Math.floor((e.clientX-r.left)/(r.width/4)),rw:Math.floor((e.clientY-r.top)/(r.height/4))};
+}
+cv.addEventListener('pointerdown',function(e){var p=posAt(e);
+  if(p.c>=0&&p.c<4&&p.rw>=0&&p.rw<4)swap(p.rw*4+p.c)});
+window.addEventListener('keydown',function(e){
+  var em=emptyPos(),er=em%4,ec=em/4|0;
+  if(e.key==='ArrowLeft'&&er<3)swap(ec*4+er+1);
+  if(e.key==='ArrowRight'&&er>0)swap(ec*4+er-1);
+  if(e.key==='ArrowUp'&&ec<3)swap((ec+1)*4+er);
+  if(e.key==='ArrowDown'&&ec>0)swap((ec-1)*4+er);
+});
+document.getElementById('rehang').addEventListener('click',newArt);
+document.getElementById('shuffle').addEventListener('click',shuffle);
+window.addEventListener('resize',fit);
+paint();fit();shuffle();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>

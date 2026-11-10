@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Wilt or Bloom · Nº 038</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow-x:hidden;background:#f4efe2;color:#3c4636;font-family:Optima,Candara,"Gill Sans",sans-serif}
+body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 10px 16px}
+header{text-align:center}
+h1{font:italic 400 24px/1.1 Georgia,serif}
+h1 b{font-style:normal;color:#7d9b6a}
+.tag{font:9px ui-monospace,Menlo,monospace;letter-spacing:.36em;text-transform:uppercase;color:#8a937d;margin-top:5px}
+#word{display:flex;gap:8px;margin-top:4px}
+.slot{width:26px;height:34px;border-bottom:2.5px solid #99a48b;text-align:center;
+font:700 20px Georgia,serif;text-transform:uppercase;color:#3c4636}
+.slot.miss{border-color:#b5654f;color:#b5654f}
+#hint{font:italic 12px Georgia,serif;color:#767f68;min-height:18px}
+#c{max-width:96vw}
+#keys{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;max-width:520px}
+.k{width:34px;padding:9px 0;font:600 11px ui-monospace,monospace;background:#e9e4d2;border:1px solid #c7c2ac;
+border-radius:5px;cursor:pointer;color:#3c4636;text-transform:uppercase}
+.k:hover{background:#dde2cf}
+.k:disabled{opacity:.3;cursor:default}
+.k.hit{background:#7d9b6a;border-color:#7d9b6a;color:#f4efe2}
+.k.miss{background:#c98a70;border-color:#c98a70;color:#f4efe2}
+#msg{font:italic 13px Georgia,serif;height:18px;color:#7d5b3a}
+button.again{font:italic 13px Georgia,serif;padding:8px 18px;background:transparent;border:1px solid #3c4636;color:#3c4636;cursor:pointer;display:none}
+button.again:hover{background:#3c4636;color:#f4efe2}
+@media(max-width:480px){.slot{width:20px;height:28px;font-size:16px}.k{width:29px;padding:7px 0}}
+</style>
+</head>
+<body>
+<header><h1>Wilt <b>or</b> Bloom</h1><p class="tag">Nº 038 · guess the word · keep it watered</p></header>
+<div id="word"></div>
+<p id="hint"></p>
+<canvas id="c"></canvas>
+<p id="msg">seven dry days until the bloom forgets the rain</p>
+<div id="keys"></div>
+<button class="again" id="again">plant another</button>
+<script>
+(function(){
+"use strict";
+var PLANTS=[['fern','unfurls from a prehistoric spiral'],['moss','green velvet on north-facing stone'],
+['iris','the rainbow-named sword lily'],['poppy','sleeps in grain fields, red as paper'],
+['myrtle','myth’s evergreen of love and luck'],['lichen','neither fungus nor alga alone'],
+['clover','three leaves for the finder'],['willow','bows its hair to the river'],
+['bamboo','a grass that dreams of forests'],['orchid','trades scent for spectacle'],
+['thistle','prickly, purple, and unforgiving'],['sedge','the marsh’s quiet seamstress'],
+['heather','moorland bell, lilac drift'],['laurel','the original winner’s crown']];
+var word,hint,misses,maxMiss=7,guessed,over,parts=[],t=0;
+var cv=document.getElementById('c'),ctx=cv.getContext('2d'),W=0,H=0,D=1;
+function fit(){D=Math.min(window.devicePixelRatio||1,2);
+ W=Math.min(innerWidth*0.92,420);H=Math.min(300,innerHeight*0.34);
+ cv.style.width=W+'px';cv.style.height=H+'px';
+ cv.width=W*D;cv.height=H*D;ctx.setTransform(D,0,0,D,0,0)}
+function reset(){
+  var p=PLANTS[(Math.random()*PLANTS.length)|0];
+  word=p[0];hint=p[1];
+  misses=0;guessed={};over=false;parts=[];
+  var wd=document.getElementById('word');wd.innerHTML='';
+  for(var i=0;i<word.length;i++){
+    var s=document.createElement('div');s.className='slot';s.id='slot'+i;wd.appendChild(s)}
+  document.getElementById('hint').textContent='“'+hint+'”';
+  document.getElementById('msg').textContent='seven dry days until the bloom forgets the rain';
+  document.getElementById('again').style.display='none';
+  var kb=document.getElementById('keys');kb.innerHTML='';
+  'abcdefghijklmnopqrstuvwxyz'.split('').forEach(function(ch){
+    var b=document.createElement('button');b.className='k';b.textContent=ch;
+    b.addEventListener('click',function(){press(ch)});kb.appendChild(b)});
+  draw();
+}
+function press(ch){
+  if(over)return;
+  if(guessed[ch])return;
+  guessed[ch]=word.indexOf(ch)>=0;
+  var btns=document.querySelectorAll('.k');
+  btns.forEach(function(b){if(b.textContent===ch){
+    b.disabled=true;
+    if(guessed[ch]){b.classList.add('hit');reveal()}
+    else{b.classList.add('miss');wilt()}
+  }});
+  check();
+  draw();
+}
+function reveal(){
+  for(var i=0;i<word.length;i++){
+    var ch=word[i];
+    var s=document.getElementById('slot'+i);
+    if(document.getElementById('slot'+i).textContent==='')
+      s.textContent=ch;
+  }
+  for(i=0;i<word.length;i++){
+    var s2=document.getElementById('slot'+i);
+    if(s2.textContent===''&&guessed[word[i]])s2.textContent=word[i];
+  }
+}
+function wilt(){
+  misses++;
+  for(var i=0;i<10;i++)parts.push({x:W/2+(Math.random()-0.5)*40,y:H*0.3+Math.random()*H*0.3,
+    vx:(Math.random()-0.5)*0.8,vy:Math.random()*0.4,l:120,r:Math.random()*6.28,c:'rgba(181,101,79,0.5)'});
+}
+function check(){
+  var won=true;
+  for(var i=0;i<word.length;i++)if(!guessed[word[i]])won=false;
+  if(won){over=true;
+    document.getElementById('msg').textContent=word+' blooms — it was ‘'+hint+'’.';
+    for(var k=0;k<40;k++)parts.push({x:W/2+(Math.random()-0.5)*60,y:H*0.3,vx:(Math.random()-0.5)*2,vy:-Math.random()*1.5,l:160,r:Math.random()*6.28,c:'hsla('+(330+Math.random()*40)+',70%,70%,0.7)'});
+    done();}
+  else if(misses>=maxMiss){over=true;
+    for(i=0;i<word.length;i++)document.getElementById('slot'+i).classList.add('miss'),document.getElementById('slot'+i).textContent=word[i];
+    document.getElementById('msg').textContent='the '+word+' wilted. so it goes.';
+    done();}
+}
+function done(){document.getElementById('again').style.display='inline-block'}
+function draw(){
+  t++;
+  ctx.clearRect(0,0,W,H);
+  var baseY=H-14,potW=54,potH=40;
+  var grow=0,total=0;
+  for(var i=0;i<word.length;i++){if(guessed[word[i]])grow++;total++}
+  var health=1-misses/maxMiss;
+  ctx.strokeStyle='rgba(60,70,54,'+(0.15)+')';
+  ctx.beginPath();ctx.moveTo(W*0.1,baseY);ctx.lineTo(W*0.9,baseY);ctx.stroke();
+  var droop=(1-health)*0.9;
+  var stemH=(H-90)*(0.15+0.85*grow/total);
+  var topX=W/2+droop*70,topY=baseY-potH*0.4-stemH+droop*50;
+  var mx=W/2+droop*30,my=baseY-potH*0.4-stemH*0.5+droop*14;
+  ctx.strokeStyle='hsl('+(95-droop*60)+',40%,'+(38+droop*8)+'%)';
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(W/2,baseY-potH*0.4);
+  ctx.quadraticCurveTo(mx,my,topX,topY);
+  ctx.stroke();
+  var leaves=Math.floor(grow);
+  for(i=0;i<leaves;i++){
+    var f=i/Math.max(1,leaves);
+    var lx=W/2+droop*30*f,ly=baseY-potH*0.4-stemH*(0.2+f*0.6);
+    var side=i%2?1:-1;
+    ctx.fillStyle='hsla('+(95-droop*50)+',40%,'+(42+droop*10)+'%,0.9)';
+    ctx.save();ctx.translate(lx,ly);ctx.rotate(side*(0.9-droop*0.5)+(droop*side*0.8));
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.quadraticCurveTo(side*16,-8,side*30,2);
+    ctx.quadraticCurveTo(side*16,10,0,0);
+    ctx.fill();
+    ctx.restore();
+  }
+  var bloom=over?true:(grow>=total);
+  if(grow>0){
+    var petals=8;
+    var pt=over&&misses>=maxMiss?2.2:1;
+    for(i=0;i<petals;i++){
+      var a=i/petals*6.283+t/(140+pt*600)*pt;
+      var rr=12+4*Math.sin(t/30+i);
+      ctx.fillStyle='hsla('+((320+i*8)%360)+',70%,'+(70-health*15)+'%,'+(0.35+health*0.5)+')';
+      ctx.beginPath();
+      ctx.ellipse(topX+Math.cos(a)*rr*(over&&misses>=maxMiss?1.6:1),topY+Math.sin(a)*rr*(over&&misses>=maxMiss?1.9:1)+ (over&&misses>=maxMiss?rr*0.8:0),7,4,a,0,7);
+      ctx.fill();
+    }
+    ctx.fillStyle='#e8b83a';
+    ctx.beginPath();ctx.arc(topX,topY,6,0,7);ctx.fill();
+  }
+  ctx.fillStyle='#9c5b3f';
+  ctx.beginPath();
+  ctx.moveTo(W/2-potW/2,baseY-potH*0.55);
+  ctx.lineTo(W/2+potW/2,baseY-potH*0.55);
+  ctx.lineTo(W/2+potW/2*0.8,baseY);
+  ctx.lineTo(W/2-potW/2*0.8,baseY);
+  ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.12)';
+  ctx.fillRect(W/2-potW/2,baseY-potH*0.55,potW,5);
+  for(i=parts.length-1;i>=0;i--){var p=parts[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.02;p.r+=0.05;p.l--;
+    if(p.l<=0||p.y>baseY){parts.splice(i,1);continue}
+    ctx.fillStyle=p.c;
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);
+    ctx.fillRect(-3,-1.5,6,3);
+    ctx.restore();
+  }
+  var days='';
+  for(i=0;i<maxMiss;i++)days+=i<misses?'· ':'☂ ';
+  requestAnimationFrame(draw);
+}
+document.getElementById('again').addEventListener('click',reset);
+window.addEventListener('keydown',function(e){
+  if(/^[a-zA-Z]$/.test(e.key))press(e.key.toLowerCase());
+});
+window.addEventListener('resize',fit);
+fit();reset();requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
