@@ -43,7 +43,7 @@ scripts/            runner-overlay, QA, screenshot-capture en gallery-builder (M
 
 ## Bedoeling
 
-Deze repo is etalage. Het idee erachter — lokaal draaiende modellen met meetbare snelheid, een agent-harness, en een productiepijplijn van run tot publicatie — pas ik toe voor bedrijven en opdrachtgevers: van interactieve one-pagers tot volledige web-apps.
+Een zuivere showcase van wat lokaal met AI mogelijk is: één consumentengpu, een open model, een agent-harness en een kleine pijplijn van run tot publicatie — geen API, geen abonnement, en alle cijfers gewoon openlijk inzichtelijk.
 
 *Ontworpen, aangestuurd en opgeleverd door Robert Dingenouts (Robas Lab). De pagina's zijn gegenereerd door het model onder één vaste startprompt; de QA-, meet- en publicatie-infrastructuur is van Robas Lab.*
 
