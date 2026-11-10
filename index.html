@@ -44,6 +44,27 @@ details p b { color:var(--tx); font-weight:600 }
 footer { max-width:1240px; margin:0 auto 60px; padding:0 24px; color:var(--dim); font-size:.84rem }
 footer a { color:var(--acc2) }
 @media (prefers-reduced-motion) { * { animation:none!important } }
+body.embedded header { padding-top:64px }
+#viewer { position:fixed; inset:0; z-index:50; background:#000; display:none }
+#viewer.on { display:block }
+#vframe { position:absolute; inset:0; border:0; width:100%; height:100% }
+.vnav { position:fixed; top:50%; transform:translateY(-50%); z-index:60; width:34px; height:72px;
+ border-radius:12px; background:linear-gradient(180deg, rgba(38,44,56,.62), rgba(18,21,28,.55)); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+ border:1px solid rgba(255,255,255,.22); box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.18);
+ color:#f2f0eb; font-size:1.2rem; font-weight:600; cursor:pointer;
+ opacity:.75; transition:opacity .15s, background .15s }
+.vnav:hover { opacity:1 }
+#vprev { left:7px } #vnext { right:7px }
+.vpill { position:fixed; bottom:14px; left:50%; transform:translateX(-50%); z-index:60;
+ display:flex; gap:12px; align-items:center; max-width:80vw;
+ background:linear-gradient(180deg, rgba(34,40,51,.62), rgba(16,19,25,.58)); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+ border:1px solid rgba(255,255,255,.2); box-shadow:0 4px 18px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.15);
+ border-radius:999px; padding:8px 18px;
+ font-size:.82rem; color:#c8ccd6 }
+#vnum { color:var(--acc); font-variant-numeric:tabular-nums; white-space:nowrap }
+#vtitle { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.vpill button { background:none; border:0; color:var(--dim); cursor:pointer; font-size:1rem; padding:2px 4px }
+.vpill button:hover { color:var(--acc) }
 </style></head><body>
 <header>
  <div class="num">ROBAS LAB · EXPERIMENT 001 · NOV 2026</div>
@@ -62,6 +83,10 @@ footer a { color:var(--acc2) }
 </header>
 <div class="controls"><input id="q" type="search" placeholder="Zoek in titels, brieves en technieken…" autofocus></div>
 <main id="grid"></main>
+<div id="viewer"><iframe id="vframe" allow="autoplay"></iframe>
+ <button id="vprev" class="vnav" aria-label="vorige">←</button><button id="vnext" class="vnav" aria-label="volgende">→</button>
+ <div class="vpill"><span id="vnum"></span><span id="vtitle"></span><button id="vopen" title="in nieuw tabblad openen">↗</button><button id="vclose" aria-label="sluiten">✕</button></div>
+</div>
 <footer>
  <p><b>NL</b> — Bedacht en aangestuurd door Robert Dingenouts (Robas Lab). Het model (Qwen3.8-Flash-Next, UD-IQ3_XXS
  + DFlash2, 262K context op Strata) draaide in DeepSeek Harness onder één vaste startprompt met drie creatieve regels;
@@ -84,8 +109,8 @@ function badges(it){
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
 function card(it){
  const im = it.img
-  ? '<a class="open" href="out/'+it.file+'" target="_blank" rel="noopener"><img src="thumbs/'+it.slug+'.jpg" loading="lazy" alt="'+esc(it.title)+'"></a>'
-  : '<a class="open" href="out/'+it.file+'" target="_blank" rel="noopener"><div class="ph">open pagina →</div></a>';
+  ? '<a class="open" href="out/'+it.file+'" data-open="'+it.n+'"><img src="thumbs/'+it.slug+'.jpg" loading="lazy" alt="'+esc(it.title)+'"></a>'
+  : '<a class="open" href="out/'+it.file+'" data-open="'+it.n+'"><div class="ph">open pagina →</div></a>';
  return '<article class="card">'+im+'<div class="body">'
   +'<div class="num">#'+it.n+'</div>'
   +'<div class="t">'+esc(it.title)+'</div>'
@@ -95,8 +120,8 @@ function card(it){
    +'<p><b>Brief:</b> '+esc(it.prompt)+'</p>'
    +'<p><b>Technieken:</b> '+esc(it.tech)+'</p>'
    +'<p><b>Interactie:</b> '+esc(it.inter)+'</p></details>'
-  +'<div class="row"><a href="out/'+it.file+'" target="_blank" rel="noopener">openen</a>'
-  +'<a class="p" href="out/'+it.slug+'.txt" target="_blank">.txt</a></div></div></article>';
+  +'<div class="row"><a href="out/'+it.file+'" data-open="'+it.n+'">bekijken</a>'
+  +'<a class="p" href="out/'+it.slug+'.txt" target="_blank" rel="noopener">.txt</a></div></div></article>';
 }
 function render(list){ grid.innerHTML=list.map(card).join(''); }
 render(DATA);
@@ -104,4 +129,38 @@ document.getElementById('q').addEventListener('input',function(e){
  const v=e.target.value.toLowerCase();
  render(DATA.filter(function(it){return (it.n+it.title+it.desc+it.prompt+it.tech+it.inter).toLowerCase().includes(v);}));
 });
+/* ── viewer: doorklikmodus ── */
+if (window.self !== window.top) document.body.classList.add('embedded');
+var viewer=document.getElementById('viewer'), frame=document.getElementById('vframe');
+var vnum=document.getElementById('vnum'), vtitle=document.getElementById('vtitle');
+var cur=-1;
+function show(n){
+ cur=(n+DATA.length)%DATA.length; var it=DATA[cur];
+ frame.src='out/'+it.file;
+ vnum.textContent='#'+it.n+' · '+(cur+1)+'/'+DATA.length;
+ vtitle.textContent=it.title;
+ viewer.classList.add('on');
+ location.hash=it.n;
+ document.body.style.overflow='hidden';
+}
+function hide(){
+ viewer.classList.remove('on'); frame.src='about:blank';
+ document.body.style.overflow=''; location.hash='';
+}
+document.addEventListener('click',function(e){
+ var a=e.target.closest('[data-open]');
+ if(a){ e.preventDefault(); var i=DATA.findIndex(function(x){return x.n===a.getAttribute('data-open');}); if(i>=0) show(i); }
+});
+document.addEventListener('keydown',function(e){
+ if(!viewer.classList.contains('on')) return;
+ if(e.key==='Escape') hide();
+ if(e.key==='ArrowRight') show(cur+1);
+ if(e.key==='ArrowLeft') show(cur-1);
+});
+document.getElementById('vclose').addEventListener('click',hide);
+document.getElementById('vprev').addEventListener('click',function(){show(cur-1)});
+document.getElementById('vnext').addEventListener('click',function(){show(cur+1)});
+document.getElementById('vopen').addEventListener('click',function(){ if(DATA[cur]) window.open('out/'+DATA[cur].file,'_blank','noopener'); });
+var h=location.hash.replace('#','');
+if(/^[0-9]{3}$/.test(h)){ var i0=DATA.findIndex(function(x){return x.n===h;}); if(i0>=0) show(i0); }
 </script></body></html>
